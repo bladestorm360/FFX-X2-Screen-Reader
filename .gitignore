@@ -1,0 +1,40 @@
+# Release output — never commit packaged zips or staging folders
+releases/
+
+# Dev scripts — Ghidra/Frida probes and their output are local-only.
+# The shipping mod script lives at src/ffx_sr.js and IS committed.
+Docs/Scripts/
+
+# Runtime logs
+FFX_SR_Latest.log
+*.log
+
+# C/C++ build artifacts
+*.obj
+*.exp
+*.lib
+*.ilk
+*.pdb
+
+# .NET build artifacts (archived C# mod output, just in case)
+bin/
+obj/
+
+# Visual Studio / IDE
+.vs/
+.vscode/
+*.user
+*.suo
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Archived / abandoned experiments — development reference only, not shipped
+archived/
+
+# Frida gadget — upstream dependency, not our code. See lib/README.md for how to obtain.
+lib/frida-gadget.dll
