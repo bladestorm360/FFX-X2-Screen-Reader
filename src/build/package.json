@@ -1,0 +1,12 @@
+{
+  "name": "ffx-sr-build",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Build tooling for ffx_sr.js (frida-compile bundler).",
+  "scripts": {
+    "build": "frida-compile ../index.js -o ../../install/ffx_sr.js -B iife -T none"
+  },
+  "devDependencies": {
+    "frida-compile": "^19.0.5"
+  }
+}
