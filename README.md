@@ -62,6 +62,15 @@ Make sure your screen reader (NVDA, JAWS, or Windows Narrator/SAPI) is running
 **before** launching the game. The mod communicates through the Tolk bridge
 and will not produce speech otherwise.
 
+If the game launches in Japanese rather than English, fix the language before
+continuing. Open `Documents\SQUARE ENIX\` in File Explorer, navigate into the
+FFX / FFX-2 HD Remaster subfolder, and open the game's settings file in a plain
+text editor. The first line contains the language setting — change `jp` to `en`
+and save. The value must be lowercase exactly as written; uppercase or mixed
+case will not be recognized. NVDA's screen-recognition feature (NVDA + R) can
+sometimes toggle the in-game language option directly, but the file edit is
+the guaranteed fix.
+
 The Steam launcher window is not accessible, so you will need to bypass it —
 see "Skipping the launcher" below. Once you are past the launcher, the mod
 loads automatically.

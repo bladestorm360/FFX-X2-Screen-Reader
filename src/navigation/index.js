@@ -27,26 +27,87 @@ const NAV_CATEGORIES = ['All', 'Exit', 'Event', 'Save Sphere', 'Treasure Chest',
 let navEntities = [];
 let navSelectedIdx = 0;
 let navCategoryIdx = 0;
-let navScanPending = false;
-let navScanRetries = 0;
+// Last count of fully-written actors observed in onTick. -1 sentinel
+// means "no observation yet" (or "just reset by JUMP2"). When the live
+// count differs from this, a new actor just landed (or the table was
+// just cleared on transition) and we re-scan.
+let navLastActorCount = -1;
 
 // 0xcdcdcdcd reinterpreted as float; indicates an uninit actor slot.
 const ACTOR_UNINIT_FLOAT = -431602080;
 
-// Is the actor array populated enough to scan? Player slot (actor 0) at
-// +0x0C holds x; non-zero and non-garbage means the game finished loading
-// per-actor runtime state. px=0 alone isn't a safe gate — some maps place
-// the player legitimately at origin — but px=garbage is an uninit slot.
-function actorsReady() {
+// Player-slot validity gate. Only checks slot 0 (player). Says "the engine
+// has finished restoring the player position after a JUMP2/load" — does NOT
+// say "all actors are loaded". Actor population continues for many frames
+// after this returns true. The continuous-rescan loop in onTick() handles
+// the progressive write window: it checks the actor count each frame and
+// re-scans whenever the count changes. Event-driven (engine adds an actor
+// → next frame the count differs → scan), no timing thresholds.
+function playerSlotReady() {
     const ab = getActorsBase();
     if (!ab) return false;
     try {
         const px = ab.add(0x0C).readFloat();
-        if (isNaN(px)) return false;
-        if (px === ACTOR_UNINIT_FLOAT) return false;
-        if (px === 0) return false;
+        if (isNaN(px) || px === ACTOR_UNINIT_FLOAT) return false;
+        const playerEn = ab.add(2).readU16();
+        if (playerEn === 0 || playerEn === 0xCDCD || playerEn > 0xFF) return false;
+        const playerVar1 = ab.add(0x824).readU32();
+        if (playerVar1 === 0xCDCDCDCD) return false;
         return true;
     } catch (e) { return false; }
+}
+
+// Count actors whose slot is fully written (valid metadata AND non-zero
+// position). Returns 0 during early load (positions still pending) and
+// rises as the engine writes each slot. A delta in this count between
+// frames IS the engine signal that another actor just landed — that's
+// what drives the rescan in onTick().
+function countLoadedActors() {
+    const ab = getActorsBase();
+    if (!ab) return -1;
+    try {
+        let count = 0;
+        for (let i = 1; i < NAV_MAX_ACTORS; i++) {
+            const actor = ab.add(i * NAV_ACTOR_SIZE);
+            const chrId = actor.readU16();
+            const en = actor.add(2).readU16();
+            if (chrId === 0 || chrId === 0xCDCD || en === 0) continue;
+            if (en === 0xCDCD || en > 0xFF) continue;
+            const var1 = actor.add(0x824).readU32();
+            if (var1 === 0xCDCDCDCD) continue;
+            const x = actor.add(0x0C).readFloat();
+            const z = actor.add(0x14).readFloat();
+            if (isNaN(x) || isNaN(z)) continue;
+            if (x === 0 && z === 0) continue;  // metadata in, position pending
+            count++;
+        }
+        return count;
+    } catch (e) { return -1; }
+}
+
+// Read the developer's debug string from chr_name (actor+0x04). FFX devs label
+// each actor with an asset-name-style identifier (e.g. "chr_wakka_a", "barrel_01");
+// most NPCs have no player-facing name, so the dev string is the best handle we
+// have. Returns the cleaned string when printable, null otherwise. Cleanup is
+// minimal: strip leading directory components and known asset extensions, but
+// preserve the dev's underscores and version suffixes — the user learns the
+// vocabulary, we don't translate it.
+function readDevString(actor) {
+    let np;
+    try { np = actor.add(0x04).readPointer(); } catch (e) { return null; }
+    if (!isValidPtr(np)) return null;
+    const s = safeReadCString(np, 96);
+    if (!s || s.length === 0) return null;
+    let printable = 0;
+    for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        if (c >= 0x20 && c <= 0x7E) printable++;
+    }
+    if (printable / s.length < 0.85) return null;
+    let cleaned = s;
+    if (/[\/\\]/.test(cleaned)) cleaned = cleaned.split(/[\/\\]/).pop();
+    cleaned = cleaned.replace(/\.(bin|dds|tex|ftc|mdl|tim)$/i, '').trim();
+    return cleaned.length > 0 ? cleaned : null;
 }
 
 function classify(id) {
@@ -58,7 +119,14 @@ function classify(id) {
 }
 
 function label(e) {
-    return (e.name !== '?' && e.name !== e.category) ? e.category + ' "' + e.name + '"' : e.category;
+    // Exit/Event names already encode their category (e.g. "Exit to 0x1234");
+    // don't double-prefix.
+    if (e.category === 'Exit' || e.category === 'Event') return e.name || e.category;
+    // Other entities: prefix the category to the dev string when readable, or
+    // fall back to chrId hex so 30 unidentified entities don't all collide on
+    // the bare category name.
+    if (e.name) return e.category + ': ' + e.name;
+    return e.category + ' 0x' + e.chrId.toString(16);
 }
 
 function getFiltered() {
@@ -83,6 +151,18 @@ function scan() {
             const chrId = actor.readU16();
             const en = actor.add(2).readU16();
             if (chrId === 0xCDCD || en === 0xCDCD || en === 0 || chrId === 0) continue;
+            // Stricter uninit-memory filter. After a load (room=-1 JUMP2),
+            // actorsReady() can return true while many actor slots are still
+            // partially-initialized: chr_enabled holds garbage values like
+            // 2939 / 2944 / 43981 / 65535 (all > 0xFF), and var1 at +0x824
+            // contains MSVC's uninit-stack pattern 0xCDCDCDCD. Every legitimate
+            // actor in field/world scans has en === 1 and var1 != 0xCDCDCDCD.
+            // Filter both — without this, a load surfaces 14+ ghost entities
+            // stacked at world origin (see FFX_SR_Latest.log 2026-04-27).
+            if (en > 0xFF) continue;
+            let var1 = 0;
+            try { var1 = actor.add(0x824).readU32(); } catch (e) { continue; }
+            if (var1 === 0xCDCDCDCD) continue;
             const cat = classify(chrId);
             if (cat === 'Player') continue;
             const pos = { x: actor.add(0x0C).readFloat(), y: actor.add(0x10).readFloat(), z: actor.add(0x14).readFloat() };
@@ -90,18 +170,23 @@ function scan() {
             const dist = distXZ(pp, pos);
             if (isNaN(dist)) continue;
 
-            if (nav && !isNearWalkable(nav, pos, NEAR_THRESHOLD_SQ)) { filtered++; continue; }
+            const name = readDevString(actor);
 
-            let name = '?';
-            try {
-                const np = actor.add(0x04).readPointer();
-                const s = safeReadCString(np, 64);
-                if (s) name = s;
-            } catch (e) {}
+            if (nav && !isNearWalkable(nav, pos, NEAR_THRESHOLD_SQ)) {
+                // Log so we can see what's being dropped — interactables that
+                // sit just off the walkable mesh (flint on a pedestal, flowers
+                // in an alcove, etc.) come up here. Useful for tuning the
+                // threshold or identifying entities the user can't reach.
+                logFile('[ACTOR-OFFMESH ' + i + '] chrId=0x' + chrId.toString(16) +
+                    ' en=' + en + ' name=' + (name || 'null') +
+                    ' pos=(' + pos.x.toFixed(2) + ',' + pos.y.toFixed(2) + ',' + pos.z.toFixed(2) + ')');
+                filtered++;
+                continue;
+            }
 
             try {
                 logFile('[ACTOR ' + i + '] chrId=0x' + chrId.toString(16) + ' en=' + en +
-                    ' name=' + name +
+                    ' name=' + (name || 'null') +
                     ' pos=(' + pos.x.toFixed(2) + ',' + pos.y.toFixed(2) + ',' + pos.z.toFixed(2) + ')' +
                     ' rot=' + actor.add(0x158).readFloat().toFixed(3) +
                     ' speed=' + actor.add(0x154).readFloat().toFixed(3) +
@@ -234,27 +319,31 @@ function hotkeyAnnounceDistance() {
     }
 }
 
-// Narrow gated polling: active ONLY between JUMP2 and the first successful
-// scan after a transition. Empirically FUN_009093B0 returns before actor
-// positions and trigger worker classification stabilize (latency 40ms–1s+
-// past return), so we need to wait for actors to be ready before scanning.
-// The map-load-complete hook below tries a fast-path first; if actors
-// aren't ready yet, this tick retries for up to 150 frames.
+// Continuous event-driven rescan loop. Each frame: count fully-written
+// actors and compare against the last observation. A delta means the
+// engine just added (or removed) an actor — rescan. The trigger is the
+// engine's own write activity, not a timing threshold. Steady state
+// (count unchanged) is free: the array walk costs microseconds, and no
+// scan() is invoked.
+//
+// We never stop watching. Late actor changes (scripted spawns after a
+// cutscene, NPCs walking in/out, etc.) keep the entity list current
+// without requiring manual rescan. The only gates are battle state
+// (skip — battle uses a separate entity system) and player-slot
+// readiness (skip during the few frames between JUMP2 and the engine
+// restoring player position).
 function onTick() {
-    if (!navScanPending) return;
     try {
-        navScanRetries++;
-        if (actorsReady()) {
-            logFile('[NAV] Actors ready after ' + navScanRetries + ' frames');
-            scan();
-            navScanPending = false;
-            return;
+        if (btlStateAddr.readU8() !== 0) return;
+        if (!playerSlotReady()) return;
+        const cur = countLoadedActors();
+        if (cur < 0) return;
+        if (cur !== navLastActorCount) {
+            logFile('[NAV] Actor count: ' + navLastActorCount + ' -> ' + cur + ' — rescanning');
+            navLastActorCount = cur;
+            if (cur > 0) scan();
         }
-        if (navScanRetries > 150) {
-            logFile('[NAV] Scan timed out — no actors after 150 frames');
-            navScanPending = false;
-        }
-    } catch (e) { navScanPending = false; }
+    } catch (e) {}
 }
 
 export function install() {
@@ -287,36 +376,22 @@ export function install() {
                 ' retRVA=0x' + retRva.toString(16) + workerInfo);
             navEntities = [];
             navSelectedIdx = 0;
-            if (btlStateAddr.readU8() === 0) {
-                navScanPending = true;
-                navScanRetries = 0;
-            } else {
-                logFile('[NAV] Skipping autoscan arm — battle state active');
-            }
+            // Reset count tracker so the first onTick observation after the
+            // new map starts loading is treated as a delta and triggers a
+            // scan. Without this, a stale count from the previous map could
+            // match the new table's first observation and skip the scan.
+            navLastActorCount = -1;
         }
     }, 'AtelSetEventJump2');
 
-    // Map-load complete (FUN_009093B0, RVA 0x5093B0) — orchestrates the
-    // full map-load sequence: state reset, layer loads, NavMesh install,
-    // finalize. On its simplest transitions this returns AFTER actor state
-    // is populated; on others actors stabilize up to a second later.
-    // Use it as a fast path: if actorsReady() is true on return, scan
-    // immediately; otherwise let onTick poll until actors are ready.
+    // Map-load complete (FUN_009093B0, RVA 0x5093B0) — diagnostic only.
+    // onTick handles all scanning via count-change detection regardless
+    // of whether this fires before or after actor data lands.
     attachRva(0x5093B0, {
         onLeave: function() {
             try {
-                if (btlStateAddr.readU8() !== 0) {
-                    logFile('[NAV] Skipping autoscan — battle state active');
-                    navScanPending = false;
-                    return;
-                }
-                if (actorsReady()) {
-                    logFile('[NAV] Map load complete — fast-path scan');
-                    scan();
-                    navScanPending = false;
-                } else {
-                    logFile('[NAV] Map load complete — deferring to tick retry');
-                }
+                logFile('[NAV] Map load complete' +
+                    (btlStateAddr.readU8() !== 0 ? ' (battle state)' : ''));
             } catch (e) {}
         }
     }, 'Map load complete');

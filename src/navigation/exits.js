@@ -16,6 +16,47 @@ const fnGetWorker = new NativeFunction(rva(0x46A7C0), 'pointer', ['int']);
 // Sanity upper bound for excel-bin-style offset reads inside bytecode scan.
 const CODE_OFFSET_MAX = 0x100000;
 
+// Map-name resolver. The game itself resolves map IDs to area names via two
+// chained calls used by the save/load screen (RVA 0x6F0DA0 around line
+// 183776 of the layer2 decompile):
+//   encoded = FUN_0086c3c0(mapId, 0)  -> ptr into the engine's encoded
+//                                         string table for the area name
+//   FUN_006460e0(encoded, outBuf)      -> decodes FFX's custom encoding
+//                                         (FhEncoding) into a plain C-string
+// We call the same pair from JS. The save/load module is not touched — it
+// observes args[2] of FUN_00702E70 unchanged. We just reuse the resolver.
+const fnMapNameEncoded = new NativeFunction(rva(0x46C3C0), 'pointer', ['uint32', 'uint32']);
+const fnDecodeFhText = new NativeFunction(rva(0x2460E0), 'void', ['pointer', 'pointer']);
+const mapNameBuf = Memory.alloc(256);
+const mapNameZero = new Uint8Array(256);
+const mapNameCache = {};
+
+function resolveMapName(mapId) {
+    if (mapId === null || mapId === undefined) return null;
+    if (mapNameCache.hasOwnProperty(mapId)) return mapNameCache[mapId];
+    let result = null;
+    try {
+        const encoded = fnMapNameEncoded(mapId, 0);
+        if (isValidPtr(encoded)) {
+            mapNameBuf.writeByteArray(mapNameZero);
+            fnDecodeFhText(encoded, mapNameBuf);
+            const s = mapNameBuf.readCString(255);
+            if (s && s.length > 0) {
+                let printable = 0;
+                for (let i = 0; i < s.length; i++) {
+                    const c = s.charCodeAt(i);
+                    if (c >= 0x20 && c <= 0x7E) printable++;
+                }
+                if (printable / s.length >= 0.85) result = s.trim();
+            }
+        }
+    } catch (e) {
+        logFile('[NAV] resolveMapName(' + mapId + ') threw: ' + e.message);
+    }
+    mapNameCache[mapId] = result;
+    return result;
+}
+
 // REQ family opcodes — 1-byte. Workers that use these coordinate with other
 // workers (player, dialog, camera). Ambient effects don't; they just CALL and RET.
 const REQ_OPCODES = {
@@ -73,7 +114,7 @@ function findExitAtelIds() {
 // hints: isExit if any CALL targets an exit function, hasReq if any REQ-family
 // opcode is used, plus full call/req diagnostic lists.
 function workerScanBytecode(worker, exitIds) {
-    const result = { isExit: false, hasReq: false, calls: [], reqs: [], reqTargets: [], bytes: 0, entries: 0, steps: 0, truncated: false };
+    const result = { isExit: false, hasReq: false, exitTargetMapId: null, calls: [], reqs: [], reqTargets: [], bytes: 0, entries: 0, steps: 0, truncated: false };
     try {
         if (!isValidPtr(worker)) return result;
         const headerPtr = worker.readPointer();
@@ -127,7 +168,16 @@ function workerScanBytecode(worker, exitIds) {
                     if (pc + 2 >= codeLength) break;
                     const operand = codeBase.add(pc + 1).readU16();
                     if (opcode === 0xB5 || opcode === 0xD8) {
-                        if (exitIds[operand]) result.isExit = true;
+                        if (exitIds[operand]) {
+                            result.isExit = true;
+                            // FFX exit-call convention: the PUSHI immediately
+                            // before the CALL carries the destination map ID.
+                            // First exit CALL wins (workers may chain multiple
+                            // CALLs but the first is the primary exit).
+                            if (result.exitTargetMapId === null && lastPushi1 !== null) {
+                                result.exitTargetMapId = lastPushi1;
+                            }
+                        }
                         if (result.calls.indexOf(operand) < 0) result.calls.push(operand);
                     }
                     if (opcode === 0xAD) {
@@ -181,9 +231,13 @@ export function scanExits(playerPos, entities) {
                 const actorType = firstDword.readU8();
                 typeCount[actorType] = (typeCount[actorType] || 0) + 1;
 
-                // Filter by type BEFORE reading geometry — the type determines the
-                // struct layout and a wrong offset can read past the worker
-                // allocation. Unknown types get a bytecode-only scan, no position.
+                // Filter by type BEFORE reading geometry — the type determines
+                // the struct layout and a wrong offset can read past the worker
+                // allocation. Unknown types get a bytecode-only scan, no
+                // position. This filter exists because earlier sessions found
+                // that opening the gate (accepting all types) reintroduces
+                // event/object stacking and false-positive exits (e.g. the
+                // player spawn worker on the salvage ship deck).
                 const isKnownType = (actorType === 2 || actorType === 3 ||
                                      actorType === 5 || actorType === 6);
 
@@ -227,11 +281,39 @@ export function scanExits(playerPos, entities) {
                 const pos = { x: x, y: y, z: z };
                 if (scan.isExit) {
                     exitCount++;
-                    entities.push({ name: 'Exit ' + exitCount, category: 'Exit',
+                    const tid = scan.exitTargetMapId;
+                    // Use the engine's own map-name resolver as a validity
+                    // gate per user direction: if the destination map ID
+                    // doesn't decode to a real area name, this is likely a
+                    // false-positive exit (player spawn marker, dead-script
+                    // teleport, etc.). Don't drop them — keep so we don't
+                    // lose real exits the resolver hasn't seen yet — but
+                    // mark the label so the user can tell verified from
+                    // suspect at announce time.
+                    let exitName;
+                    if (tid === null || tid === undefined) {
+                        exitName = 'Exit ' + exitCount + ' (no target id)';
+                    } else {
+                        const resolved = resolveMapName(tid);
+                        if (resolved) {
+                            exitName = 'Exit to ' + resolved;
+                        } else {
+                            exitName = 'Exit (unverified) to 0x' + tid.toString(16);
+                        }
+                    }
+                    entities.push({ name: exitName, category: 'Exit',
                         chrId: 0xFFFF, pos: pos, dist: distXZ(playerPos, pos) });
                 } else if (scan.hasReq) {
                     eventCount++;
-                    entities.push({ name: 'Event ' + eventCount, category: 'Event',
+                    // Hint at what the event does using the first REQ target
+                    // function ID. Distinguishes "Event 1" / "Event 2" when
+                    // they sit at different positions on the same map but call
+                    // different script functions.
+                    let fnHint = '';
+                    if (scan.reqTargets.length > 0) {
+                        fnHint = ' fn 0x' + scan.reqTargets[0].fn.toString(16);
+                    }
+                    entities.push({ name: 'Event ' + eventCount + fnHint, category: 'Event',
                         chrId: 0xFFFE, pos: pos, dist: distXZ(playerPos, pos) });
                 }
             } catch (e) {}
