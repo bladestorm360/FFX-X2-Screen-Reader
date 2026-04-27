@@ -9,6 +9,8 @@ import { decodeFFXSegments, resolveConfigText, resolveLocString } from '../core/
 import { attachRva } from '../core/hooks.js';
 import { speak, logFile } from '../core/speech.js';
 import { isValidPtr } from '../core/safeRead.js';
+import { registerHotkey } from '../core/frame.js';
+import { VK_S } from '../core/input.js';
 
 let prevConfigCursor = -1, prevConfigSelection = -1;
 let configActive = false;
@@ -97,18 +99,35 @@ function announceSelectedNode() {
     } catch (e) {}
 }
 
-// Announce the current sphere-grid character with both available and
-// spent S.Lv counts. Called on sphere grid open + on character switch.
+// Announce the current sphere-grid character name. Called on sphere grid
+// open and on character switch. S.Lv counts are NOT announced here — the
+// user asks for them on demand via the VK_S hotkey (handleSphereAvailHotkey).
 function announceCurrentCharacter() {
     try {
         const eng = sgridEnginePtrAddr.readPointer();
         if (!isValidPtr(eng)) return;
         const chrId = eng.add(0x115BC).readU8();
-        const slv = readSgridSlv(chrId);
         const name = CHARACTER_NAMES[chrId] || ('chr' + chrId);
-        const slvStr = slv ? (', S.Lv ' + slv.available + ' available, ' + slv.spent + ' spent') : '';
-        speak(name + slvStr, true);
+        speak(name, true);
         prevSgridChrId = chrId;
+    } catch (e) {}
+}
+
+// Hotkey handler: read S.Lv available for every party character. Only
+// active while the sphere grid is open. Format matches the battle H
+// party-HP hotkey: comma-separated "Name N" pairs. CHARACTER_NAMES[0..6]
+// are the seven FFX party members.
+function handleSphereAvailHotkey() {
+    try {
+        if (sgridIsOpenAddr.readU8() === 0) return;
+        const parts = [];
+        for (let i = 0; i < 7; i++) {
+            const slv = readSgridSlv(i);
+            if (!slv) continue;
+            const name = CHARACTER_NAMES[i] || ('chr' + i);
+            parts.push(name + ' ' + slv.available);
+        }
+        if (parts.length > 0) speak(parts.join(', '), true);
     } catch (e) {}
 }
 
@@ -223,6 +242,8 @@ export function install() {
             } catch (e) {}
         }
     }, 'Sphere grid char switch');
+
+    registerHotkey(VK_S, handleSphereAvailHotkey, 'sgrid.sphere-avail');
 
     logFile('Menus/config feature installed');
 }

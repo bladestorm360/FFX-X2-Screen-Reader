@@ -196,10 +196,17 @@ game's own navmesh, so they follow walkable paths and route around walls.
 Sphere Grid is announced automatically when you open it and as you move the
 cursor:
 
-* The currently focused character and their Sphere Level are announced when
-  the grid opens or when you switch characters.
+* The currently focused character's name is announced when the grid opens
+  and when you switch characters with L1 / R1.
 * Each node type (Strength Node, HP Node, Agility Node, Ability Node, Key
-  Sphere Lock, Empty Node, etc.) is announced as you move.
+  Sphere Lock, Empty Node, etc.) is announced as you move, along with its
+  link count so you know how many adjacent nodes you can move to.
+
+**S** — read out how many S.Lv (Sphere Levels) each party character
+currently has available to spend. Speaks every party member in turn, for
+example *"Tidus 3, Yuna 5, Auron 0, Kimahri 0, Wakka 1, Lulu 2, Rikku 4"*.
+Only active while the Sphere Grid is open. Use this to decide who to
+switch to with L1 / R1 before planning a move.
 
 ## Credits
 
