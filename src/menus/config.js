@@ -94,7 +94,12 @@ function announceSelectedNode() {
         // they can move to from here.
         const linkStr = (node.linkCount === 1) ? ', 1 link'
             : ', ' + node.linkCount + ' links';
-        speak(desc + linkStr, true);
+        // Activation flag: activatedBy is a character index (0..6) for any
+        // node that's had a sphere spent on it; 7+ means unactivated. Only
+        // call out activated — silence on unactivated keeps the announce
+        // short when the user is just scanning the grid.
+        const activStr = (node.activatedBy < 7) ? ', activated' : '';
+        speak(desc + linkStr + activStr, true);
         prevSgridSelectedNode = selNode;
     } catch (e) {}
 }

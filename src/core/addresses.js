@@ -102,30 +102,4 @@ export const RVA_MS_CAMERA_NOW = 0x1F11430;
 export const CAM_EYE_OFFSET    = 0x40;
 export const CAM_TARGET_OFFSET = 0x65C;
 
-// Atel namespace tables: each entry is 0x10 bytes (init, exec, ret_float, ret_int).
-// Function IDs are encoded as (namespace << 12) | index.
-// NOTE: these values are RVAs (runtime addresses relative to module base) — do NOT
-// subtract 0x400000.
-export const ATEL_NAMESPACES = [
-    { id: 0x0, rva: 0x850050, count: 616 }, // Common
-    { id: 0x1, rva: 0x852BE0, count: 30 },  // Math
-    { id: 0x4, rva: 0x888D88, count: 71 },  // SgEvent
-    { id: 0x5, rva: 0x8891F8, count: 145 }, // ChEvent
-    { id: 0x6, rva: 0x843988, count: 138 }, // Camera
-    { id: 0x7, rva: 0x842618, count: 296 }, // Battle
-    { id: 0x8, rva: 0x85DC90, count: 108 }, // Map
-    { id: 0x9, rva: 0x85D8C0, count: 1 },   // Mount
-    { id: 0xB, rva: 0x840E20, count: 16 },  // Movie
-    { id: 0xC, rva: 0x852DD8, count: 94 },  // Debug
-    { id: 0xD, rva: 0x885EB0, count: 1 }    // AbiMap
-];
-
-// Native RVAs of the Atel-callable wrappers that script CALLs use to do a map
-// transition. All four of these internally invoke FUN_0086fed0 (AtelSetEventJump2).
-export const EXIT_FN_RVAS = [
-    0x4580C0, 0x458220, 0x458370, 0x4584B0,
-    0x48E9D0, 0x48EA60,
-    0x45BA20, 0x4403B0, 0x458C70
-];
-
 logFile('Addresses resolved');

@@ -22,6 +22,7 @@ import { readPlayerInfo, readMonsterInfo, readPlayerDisplayName } from './entiti
 import { announceRewardsPhase1, announceRewardsPhase2 } from './rewards.js';
 import { install as installStatusHooks, resetStatusCache } from './status.js';
 import { install as installActionHooks } from './actions.js';
+import { install as installOdSuccess } from './od_success.js';
 
 // Per-battle tick state. (Status diffing moved to battle/status.js —
 // event-driven, no per-frame loop needed. Cursor change moved to the
@@ -191,6 +192,7 @@ export function install() {
 
     installStatusHooks();
     installActionHooks();
+    installOdSuccess();
 
     // Battle window pop (FUN_0089A5A0 at 0x49A5A0). Fires when a
     // sibling/submenu closes and a previously-open window becomes

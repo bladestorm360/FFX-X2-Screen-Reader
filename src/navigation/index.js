@@ -21,6 +21,7 @@ import {
 } from './navmesh.js';
 import { astar, smoothWaypoints } from './astar.js';
 import { scanExits } from './exits.js';
+import { parseSlug } from '../utils/labels.js';
 
 const NAV_CATEGORIES = ['All', 'Exit', 'Event', 'Save Sphere', 'Treasure Chest', 'NPC', 'Object'];
 
@@ -32,6 +33,25 @@ let navCategoryIdx = 0;
 // count differs from this, a new actor just landed (or the table was
 // just cleared on transition) and we re-scan.
 let navLastActorCount = -1;
+
+// Stable identity of the user's currently-focused entity, or null when
+// nothing is locked. Set on user pick (cycle/scan/pathfind), cleared on
+// JUMP2 or when the entity disappears between rescans. Lets scan() —
+// which sorts by distance and so reorders the list every time — re-find
+// the user's pick instead of clobbering navSelectedIdx back to 0 (which
+// the 1->2->6->8->10 actor-count cascade in post-load logs was doing).
+// Format: 'a:<actorIdx>:<chrId>' for table actors, 'w:<workerIdx>:<chrIdMarker>'
+// for exits/events. chrId in the key catches slot reuse.
+let navSelectedKey = null;
+
+function entityKey(e) {
+    if (e.category === 'Exit' || e.category === 'Event') {
+        if (e.workerIdx === undefined) return null;
+        return 'w:' + e.workerIdx + ':' + e.chrId;
+    }
+    if (e.actorIdx === undefined) return null;
+    return 'a:' + e.actorIdx + ':' + e.chrId;
+}
 
 // 0xcdcdcdcd reinterpreted as float; indicates an uninit actor slot.
 const ACTOR_UNINIT_FLOAT = -431602080;
@@ -122,10 +142,20 @@ function label(e) {
     // Exit/Event names already encode their category (e.g. "Exit to 0x1234");
     // don't double-prefix.
     if (e.category === 'Exit' || e.category === 'Event') return e.name || e.category;
-    // Other entities: prefix the category to the dev string when readable, or
-    // fall back to chrId hex so 30 unidentified entities don't all collide on
-    // the bare category name.
-    if (e.name) return e.category + ': ' + e.name;
+    // Other entities: try slug-parsing first (chr_<name>_*, barrel_*, etc.)
+    // so a raw "chr_wakka_a" speaks as "Wakka". Fall back to category + dev
+    // string when the slug doesn't match any known pattern, then to chrId
+    // hex so 30 unidentified entities don't all collide on the bare
+    // category name.
+    if (e.name) {
+        const parsed = parseSlug(e.name);
+        if (parsed) {
+            logFile('[LABEL] slug-hit: "' + e.name + '" -> ' + parsed.kind + ':' + parsed.name);
+            return parsed.name;
+        }
+        logFile('[LABEL] slug-miss: "' + e.name + '" (chrId=0x' + e.chrId.toString(16) + ')');
+        return e.category + ': ' + e.name;
+    }
     return e.category + ' 0x' + e.chrId.toString(16);
 }
 
@@ -201,8 +231,52 @@ function scan() {
     scanExits(pp, navEntities);
 
     navEntities.sort(function(a, b) { return a.dist - b.dist; });
-    navSelectedIdx = 0;
-    logFile('[NAV] Scan: ' + navEntities.length + ' entities (' + filtered + ' filtered by navmesh)');
+
+    // Clamp selection to the user's previously-picked entity if it survived
+    // the rescan. Without this, sort+reset on every actor-count change
+    // (NPCs spawning during load, scripted entries during cutscenes, etc.)
+    // would yank the user off whatever they'd selected for pathfinding.
+    // The active filter (NAV_CATEGORIES[navCategoryIdx]) controls what the
+    // user sees via getFiltered(), so we look up the new index inside the
+    // FILTERED list — that's what cycle/announce operate on.
+    let clamped = false;
+    if (navSelectedKey !== null) {
+        const list = getFiltered();
+        for (let i = 0; i < list.length; i++) {
+            if (entityKey(list[i]) === navSelectedKey) {
+                navSelectedIdx = i;
+                clamped = true;
+                break;
+            }
+        }
+        if (!clamped) {
+            // Identity gone — slot freed, worker torn down, or category
+            // changed and the entity no longer matches the active filter.
+            // Drop the lock; the next user action sets a new one.
+            logFile('[NAV] Selected entity (' + navSelectedKey + ') gone after rescan — clearing lock');
+            navSelectedKey = null;
+            navSelectedIdx = 0;
+        }
+    } else {
+        navSelectedIdx = 0;
+    }
+    logFile('[NAV] Scan: ' + navEntities.length + ' entities (' + filtered +
+        ' filtered by navmesh)' + (clamped ? ' [clamped to ' + navSelectedKey + ' idx ' + navSelectedIdx + ']' : ''));
+}
+
+// Capture the identity of whatever the user is currently looking at so
+// the next rescan clamps back to it. Called whenever the user advances
+// the selection (cycle/scan/pathfind). Centralizing this means every
+// selection-change path automatically locks; nothing to forget at a
+// call site.
+function lockSelected() {
+    const list = getFiltered();
+    if (list.length === 0 || navSelectedIdx >= list.length) {
+        navSelectedKey = null;
+        return;
+    }
+    const k = entityKey(list[navSelectedIdx]);
+    if (k !== null) navSelectedKey = k;
 }
 
 function announceSelected(interrupt) {
@@ -216,13 +290,17 @@ function announceSelected(interrupt) {
     const dist = distXZ(pp, e.pos);
     const steps = (dist / NAV_UNITS_PER_STEP).toFixed(1);
     const dir = relativeDir(e.pos.x - pp.x, e.pos.z - pp.z);
-    speak((navSelectedIdx + 1) + '/' + list.length + ': ' + label(e) + ', ' + steps + ' steps ' + dir, interrupt);
+    speak(label(e) + ', ' + steps + ' steps ' + dir + ', ' + (navSelectedIdx + 1) + ' of ' + list.length, interrupt);
 }
 
 function pathfind() {
     const list = getFiltered();
     if (list.length === 0 || navSelectedIdx >= list.length) { speak('No entity selected', true); return; }
     const target = list[navSelectedIdx];
+    // Pathfinding is the strongest "I want this entity" signal the user
+    // can give. Lock here in case scan() updated the list since the last
+    // cycle (e.g. an actor-count change between cycle and pathfind).
+    lockSelected();
     const pp = getPlayerPos(); if (!pp) return;
     const nav = readNavmesh();
     if (!nav) {
@@ -275,10 +353,14 @@ function pathfind() {
 }
 
 function hotkeyScan() {
+    // User pressed scan — they're starting a fresh selection cycle. Drop
+    // any prior lock so the new scan picks the nearest entity in the
+    // current category, then re-lock onto that one.
+    navSelectedKey = null;
     scan();
     const list = getFiltered();
     speak(list.length + ' ' + NAV_CATEGORIES[navCategoryIdx] + (navCategoryIdx === 0 ? '' : 's'), true);
-    if (list.length > 0) announceSelected();
+    if (list.length > 0) { announceSelected(); lockSelected(); }
 }
 
 function hotkeyCycleNext() {
@@ -287,10 +369,15 @@ function hotkeyCycleNext() {
         navSelectedIdx = 0;
         const list = getFiltered();
         speak('category: ' + NAV_CATEGORIES[navCategoryIdx] + ', ' + list.length, true);
-        if (list.length > 0) announceSelected(false);
+        if (list.length > 0) { announceSelected(false); lockSelected(); }
+        else navSelectedKey = null;
     } else {
         const list = getFiltered();
-        if (list.length > 0) { navSelectedIdx = (navSelectedIdx + 1) % list.length; announceSelected(); }
+        if (list.length > 0) {
+            navSelectedIdx = (navSelectedIdx + 1) % list.length;
+            announceSelected();
+            lockSelected();
+        }
     }
 }
 
@@ -300,10 +387,15 @@ function hotkeyCyclePrev() {
         navSelectedIdx = 0;
         const list = getFiltered();
         speak('category: ' + NAV_CATEGORIES[navCategoryIdx] + ', ' + list.length, true);
-        if (list.length > 0) announceSelected(false);
+        if (list.length > 0) { announceSelected(false); lockSelected(); }
+        else navSelectedKey = null;
     } else {
         const list = getFiltered();
-        if (list.length > 0) { navSelectedIdx = (navSelectedIdx - 1 + list.length) % list.length; announceSelected(); }
+        if (list.length > 0) {
+            navSelectedIdx = (navSelectedIdx - 1 + list.length) % list.length;
+            announceSelected();
+            lockSelected();
+        }
     }
 }
 
@@ -376,6 +468,11 @@ export function install() {
                 ' retRVA=0x' + retRva.toString(16) + workerInfo);
             navEntities = [];
             navSelectedIdx = 0;
+            // Map transition definitionally invalidates any prior selection
+            // — the actor table is cleared, exit/event workers are torn
+            // down. Drop the lock so the scan-clamp doesn't try to chase
+            // a stale identity into the new map's entity list.
+            navSelectedKey = null;
             // Reset count tracker so the first onTick observation after the
             // new map starts loading is treated as a delta and triggers a
             // scan. Without this, a stale count from the previous map could

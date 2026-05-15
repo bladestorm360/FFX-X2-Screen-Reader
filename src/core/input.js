@@ -11,6 +11,7 @@ export const VK_T = 0x54;
 export const VK_H = 0x48;
 export const VK_N = 0x4E;
 export const VK_S = 0x53;
+export const VK_O = 0x4F;
 export const VK_SHIFT = 0x10;
 
 let fnGetAsyncKeyStateRaw = null;

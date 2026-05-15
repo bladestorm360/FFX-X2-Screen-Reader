@@ -1,17 +1,44 @@
-// Exit detection: scans each Atel worker's bytecode for CALL opcodes that
-// target known map-transition functions, classifying workers as EXIT / EVENT /
-// AMBIENT. Also discovers which Atel function IDs resolve to exit functions
-// (by scanning the namespace tables at startup).
+// Exit detection: scans each Atel worker's bytecode for the two script-level
+// room-transition CALLs (`0x0011 transitionToRoom?` and `0x010B warpToRoom?`,
+// both in the Common namespace per FFXDataParser). Workers that issue either
+// call are exits; workers that use REQ-family opcodes without a warp CALL
+// are events; the rest are ambient. The destination map ID is the FIRST of
+// the two PUSHII literals that precede the CALL (room_id, then spawnpoint_id).
 
-import { rva, base } from '../core/memory.js';
+import { rva } from '../core/memory.js';
 import { logFile } from '../core/speech.js';
-import { ATEL_NAMESPACES, EXIT_FN_RVAS, RVA_ATEL_CONTROLLER } from '../core/addresses.js';
+import { RVA_ATEL_CONTROLLER } from '../core/addresses.js';
 import { isValidPtr } from '../core/safeRead.js';
 import { distXZ } from './navmesh.js';
 
 // Resolved once at module load — constructing NativeFunction per call is
 // wasteful and was happening inside scanExits on every invocation.
 const fnGetWorker = new NativeFunction(rva(0x46A7C0), 'pointer', ['int']);
+
+// Diagnostic hook on AtelSetEventJump2 — the native dispatcher every warp
+// eventually reaches (gameArchitecture.md:1513-1518). Logs the ACTUAL
+// (room, entrance, do_fade) args whenever a real warp fires. Used to
+// validate whether the bytecode-walker's captured exitTargetMapId matches
+// what the game actually passes when the player walks through an exit.
+try {
+    Interceptor.attach(rva(0x46FED0), {
+        onEnter: function(args) {
+            try {
+                const room = args[0].toInt32();
+                const entrance = args[1].toInt32();
+                const doFade = args[2].toInt32();
+                logFile('[WARP] AtelSetEventJump2(room=0x' + room.toString(16) +
+                    ', entrance=0x' + entrance.toString(16) +
+                    ', do_fade=' + doFade + ')');
+            } catch (e) {
+                logFile('[WARP] hook onEnter threw: ' + e.message);
+            }
+        }
+    });
+    logFile('[NAV] AtelSetEventJump2 diagnostic hook installed at RVA 0x46FED0');
+} catch (e) {
+    logFile('[NAV] AtelSetEventJump2 hook install FAILED: ' + e.message);
+}
 
 // Sanity upper bound for excel-bin-style offset reads inside bytecode scan.
 const CODE_OFFSET_MAX = 0x100000;
@@ -35,26 +62,67 @@ function resolveMapName(mapId) {
     if (mapId === null || mapId === undefined) return null;
     if (mapNameCache.hasOwnProperty(mapId)) return mapNameCache[mapId];
     let result = null;
+    let failReason = null;
     try {
         const encoded = fnMapNameEncoded(mapId, 0);
-        if (isValidPtr(encoded)) {
+        if (!isValidPtr(encoded)) {
+            failReason = 'null encoded ptr';
+        } else {
             mapNameBuf.writeByteArray(mapNameZero);
             fnDecodeFhText(encoded, mapNameBuf);
-            const s = mapNameBuf.readCString(255);
-            if (s && s.length > 0) {
-                let printable = 0;
-                for (let i = 0; i < s.length; i++) {
-                    const c = s.charCodeAt(i);
-                    if (c >= 0x20 && c <= 0x7E) printable++;
+            // The decoder writes the area name as plain ASCII into the
+            // buffer but does NOT always emit a 0x00 terminator after it
+            // — formatting/control bytes (>=0x80 or <0x20) may follow
+            // directly. Stop at the first non-printable byte instead of
+            // relying on readCString to find a terminator.
+            let len = 0;
+            while (len < 255) {
+                const b = mapNameBuf.add(len).readU8();
+                if (b < 0x20 || b > 0x7E) break;
+                len++;
+            }
+            if (len >= 2) {
+                let s = '';
+                for (let i = 0; i < len; i++) {
+                    s += String.fromCharCode(mapNameBuf.add(i).readU8());
                 }
-                if (printable / s.length >= 0.85) result = s.trim();
+                result = s.trim();
+            } else {
+                failReason = 'short ASCII prefix (len=' + len + ')';
             }
         }
     } catch (e) {
-        logFile('[NAV] resolveMapName(' + mapId + ') threw: ' + e.message);
+        failReason = 'threw: ' + e.message;
+    }
+    if (result === null) {
+        logFile('[NAV] resolveMapName(0x' + mapId.toString(16) + ') -> null (' + failReason + ')');
     }
     mapNameCache[mapId] = result;
     return result;
+}
+
+// One-shot diagnostic: enumerate the area-name table for mapId 0x000..0x150
+// to see (a) the table's actual span and (b) where the area name a given
+// room_id belongs to actually lives. Cannot run at module load because the
+// game's area-name table is not yet initialized then (fnMapNameEncoded
+// null-derefs at offset 0x2c). Deferred to first successful scanExits run.
+let tableEnumerated = false;
+function maybeEnumerateMapNameTable() {
+    if (tableEnumerated) return;
+    tableEnumerated = true;
+    try {
+        logFile('[TABLE] Area-name table enumeration begin (tableSel=0)');
+        for (let i = 0; i <= 0x150; i++) {
+            const name = resolveMapName(i);
+            if (name) {
+                logFile('[TABLE 0x' + i.toString(16) + '] ' + name);
+            }
+        }
+        logFile('[TABLE] enumeration complete');
+        for (const k in mapNameCache) { delete mapNameCache[k]; }
+    } catch (e) {
+        logFile('[TABLE] enumeration error: ' + e.message);
+    }
 }
 
 // REQ family opcodes — 1-byte. Workers that use these coordinate with other
@@ -68,53 +136,11 @@ const REQ_OPCODES = {
     0x77: true, 0x78: true, 0x79: true
 };
 
-let exitAtelIds = null;
-
-function findExitAtelIds() {
-    const ids = {};
-    try {
-        for (let n = 0; n < ATEL_NAMESPACES.length; n++) {
-            const ns = ATEL_NAMESPACES[n];
-            const tableBase = rva(ns.rva);
-            try {
-                const p0 = tableBase.readPointer();
-                const p1 = tableBase.add(4).readPointer();
-                const p2 = tableBase.add(8).readPointer();
-                const p3 = tableBase.add(0xC).readPointer();
-                logFile('[ATEL-DBG] ns=0x' + ns.id.toString(16) + ' rva=0x' + ns.rva.toString(16) +
-                    ' entry0: 0x' + p0.toString(16) + ' 0x' + p1.toString(16) +
-                    ' 0x' + p2.toString(16) + ' 0x' + p3.toString(16));
-            } catch (e) {}
-
-            for (let i = 0; i < ns.count; i++) {
-                const entry = tableBase.add(i * 0x10);
-                for (let fo = 0; fo < 4; fo++) {
-                    try {
-                        const fnAddr = entry.add(fo * 4).readPointer();
-                        if (fnAddr.isNull()) continue;
-                        const relRva = fnAddr.sub(base).toInt32();
-                        if (relRva < 0 || relRva > 0x3000000) continue;
-                        if (EXIT_FN_RVAS.indexOf(relRva) >= 0) {
-                            const atelId = (ns.id << 12) | i;
-                            ids[atelId] = true;
-                            logFile('[ATEL] Exit fn: id=0x' + atelId.toString(16) +
-                                ' (ns=' + ns.id.toString(16) + ' idx=' + i +
-                                ' field=' + fo + ') -> RVA 0x' + relRva.toString(16));
-                            break;
-                        }
-                    } catch (e) {}
-                }
-            }
-        }
-    } catch (e) { logFile('[ATEL] ID discovery error: ' + e.message); }
-    return ids;
-}
-
 // Flow-following bytecode scan from each entry point. Returns classification
-// hints: isExit if any CALL targets an exit function, hasReq if any REQ-family
-// opcode is used, plus full call/req diagnostic lists.
-function workerScanBytecode(worker, exitIds) {
-    const result = { isExit: false, hasReq: false, exitTargetMapId: null, calls: [], reqs: [], reqTargets: [], bytes: 0, entries: 0, steps: 0, truncated: false };
+// hints: isExit if any CALL targets a warp primitive (0x0011 or 0x010B),
+// hasReq if any REQ-family opcode is used, plus full call/req diagnostic lists.
+function workerScanBytecode(worker) {
+    const result = { isExit: false, hasReq: false, exitTargetMapId: null, exitTargetSpawnpoint: null, calls: [], reqs: [], reqTargets: [], bytes: 0, entries: 0, steps: 0, truncated: false };
     try {
         if (!isValidPtr(worker)) return result;
         const headerPtr = worker.readPointer();
@@ -143,6 +169,7 @@ function workerScanBytecode(worker, exitIds) {
         }
 
         let lastPushi1 = null, lastPushi2 = null;
+        let lastPushii1 = null, lastPushii2 = null;
         let totalSteps = 0;
         const STEP_CAP = 200000;
         while (stack.length > 0 && totalSteps < STEP_CAP) {
@@ -158,9 +185,7 @@ function workerScanBytecode(worker, exitIds) {
                     result.hasReq = true;
                     if (result.reqs.indexOf(opcode) < 0) result.reqs.push(opcode);
                     if (lastPushi1 !== null && lastPushi2 !== null) {
-                        const target = { worker: lastPushi2, fn: lastPushi1 };
-                        result.reqTargets.push(target);
-                        if (exitIds[lastPushi1]) result.isExit = true;
+                        result.reqTargets.push({ worker: lastPushi2, fn: lastPushi1 });
                     }
                 }
 
@@ -168,21 +193,34 @@ function workerScanBytecode(worker, exitIds) {
                     if (pc + 2 >= codeLength) break;
                     const operand = codeBase.add(pc + 1).readU16();
                     if (opcode === 0xB5 || opcode === 0xD8) {
-                        if (exitIds[operand]) {
+                        // CALL / CALLPOPA. Warp primitives are Common[0x011]
+                        // transitionToRoom? and Common[0x10B] warpToRoom?,
+                        // both signature (room, spawnpoint:int). The two
+                        // arguments are pushed as PUSHII (0xAE — operand IS
+                        // the literal) in source order, so by the time we
+                        // reach the CALL: lastPushii2 = room_id (older),
+                        // lastPushii1 = spawnpoint_id (newer). First exit
+                        // CALL wins.
+                        if (operand === 0x0011 || operand === 0x010B) {
                             result.isExit = true;
-                            // FFX exit-call convention: the PUSHI immediately
-                            // before the CALL carries the destination map ID.
-                            // First exit CALL wins (workers may chain multiple
-                            // CALLs but the first is the primary exit).
-                            if (result.exitTargetMapId === null && lastPushi1 !== null) {
-                                result.exitTargetMapId = lastPushi1;
+                            if (result.exitTargetMapId === null && lastPushii2 !== null) {
+                                result.exitTargetMapId = lastPushii2;
+                                result.exitTargetSpawnpoint = lastPushii1;
                             }
                         }
                         if (result.calls.indexOf(operand) < 0) result.calls.push(operand);
                     }
                     if (opcode === 0xAD) {
+                        // PUSHI: operand is an index into the chunk's int
+                        // reference table — NOT the literal. Kept for REQ
+                        // target diagnostics only.
                         lastPushi2 = lastPushi1;
                         lastPushi1 = operand;
+                    }
+                    if (opcode === 0xAE) {
+                        // PUSHII: operand IS the literal value.
+                        lastPushii2 = lastPushii1;
+                        lastPushii1 = operand;
                     }
                     if (opcode === 0xB0 || opcode === 0xD5) { pc = operand; continue; }
                     if (opcode === 0xB1 || opcode === 0xB2 ||
@@ -198,6 +236,8 @@ function workerScanBytecode(worker, exitIds) {
             }
             lastPushi1 = null;
             lastPushi2 = null;
+            lastPushii1 = null;
+            lastPushii2 = null;
         }
         result.steps = totalSteps;
         result.truncated = totalSteps >= STEP_CAP;
@@ -214,11 +254,8 @@ export function scanExits(playerPos, entities) {
         if (!isValidPtr(controllerPtr)) return;
         const actorCount = controllerPtr.add(0x0C).readU16();
         if (actorCount === 0 || actorCount > 500) return;
-        if (exitAtelIds === null) {
-            exitAtelIds = findExitAtelIds();
-            const idList = Object.keys(exitAtelIds);
-            logFile('[ATEL] Found ' + idList.length + ' exit function IDs: ' + idList.join(','));
-        }
+
+        maybeEnumerateMapNameTable();
 
         let scanned = 0, exitCount = 0, eventCount = 0;
         const typeCount = {};
@@ -242,7 +279,7 @@ export function scanExits(playerPos, entities) {
                                      actorType === 5 || actorType === 6);
 
                 if (!isKnownType) {
-                    const altScan = workerScanBytecode(worker, exitAtelIds);
+                    const altScan = workerScanBytecode(worker);
                     logFile('[WORKER-ALT ' + i + ' type=' + actorType +
                         ' isExit=' + altScan.isExit + ' hasReq=' + altScan.hasReq +
                         ' steps=' + altScan.steps + (altScan.truncated ? '(TRUNC)' : '') +
@@ -266,7 +303,7 @@ export function scanExits(playerPos, entities) {
 
                 if (!hasValidPos) continue;
 
-                const scan = workerScanBytecode(worker, exitAtelIds);
+                const scan = workerScanBytecode(worker);
                 const cls = scan.isExit ? 'EXIT' : (scan.hasReq ? 'EVENT' : 'AMBIENT');
                 logFile('[WORKER ' + i + ' type=' + actorType + ' class=' + cls +
                     ' bytes=' + scan.bytes + ' entries=' + scan.entries +
@@ -282,25 +319,27 @@ export function scanExits(playerPos, entities) {
                 if (scan.isExit) {
                     exitCount++;
                     const tid = scan.exitTargetMapId;
-                    // Use the engine's own map-name resolver as a validity
-                    // gate per user direction: if the destination map ID
-                    // doesn't decode to a real area name, this is likely a
-                    // false-positive exit (player spawn marker, dead-script
-                    // teleport, etc.). Don't drop them — keep so we don't
-                    // lose real exits the resolver hasn't seen yet — but
-                    // mark the label so the user can tell verified from
-                    // suspect at announce time.
+                    const spawn = scan.exitTargetSpawnpoint;
                     let exitName;
                     if (tid === null || tid === undefined) {
-                        exitName = 'Exit ' + exitCount + ' (no target id)';
+                        exitName = 'Exit ' + exitCount;
                     } else {
                         const resolved = resolveMapName(tid);
                         if (resolved) {
                             exitName = 'Exit to ' + resolved;
                         } else {
+                            // Diagnostic speech: hex ID surfaces "we have a
+                            // captured room_id but resolveMapName can't turn
+                            // it into an area name" — the exact distinction
+                            // the user needs to hear to know whether to
+                            // investigate the classifier or the resolver.
                             exitName = 'Exit (unverified) to 0x' + tid.toString(16);
                         }
                     }
+                    logFile('[NAV] Exit ' + exitCount + ' at (' +
+                        pos.x.toFixed(1) + ',' + pos.z.toFixed(1) + ') ' +
+                        'room=' + (tid === null ? 'null' : '0x' + tid.toString(16)) +
+                        ' spawn=' + (spawn === null ? 'null' : '0x' + spawn.toString(16)));
                     entities.push({ name: exitName, category: 'Exit',
                         chrId: 0xFFFF, pos: pos, dist: distXZ(playerPos, pos) });
                 } else if (scan.hasReq) {
