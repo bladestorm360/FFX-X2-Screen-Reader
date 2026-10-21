@@ -1,0 +1,28 @@
+{
+  "evidence": "Docs/Scripts/Offline/output/airship_assets_20261019/manifest.json; all original layer11 variants0..26 visually checked by Sol, flipped vertically to match native UV orientation. Proper labels only; no destination unlock/progress data.",
+  "native_map_by_language": {"0":21,"1":22,"2":24,"3":26,"4":23,"5":25,"9":29,"10":28,"11":30,"18":27},
+  "confirmation_evidence": "Docs/Scripts/Offline/output/airship_confirmation_20261019/manifest.json and contact-sheet.png; Sol visually verified all20 original layer29 images. Variant0 highlights Yes; variant1 No. Native map27 has its own verified English options.",
+  "confirmation_by_map": {
+    "21": ["はい", "いいえ"],
+    "22": ["Yes", "No"],
+    "23": ["Ja", "Nein"],
+    "24": ["Oui", "Non"],
+    "25": ["Sì", "No"],
+    "26": ["Sí.", "No."],
+    "27": ["Yes", "No"],
+    "28": ["是", "否"],
+    "29": ["예", "아니요"],
+    "30": ["是", "否"]
+  },
+  "labels_by_map": {
+    "21": ["","バージ=エボン寺院","ビサイド島","ポルト=キーリカ","ルカ","ミヘン街道","ジョゼ街道","幻光河","グアドサラム","雷平原","マカラーニャ湖","ビーカネル","ベベル=エボン寺院","ナギ平原","ガガゼト山","ザナルカンド遺跡","「シン」","オメガ遺跡","グレート=ブリッジ","ビサイド遺跡1","ビサイド遺跡2","キノコ岩谷底","ビサイド虹の滝","ミヘン海上遺跡","キノコ岩戦場跡","サヌビアの砂丘","デア・リヒター"],
+    "22": ["","Baaj Temple","Besaid Island","Kilika Port","Luca","Mi'ihen Highroad","Djose Highroad","Moonflow","Guadosalam","Thunder Plains","Lake Macalania","Bikanel Island","Bevelle Temple","Calm Lands","Mt. Gagazet","Zanarkand Ruins","Sin","Omega Ruins","Highbridge","Besaid Ruins 1","Besaid Ruins 2","Mushroom Rock","Besaid Falls","Mi'ihen Ruins","Battle Site","Sanubia Sands","Penance"],
+    "23": ["","Yevon-Tempel Baaj","Insel Besaid","Porta Kilika","Luca","Mi'hen-Straße","Djose-Straße","Illuminum","Guadosalam","Donnersteppe","Macalania","Bikanel","Yevon-Tempel Bevelle","Stille Ebene","Berg Gagazet","Ruinen von Zanarkand","[Sin]","Omega-Ruinen","Die Geweihte Brücke","Ruinen von Besaid 1","Ruinen von Besaid 2","Fungus-Tal","Besaid-Wasserfall","Ruinen von Mi'hen","Fungus-Schlachtfeld","Sanubia-Wüste","Der Richter"],
+    "24": ["","Temple de Baaj","Ile de Besaid","Porto Kilika","Luca","Route de Mi'ihen","Route de Djose","Sélénos","Guadosalam","Plaine Foudroyée","Lac Macalania","Bikanel","Temple de Bevelle","Plaine Félicité","Mont Gagazet","Ruines de Zanarkand","Sin","Ruines d'Omega","Bevelle","Ruines de Besaid 1","Ruines de Besaid 2","Canyon des Mycorocs","Cascade de Besaid","Ruines de Mi'ihen","Champ de bataille","Désert de Sanubia","Der Richter"],
+    "25": ["","Tempio di Baaj","Isola Besaid","Porto Kilika","Luka","Via Mihen","Via Djose","Fluvilunio","Guadosalam","Piana dei lampi","Lago di Macalania","Bikanel","Tempio di Bevelle","Piana della bonaccia","Monte Gagazet","Rovine di Zanarkand","Sin","Rovine di Omega","Gran ponte","Rovine di Besaid 1","Rovine di Besaid 2","Valle micorocciosa","Cascate di Besaid","Rovine di Mihen","Campo di battaglia","Dune di Sanubia","Der Richter"],
+    "26": ["","Templo de Baaj","Isla Besaid","Puerto Kilika","Luca","Camino de Miihen","Camino de Djose","Río de la Luna","Guadosalam","Llanura de los Rayos","Lago Macalania","Bikanel","Templo de Bevelle","Llanura de la Calma","Monte Gagazet","Ruinas de Zanarkand","Sinh","Ruinas Omega","Gran puente","Ruinas de Besaid 1","Ruinas de Besaid 2","Rocas Hongo/Barranco","Cascada de Besaid","Ruinas de Miihen","Campo de batalla","Duna de Sanubia","Verdugo Final"],
+    "28": ["","巴吉耶朋寺院","比塞德島","基利卡港","路加","密亨街道","喬瑟街道","幻光河","瓜德薩拉姆","落雷平原","馬卡拉尼亞湖","比卡涅島","貝薇爾耶朋寺院","安寧平原","嘎嘎札特山","札納爾坎德遺跡","『辛』","歐米茄遺跡","宏偉大橋","比塞德遺跡 1","比塞德遺跡 2","蘑菇岩谷底","比塞德彩虹瀑布","密亨海上遺跡","蘑菇岩戰場遺跡","薩努比亞沙丘","審判者"],
+    "29": ["","바지=에본 사원","비사이드 섬","폴트=키리카","루카","미헨 가도","조제 가도","환광의 강","구아드 살람","번개 평원","마카라냐 호수","비카넬","베벨=에본 사원","고요의 평원","가가제트 산","자나르칸드 유적","「신」","오메가 유적","그레이트=브릿지","비사이드 유적1","비사이드 유적2","버섯바위 곡저","비사이드 무지개 폭포","미헨 해상 유적","버섯바위 전쟁터","사누비아 모래언덕","데어・리히터"],
+    "30": ["","巴吉·耶朋寺院","比塞德岛","基利卡港","路加","米海恩街道","乔瑟街道","幻光河","古阿多萨拉姆","落雷平原","马卡拉尼亚湖","比卡内鲁岛","贝贝鲁·耶朋寺院","那基平原","嘉嘉泽图山","扎纳尔坎德遗迹","『辛』","欧米茄遗迹","宏伟大桥","比塞德遗迹 1","比塞德遗迹 2","蘑菇岩谷底","比塞德彩虹瀑布","米海恩海上遗迹","蘑菇岩战场遗迹","萨努比亚沙丘","审判者"]
+  }
+}

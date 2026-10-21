@@ -217,7 +217,7 @@ export function install() {
     attachRva(0x656060, makeCloseHandler(), 'Sphere grid close C');
 
     // Sphere grid node-cursor move: FUN_00A48D70 writes
-    // Native binding/layout evidence: DAT_02305834. Refer to the external original; copied implementation removed.
+// The current native Grid object's field0x112FC receives the 16-bit node argument. Each call is a node
     // selection change; hook fires per cursor move while sphere grid open.
     attachRva(0x648D70, {
         onLeave: function() {

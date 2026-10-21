@@ -1,6 +1,7 @@
 // File logging + Tolk speech output. Initializes on first import.
 
 import { base } from './memory.js';
+import { NATIVE_SPEECH, nativeOutput } from './native.js';
 
 let logHandle = null;
 let LOG_PATH = '';
@@ -31,7 +32,7 @@ export function logFile(msg) {
 let tolkLoaded = false;
 let fnTolkOutput = null;
 
-(function initTolk() {
+function initTolk() {
     try {
         Module.load('Tolk.dll');
         let tolkModule = null;
@@ -59,10 +60,15 @@ let fnTolkOutput = null;
             logFile('Tolk_IsLoaded returned false');
         }
     } catch (e) { logFile('Tolk init error: ' + e.message); }
-})();
+}
+if (!NATIVE_SPEECH) initTolk();
 
 export function speak(text, interrupt) {
     logFile('[SPEECH' + (interrupt ? ' INT' : '') + '] ' + text);
+    if (NATIVE_SPEECH) {
+        if (!nativeOutput(text, interrupt) && text) logFile('Native speech submission failed');
+        return;
+    }
     if (!tolkLoaded) return;
     try {
         const buf = Memory.allocUtf16String(text);

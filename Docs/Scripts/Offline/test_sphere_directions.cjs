@@ -1,0 +1,18 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const context=vm.createContext({});
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../Frida/FFX/sphere_directions.js'),'utf8'),context);
+const standard=JSON.parse(fs.readFileSync(path.join(__dirname,'output/sphere_sections_20261005_145728_598168/sections.json')));
+const nodes=standard.sites.map(site=>({...site,valid:true}));
+const choices=context.gridArrowChoices(nodes,5);
+assert.equal(context.gridArrowWords(choices,4),'up or right');
+assert.equal(context.gridArrowWords(choices,6),'diagonally up and left');
+assert.notEqual(choices[0],6);
+const basic=[{x:0,y:0,valid:true},{x:-10,y:-10,valid:true},{x:5,y:-5,valid:true},{x:-5,y:5,valid:true}];
+assert.equal(context.gridArrowWords(context.gridArrowChoices(basic,0),1),'diagonally up and left');
+basic[2].valid=basic[3].valid=false;
+assert.equal(context.gridArrowWords(context.gridArrowChoices(basic,0),1),'up or left');
+const expert=JSON.parse(fs.readFileSync(path.join(__dirname,'output/sphere_sections_20261005_151825_382529/sections.json')));
+const expertNodes=expert.sites.map(site=>({...site,valid:!!site.present}));
+assert.equal(context.gridArrowChoices(expertNodes,expert.starts[0]).length,8);
+assert(context.gridArrowChoices(expertNodes,expert.starts[0]).every(at=>at<0 || expertNodes[at].valid));
+console.log('PASS: native selector distinguishes Flee diagonal from Defense Up-or-Right, skips absent nodes and prefers valid single-key alternatives.');

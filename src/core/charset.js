@@ -39,7 +39,7 @@ const TWO_BYTE_OPCODES = new Set([
     0x26, 0x27, 0x28, 0x29, 0x2A
 ]);
 
-export function decodeFFXSegments(addr, maxLen, maxOps) {
+export function decodeFFXSegments(addr, maxLen, maxOps, stopAtTerminator = false) {
     const segments = [];
     if (!isValidPtr(addr) || maxLen <= 0 || maxLen > 0x10000) return segments;
     const raw = safeReadByteArray(addr, maxLen);
@@ -53,7 +53,12 @@ export function decodeFFXSegments(addr, maxLen, maxOps) {
             if (maxOps > 0 && opCount >= maxOps) break;
             let b = bytes[i];
             // Segment terminators / separators.
-            if (b === 0x00) { if (current.length > 0) segments.push(current.trim()); current = ''; i++; opCount++; continue; }
+            if (b === 0x00) {
+                if (current.length > 0) segments.push(current.trim());
+                current = '';
+                if (stopAtTerminator) break;
+                i++; opCount++; continue;
+            }
             if (b === 0x03) { if (current.length > 0) segments.push(current.trim()); current = ''; i++; opCount++; continue; }
             // 0x0A is a 2-byte opcode in FUN_008DFD70 — line break + 1 data byte.
             if (b === 0x0A) { if (current.length > 0) segments.push(current.trim()); current = ''; i += 2; opCount++; continue; }

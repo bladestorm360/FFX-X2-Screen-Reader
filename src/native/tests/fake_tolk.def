@@ -1,0 +1,17 @@
+LIBRARY Tolk
+EXPORTS
+    Tolk_Load
+    Tolk_TrySAPI
+    Tolk_IsLoaded
+    Tolk_Output
+    Tolk_Silence
+    Tolk_Braille
+    Test_Braille
+    Test_BrailleAvailable
+    Test_Interrupt
+    Test_Count
+    Test_Read
+    Test_Block
+    Test_SilenceCount
+    Test_SilenceThread
+    Test_SilenceOutputCount

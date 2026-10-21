@@ -1,32 +1,7 @@
-// Field menu, TkWindow popups, and the MsMenuGetText cache that backs them.
-// NPC dialogue + cutscene subtitle reading lives in ./dialog.js.
-//
-// === HELPERS PORTED FROM universal_menu_battle_reader.js ===
-// `decodeFFXSegments`, `cleanText`, `readTkWindowContext`, `getTkSegments`,
-// `getTkFocusedItem` are local byte-for-byte copies of universal's
-// equivalents (lines 105-222). Notably `decodeFFXSegments` differs from
-// `core/charset.js`'s — production's adds many 2-byte opcodes (0x06-0x2A);
-// universal treats only 0x09/0x10 as 2-byte. Keeping universal's local
-// here for exact-port fidelity in the TkWindow path.
-//
-// === TkWindow LOOP — anchor needs investigation ===
-// Universal hooked 0x471D10 (the per-frame input poll FUN_00871d10) —
-// not because that function has any semantic relationship to the Items
-// submenu, but because it's a pollable per-frame entry point. Universal
-// was "intercepting by accident", same shape as the ESC menu situation
-// before production found FUN_0068E6E0 as its proper hook.
-//
-// Production currently anchors at 0x4ABCE0 (TODrawMessageWindow). That
-// catches yes/no popups, save/load, ESC menu, and the field menu's own
-// TkWindow slot — but NOT Items. Items' actual rendering / cursor hook
-// is unknown.
-//
-// TO FIND IT: run `field_submenu_probe.js` (v2). Its scene-activate hook
-// reads scene_table[sceneId]+0x04 to log fn_ctrl RVAs for any submenu
-// opened. Items' sceneId is 0x00; opening the menu logs
-//   [ACTIVATE] sceneId=0x0 (Items) fn_ctrl_rva=0xXXXX *** DISCOVERY ***
-// That RVA gets added as a second `attachRva` here, alongside the
-// existing 0x4ABCE0 iterator.
+// Main-menu fallback, legacy title/popups and native text cache.
+// Dedicated input readers in items.js/commandBars.js/fieldLists.js/partyLists.js
+// replace the broken Items assumptions. The legacy draw iterator remains for
+// existing title/dialog/popups until their native event migration is validated.
 
 import {
     fieldMenuCursorAddr, fieldMenuPlayerAddr, fieldMenuItemTable,
@@ -40,14 +15,12 @@ import { logFile, speak } from '../core/speech.js';
 import { registerHotkey, count as frameCount } from '../core/frame.js';
 import { VK_N } from '../core/input.js';
 import { state } from '../utils/state.js';
+import { NATIVE_MAIN_MENU } from '../core/native.js';
 
 export const msMenuTextCache = {};
 export const msMenuDescCache = {};
-// Field-menu Items namespace (MsMenuGetText arg0=8). Game pre-fetches
-// item names for visible slots when the Items menu opens, then again on
-// page changes. Caching them here lets the Items hook resolve cursor-
-// to-name without re-calling the resolver. arg1 is the inventory slot
-// index (matches the +0x48 cursor for a dense inventory).
+// Namespace 8 supplies Items command-bar labels. Inventory text is read
+// through the native record getters in items.js, independently of this cache.
 export const itemsNameCache = {};
 
 let fieldMenuActive = false;
@@ -142,11 +115,6 @@ function handleHelpHotkey() {
 }
 
 export function install() {
-    // Items-menu-just-opened flag, shared between scene-activate hook
-    // and Items fn_ctrl hook below. Set true when sceneId 0x3 activates;
-    // cleared by Items fn_ctrl after first announce.
-    var itemsJustOpened = false;
-
     // ── MsMenuGetText cache (port from universal:746-808) ──
     // arg0=9 — main menu names + descriptions (cached for field menu cursor reads).
     attachRva(0x38FD40, {
@@ -211,11 +179,6 @@ export function install() {
             // missing the Items mapping and the fallback path produced
             // a literal scene-id string.
             if (sceneId === 0x01) fieldMenuActive = false;
-            // Items has no character-select stage — sceneId 0x3 activates
-            // directly into the items list. Set a flag so the Items fn_ctrl
-            // hook announces the focused item on its first call after
-            // activation.
-            if (sceneId === 0x03) itemsJustOpened = true;
             logFile('[SCENE ACTIVATE] scene=0x' + sceneId.toString(16) + ' (' + sceneName + ')');
         }
     }, 'Scene activate');
@@ -227,7 +190,7 @@ export function install() {
     // Keeping this hook is a deliberate deviation from "exact port" for
     // engineering quality (fn_ctrl is event-driven, universal's timer
     // is heuristic).
-    attachRva(0x4E0340, {
+    if (!NATIVE_MAIN_MENU) attachRva(0x4E0340, {
         onEnter: function(args) {
             this.param1 = args[0];
             try {
@@ -375,289 +338,7 @@ export function install() {
         }
     }, 'TkWindow per-frame iterator');
 
-    // ── Items submenu fn_ctrl (FUN_008c5420, RVA 0x4C5420) ──
-    //
-    // Items has no character-select stage — it activates directly as
-    // sceneId 0x3 (confirmed via field_submenu_probe v3 session 60). The
-    // fn_ctrl is a switch-on-state-at-`param_1+0x1C` machine in the same
-    // shape as Abilities/Overdrive/Aeons but the arch doc had the wrong
-    // RVA listed (the 0.0 confidence column). The probe identified it by
-    // dumping all 6 scene-struct offsets and matching `+0x00` to known
-    // submenu fn_ctrls.
-    //
-    // Items routes through TWO TkWindow globals. Both are standard
-    // TkWindow structs with cursor at +0x48, num_items at +0x30, and
-    // textPtr at +0x5C — same layout as the 8-slot pool universal
-    // iterates, so the same getTkSegments + getTkFocusedItem helpers
-    // resolve their text:
-    //   *DAT_0186a354 (RVA 0x146A354) — items-list TkWindow (the actual
-    //     inventory list once you've picked Use or Important Items).
-    //     Same global as Abilities — they share an "active submenu
-    //     TkWindow" pointer that gets repointed on submenu activation.
-    //   *DAT_023cc124 (RVA 0x1FCC124) — command-bar TkWindow (Use /
-    //     Important Items / etc., the menu shown FIRST when you press
-    //     Items in the field menu).
-    //
-    // Both can have their cursor change in this fn_ctrl's lifetime. The
-    // state machine determines which is focused at any given frame, but
-    // we don't need to track that — we read both, diff against last-
-    // seen, and speak whichever moved. They shouldn't both move in the
-    // same frame.
-    var prevItemsCmdCursor = -1;
-    var prevItemsListCursor = -1;
-    var prevItemsSlotIdx = -999;
-    var prevItemsState = -999;
-    var itemsHookCount = 0;
-    // Diagnostic field-signature cache for the right-column-silence bug.
-    var prevItemsFieldsSig = '';
-    var prevItemsSlotSig = '';
-    // Note: itemsJustOpened was declared at the top of install() so the
-    // scene-activate hook (registered earlier) can write to it. The flag
-    // signals "Items menu just activated — announce the focused item on
-    // the next fn_ctrl call". Items has no char-select stage so we get
-    // no separate submenu-name announce; we use this flag instead.
-    function readTkWindowCursor(globalRva) {
-        try {
-            var winPtr = rva(globalRva).readPointer();
-            if (winPtr.isNull()) return -1;
-            return winPtr.add(0x48).readU16();
-        } catch (e) { return -1; }
-    }
-    function readTkWindowText(globalRva, idx) {
-        try {
-            var winPtr = rva(globalRva).readPointer();
-            if (winPtr.isNull()) return null;
-            var ctx = {
-                winPtr: winPtr,
-                textPtr: winPtr.add(0x5C).readPointer(),
-                idx: idx,
-                items: winPtr.add(0x30).readU16()
-            };
-            return ctx;
-        } catch (e) { return null; }
-    }
-    attachRva(0x4C5420, {
-        onEnter: function(args) {
-            this.param1 = args[0];
-            // Frame transition: snapshot the previous frame's complete
-            // query list, reset the accumulator. fn_ctrl runs before
-            // fn_render in the per-frame dispatch order, so by this
-            // moment the *previous* frame's queries are complete.
-            itemsLastFrameQueries = itemsCurrentFrameQueries;
-            itemsCurrentFrameQueries = [];
-        },
-        onLeave: function() {
-            try {
-                itemsHookCount++;
-                var stateNow = -999;
-                try { stateNow = this.param1.add(0x1C).readS32(); } catch (e) {}
-                var cmdNow = readTkWindowCursor(0x1FCC124);
-                var listNow = readTkWindowCursor(0x146A354);
-
-                // DIAGNOSTIC: log first call + every 600 calls (~10 sec) + every state change
-                if (itemsHookCount === 1 || itemsHookCount % 600 === 0 || stateNow !== prevItemsState) {
-                    logFile('[ITEMS_DIAG count=' + itemsHookCount +
-                        ' state=' + prevItemsState + '->' + stateNow +
-                        ' cmd=' + cmdNow + ' list=' + listNow + ']');
-                    prevItemsState = stateNow;
-                }
-
-                // DIAGNOSTIC: dump 32-bit values at each 4-byte offset of
-                // DAT_0186a354 for the first call only. Looking for the
-                // cmdListPtr equivalent — TkWindow's analog of
-                // BtlWindow.cmdListPtr (+0x20). It's a pointer into the
-                // items-list array; itemId at cmdListPtr+cursor*2.
-                if (itemsHookCount === 1) {
-                    try {
-                        var lwInit = rva(0x146A354).readPointer();
-                        if (!lwInit.isNull()) {
-                            var dump = '';
-                            for (var off32 = 0; off32 <= 0xA0; off32 += 4) {
-                                var v = lwInit.add(off32).readU32();
-                                dump += ' +0x' + off32.toString(16) + '=0x' + v.toString(16);
-                            }
-                            logFile('[ITEMS_STRUCT_DUMP at ' + lwInit + ':' + dump + ']');
-                        }
-                    } catch (e) { logFile('[ITEMS_STRUCT_DUMP error: ' + e.message + ']'); }
-                }
-                try {
-                    var listWin = rva(0x146A354).readPointer();
-                    var win358 = rva(0x146A358).readPointer();   // DAT_0186a358 secondary
-                    var win33c = rva(0x146A33C).readPointer();   // DAT_0186a33c tertiary
-                    var sig = '';
-                    if (!listWin.isNull()) {
-                        // 0x40-0x60: covers cursor area, num_items, plus surrounding
-                        for (var off = 0x40; off < 0x60; off += 2) {
-                            sig += ' L' + off.toString(16) + '=' + listWin.add(off).readS16();
-                        }
-                        // 0x2c-0x36: also covers nearby fields
-                        for (var off2 = 0x2C; off2 < 0x38; off2 += 2) {
-                            sig += ' L' + off2.toString(16) + '=' + listWin.add(off2).readS16();
-                        }
-                    }
-                    if (!win358.isNull()) {
-                        // Only sample 0x40-0x4A on secondary
-                        for (var off3 = 0x40; off3 < 0x4C; off3 += 2) {
-                            sig += ' B' + off3.toString(16) + '=' + win358.add(off3).readS16();
-                        }
-                    }
-                    if (!win33c.isNull()) {
-                        for (var off4 = 0x40; off4 < 0x4C; off4 += 2) {
-                            sig += ' C' + off4.toString(16) + '=' + win33c.add(off4).readS16();
-                        }
-                    }
-                    if (sig !== prevItemsFieldsSig) {
-                        logFile('[ITEMS_FIELDS' + sig + ']');
-                        prevItemsFieldsSig = sig;
-                    }
-                } catch (e) {}
-
-                // 8-slot pool diagnostic — universal's TkWindow loop
-                // catches the items list via this pool, so the items list
-                // cursor is in one of these 8 slots. Log on any change.
-                try {
-                    var slotSig = '';
-                    for (var s = 0; s < 8; s++) {
-                        var sw = tkWinArrayAddr.add(s * 4).readPointer();
-                        var sc = tkCurArrayAddr.add(s * 4).readPointer();
-                        if (sw.isNull() || sc.isNull()) continue;
-                        var svis = sc.add(1).readU8();
-                        var sidx = sc.add(2).readU8();
-                        var sitems = sc.add(5).readU8();
-                        if (svis !== 0) {
-                            slotSig += ' s' + s + '(vis=' + svis + ' idx=' + sidx + ' n=' + sitems + ')';
-                        }
-                    }
-                    if (slotSig !== prevItemsSlotSig) {
-                        logFile('[ITEMS_SLOTS' + slotSig + ']');
-                        prevItemsSlotSig = slotSig;
-                    }
-                } catch (e) {}
-
-                // Items list announce: pure decompile pattern.
-                //   FUN_008c5420 case 0x8c5489 (line 565415):
-                //     iVar9 = *(int*)(TkWindow+0x58) + *(short*)(TkWindow+0x48) * 2;
-                //     itemId = (&DAT_01597730)[iVar9 * 2];   // ushort[]
-                //              = *(ushort*)(0x1197730 + iVar9*4)
-                //   And FUN_008c66e0 (line 566203) is the explicit getter:
-                //     return (&DAT_01597730)[param_1 * 2];   // ushort
-                // So slotIdx = base + cursor*2; itemId at +slotIdx*4
-                // (each "slot" is 4 bytes: ushort itemId + ushort flags).
-                var slotBase = 0;
-                var slotIdx = -1;
-                if (stateNow === 6) {
-                    try {
-                        var lwc = rva(0x146A354).readPointer();
-                        if (!lwc.isNull()) slotBase = lwc.add(0x58).readS32();
-                    } catch (e) {}
-                    if (listNow >= 0) slotIdx = slotBase + listNow * 2;
-                }
-                var announceList = false;
-                if (slotIdx >= 0) {
-                    if (itemsJustOpened) {
-                        announceList = true;
-                        itemsJustOpened = false;
-                    } else if (slotIdx !== prevItemsSlotIdx && prevItemsSlotIdx !== -999) {
-                        announceList = true;
-                    }
-                }
-                if (announceList) {
-                    // State machine semantics for *DAT_0186a354+0x48:
-                    //   state 6  → ITEMS LIST cursor (initial state on
-                    //              Items entry; user sees items list).
-                    //              Resolve name from saveData inventory
-                    //              + item-bin excel lookup. arg0=8 cache
-                    //              MUST NOT be used here — those are
-                    //              pre-fetched command bar names.
-                    //   state 53 → COMMAND BAR cursor (after Back from
-                    //              items list). Use itemsNameCache
-                    //              (arg0=8): 0=Use, 1=Sort, 2=Key Items,
-                    //              9=Equipment.
-                    //   other   → submenu / transition; silence until we
-                    //              have name sources for those.
-                    if (stateNow === 6) {
-                        // Direct read: itemId at DAT_01597730 + slotIdx*4
-                        // (RVA 0x1197730). Each slot is 4 bytes; the low
-                        // ushort is the item ID, the next byte is the
-                        // count (per the decompile clear loop and
-                        // FUN_008c66e0 return type).
-                        var itemId = 0;
-                        try {
-                            itemId = rva(0x1197730).add(slotIdx * 4).readU16();
-                        } catch (e) {}
-                        if (itemId !== 0) {
-                            var itemName = null;
-                            try {
-                                itemName = resolveCommandText(itemId, rva(0xD2A940));
-                            } catch (e) {}
-                            if (itemName && itemName.length > 0) {
-                                speak(itemName, true);
-                                logFile('[ITEMS list] row=' + listNow +
-                                    ' base=' + slotBase + ' slot=' + slotIdx +
-                                    ' id=0x' + itemId.toString(16) +
-                                    ' name="' + itemName + '"');
-                            } else {
-                                logFile('[ITEMS list NO_NAME row=' + listNow +
-                                    ' slot=' + slotIdx +
-                                    ' id=0x' + itemId.toString(16) + ']');
-                            }
-                        } else {
-                            logFile('[ITEMS list EMPTY row=' + listNow +
-                                ' base=' + slotBase + ' slot=' + slotIdx + ']');
-                        }
-                    } else if (stateNow === 53) {
-                        var cmdName = itemsNameCache[listNow];
-                        if (cmdName && cmdName.length > 0) {
-                            speak(cmdName, true);
-                            logFile('[ITEMS cmdbar] cursor=' + listNow +
-                                ' name="' + cmdName + '"');
-                        } else {
-                            logFile('[ITEMS cmdbar NO_NAME cursor=' + listNow +
-                                ' (cache keys: ' + Object.keys(itemsNameCache).join(',') + ')]');
-                        }
-                    } else {
-                        logFile('[ITEMS announce_skip state=' + stateNow +
-                            ' cursor=' + listNow + ' (silenced — non-list/non-cmdbar state)]');
-                    }
-                }
-                if (listNow >= 0) prevItemsListCursor = listNow;
-                if (slotIdx >= 0) prevItemsSlotIdx = slotIdx;
-
-                // Command bar announce: same silence-over-wrong rule.
-                var announceCmd = false;
-                if (cmdNow >= 0) {
-                    if (prevItemsCmdCursor === -1) {
-                        announceCmd = true;
-                    } else if (cmdNow !== prevItemsCmdCursor) {
-                        announceCmd = true;
-                    }
-                }
-                if (announceCmd) {
-                    // Same SILENCE policy as list path above. We don't yet
-                    // know what DAT_023cc124 is or whether it's a real
-                    // command-bar/items source. Log only.
-                    var ctx = readTkWindowText(0x1FCC124, cmdNow);
-                    if (ctx) {
-                        var segs = getTkSegments(ctx);
-                        logFile('[ITEMS_CMD_DISABLED cursor=' + cmdNow +
-                            ' segs.len=' + segs.length +
-                            ' segs=' + JSON.stringify(segs.slice(0, 8)) +
-                            ' (silenced)]');
-                    } else {
-                        logFile('[ITEMS_CMD_DISABLED cursor=' + cmdNow + ' no_ctx (silenced)]');
-                    }
-                }
-                if (cmdNow >= 0) prevItemsCmdCursor = cmdNow;
-            } catch (e) {}
-        }
-    }, 'Items fn_ctrl');
-
-    // (queryList / fn_render bracketing approach was removed —
-    // FUN_00790a40 is not called by the items menu renderer at all,
-    // so capturing its calls produced an empty list. The renderer
-    // reads DAT_01597730 directly. We now do the same.)
-
     registerHotkey(VK_N, handleHelpHotkey, 'menus.help');
 
-    logFile('Menus feature installed (universal port + Items fn_ctrl)');
+    logFile('Menus feature installed (main-menu ownership coordinated with native)');
 }

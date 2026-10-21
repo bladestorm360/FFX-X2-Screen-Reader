@@ -1,8 +1,11 @@
 @echo off
-REM Bundles src/**/*.js into install/ffx_sr.js via frida-compile,
-REM then deploys to the game directory via deploy.bat.
+REM Production is native C++. --prototype builds the offline Frida reference.
 
 setlocal
+if /I "%~1"=="--prototype" goto prototype
+call "%~dp0..\proxy\build_dinput8.bat" %*
+exit /b %ERRORLEVEL%
+:prototype
 set BUILD_DIR=%~dp0
 set SRC_DIR=%BUILD_DIR%..\
 set REPO_DIR=%BUILD_DIR%..\..\
@@ -33,13 +36,5 @@ if %BUILD_RC% NEQ 0 (
 
 echo Build OK: install\ffx_sr.js
 
-REM Deploy the rebuilt bundle. deploy.bat copies dinput8.dll, frida-gadget,
-REM frida-gadget.config, and install/ffx_sr.js into the game directory.
-REM The DLL + gadget copies are redundant on JS-only rebuilds but harmless.
-call "%REPO_DIR%src\proxy\deploy.bat"
-if errorlevel 1 (
-    echo Deploy failed.
-    exit /b 1
-)
-
-endlocal
+REM Prototypes never become production readers through this entry point.
+exit /b 0

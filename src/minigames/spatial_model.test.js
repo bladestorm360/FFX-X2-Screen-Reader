@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),m=require('./spatial_model.js');
+const p={x:0,y:0,z:0};
+assert.equal(m.pickup(p,{x:100,y:0,z:-10},0,10,6).pan,1);
+assert.equal(m.pickup(p,{x:100,y:0,z:10},0,10,6).pan,-1);
+assert.equal(m.pickup(p,{x:100,y:0,z:0},0,10,6).pan,0);
+assert.equal(m.pickup(p,{x:0,y:0,z:100},Math.PI/2,10,6).aligned,true);
+assert.equal(m.pickup(p,{x:-11,y:0,z:0},0,10,6),null);
+assert.equal(m.pickup(p,{x:20,y:7,z:0},0,10,6),null);
+assert.equal(m.pickup(p,{x:20,y:6,z:0},0,10,6),null);
+assert.equal(m.pickup(p,{x:20,y:0,z:0},0,10,0),null);
+assert.equal(m.pickup(p,{x:20,y:0,z:0},NaN,10,6),null);
+assert.equal(m.pickup(p,{x:20,y:0,z:9.95},0,10,6).aligned,false);
+assert.equal(m.carrier(2,100),-1); assert.equal(m.carrier(10,5),15);
+assert.equal(m.possession(3,11),true); assert.equal(m.possession(3,5),false);
+assert.equal(m.possession(3,-1),false); assert.equal(m.goal(0,1),true);
+assert.equal(m.goal(1,1),false); assert.equal(m.goal(2,0),false);
+console.log('PASS: race pickup precision, native radius/height, turns, carrier sentinel, possession and score events.');

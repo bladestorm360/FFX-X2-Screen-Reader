@@ -1,0 +1,20 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const p=vm.createContext({});
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../Frida/FFX/accessibility_controls.js'),'utf8'),p);
+assert.equal(p.plannerStep([0,1,2,3],2,false,[]),3);
+assert.equal(p.plannerStep([0,1,2,3],2,true,[]),1);
+assert.equal(p.plannerStep([0,1,2,3],8,true,[8,7,0]),7);
+assert.equal(p.battleNumberKind(1),'MP');
+for(const type of [2,3,4,5]) assert.equal(p.battleNumberKind(type),'');
+assert.equal(p.controllerCommand('X',true,true,false),'active');
+assert.equal(p.controllerCommand('X',true,false,false),'gil');
+assert.equal(p.controllerCommand('B',true,false,false),'trial-path');
+assert.equal(p.controllerCommand('Left',false,false,false),'previous');
+assert.equal(p.controllerCommand('Left',false,false,true),'');
+assert.equal(p.controllerCommand('RSUp',false,false,true),'description');
+assert.equal(p.keepDestination(true,[],true),false);
+assert.equal(p.keepDestination(false,[],true),true);
+console.log('PASS: cursor forward/backward, numeric battle kinds, contextual controller map and unknown-floor filter.');
+
+for (const key of ['F4','F5']) assert.equal(p.plannerOrigin(key,2,8),2);
+for (const key of ['Backslash','ShiftBackslash']) assert.equal(p.plannerOrigin(key,2,8),8);

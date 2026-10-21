@@ -1,43 +1,52 @@
-/*
- * dinput8_proxy.cpp — Minimal dinput8.dll proxy for FFX/FFX-2 HD Remaster.
- *
- * Forwards DirectInput8Create to the real dinput8.dll and loads
- * frida-gadget.dll which runs the mod script (ffx_sr.js).
- */
+// Native bootstrap: DirectInput's first export call executes outside loader lock.
+#include "../native/events.hpp"
+#include <unknwn.h>
+#include <exception>
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+static HMODULE selfModule;
+static INIT_ONCE initialized = INIT_ONCE_STATIC_INIT;
+using CreateInput = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);
+static CreateInput realCreate;
 
-static HMODULE g_real_dinput8 = nullptr;
-static FARPROC g_proc_DirectInput8Create = nullptr;
-
-static void load_real_dinput8() {
-    wchar_t sys_dir[MAX_PATH];
-    GetSystemDirectoryW(sys_dir, MAX_PATH);
-    wcscat_s(sys_dir, L"\\dinput8.dll");
-    g_real_dinput8 = LoadLibraryW(sys_dir);
-    if (g_real_dinput8)
-        g_proc_DirectInput8Create = GetProcAddress(g_real_dinput8, "DirectInput8Create");
+static DWORD WINAPI bootstrap(void*) {
+    try { if (ffx::startSpeech(selfModule)) ffx::startReader();else ffx::cancelSpeechStartup(); }
+    catch(const std::exception& error) { ffx::cancelSpeechStartup();ffx::recordLog("native bootstrap refused: %s",error.what()); }
+    catch(...) { ffx::cancelSpeechStartup();ffx::recordLog("native bootstrap refused: unexpected exception"); }
+    return 0;
 }
 
-extern "C" __declspec(naked) void __stdcall proxy_DirectInput8Create() {
-    __asm { jmp dword ptr [g_proc_DirectInput8Create] }
-}
-
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
-    if (reason == DLL_PROCESS_ATTACH) {
-        DisableThreadLibraryCalls(hModule);
-        load_real_dinput8();
-
-        // Load Frida Gadget — it reads its .config file and runs ffx_sr.js
-        wchar_t gadget_path[MAX_PATH];
-        GetModuleFileNameW(hModule, gadget_path, MAX_PATH);
-        wchar_t* sep = wcsrchr(gadget_path, L'\\');
-        if (sep) wcscpy_s(sep + 1, MAX_PATH - (sep - gadget_path + 1), L"frida-gadget.dll");
-        LoadLibraryW(gadget_path);
+static BOOL CALLBACK initialize(PINIT_ONCE, PVOID, PVOID*) {
+    wchar_t path[MAX_PATH]{};
+    if (!GetSystemDirectoryW(path, MAX_PATH) || wcscat_s(path, L"\\dinput8.dll")) return FALSE;
+    const auto real = LoadLibraryW(path);
+    if (!real) return FALSE;
+    realCreate = reinterpret_cast<CreateInput>(GetProcAddress(real, "DirectInput8Create"));
+    if (!realCreate) return FALSE;
+    // Keep signature extraction, files, speech/backend initialization and audio
+    // away from the native caller. The worker never owns a native COM object.
+    HMODULE pinned=nullptr;
+    if(GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,
+        reinterpret_cast<LPCWSTR>(&bootstrap),&pinned)) {
+        selfModule=pinned;
+        const auto worker=CreateThread(nullptr,0,bootstrap,nullptr,0,nullptr);
+        if(worker) CloseHandle(worker);
     }
-    else if (reason == DLL_PROCESS_DETACH) {
-        if (g_real_dinput8) FreeLibrary(g_real_dinput8);
+    return TRUE;
+}
+
+extern "C" HRESULT WINAPI proxy_DirectInput8Create(HINSTANCE instance, DWORD version,
+    REFIID iid, LPVOID* result, LPUNKNOWN outer) {
+    if (!InitOnceExecuteOnce(&initialized, initialize, nullptr, nullptr) || !realCreate) return E_FAIL;
+    const auto status = realCreate(instance, version, iid, result, outer);
+    // Input readers rediscover ready devices on native keyboard/pad updates;
+    // a factory object created before worker readiness is never retained.
+    return status;
+}
+
+BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
+    if (reason == DLL_PROCESS_ATTACH) {
+        selfModule = module;
+        DisableThreadLibraryCalls(module);
     }
     return TRUE;
 }

@@ -1,0 +1,16 @@
+const assert = require('node:assert/strict');
+const { interactionPage } = require('../Frida/FFX/interaction_text.js');
+const charset = '0123456789 !"#$%&\'()*+,-./:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_‘abcdefghijklmnopqrstuvwxyz{|}~';
+const enc = s => [...s].map(c => charset.indexOf(c) + 0x30);
+let page = interactionPage([...enc('A history book.'), 3, 16, 0x30, ...enc('Read'), 3, 16, 0x31, ...enc("Don't read"), 0]);
+assert.equal(page.prompt, 'A history book.');
+assert.deepEqual(page.choices.slice(0, 2), ['Read', "Don't read"]);
+page = interactionPage([16, 0x30, ...enc('Rest.'), 3, 16, 0x31, ...enc('Buy weapons.'), 0]);
+assert.equal(page.prompt, ''); assert.equal(page.choices[0], 'Rest.');
+page = interactionPage([...enc('We have a wide selection of'), 3, ...enc('quality goods.'), 1, ...enc('Future page'), 0]);
+assert.equal(page.prompt, 'We have a wide selection of quality goods.');
+page = interactionPage([...enc('Welcome to '), 0x12, 0x30, ...enc('!'), 0], () => [...enc("Rin's shop"), 0]);
+assert.equal(page.prompt, "Welcome to Rin's shop!");
+page = interactionPage([7, 0, 16, 0x31, ...enc('Second'), 3, 16, 0x30, ...enc('First'), 2, ...enc('Unseen'), 0]);
+assert.deepEqual(page.choices.slice(0, 2), ['First', 'Second']);
+console.log('PASS: book/shop native choice anchors, full current page, next-page exclusion and native substitution.');

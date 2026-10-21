@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {paletteSlot,focusIdentity}=require('../Frida/FFX/naming_events.js');
+assert.equal(paletteSlot(0,0),0);
+assert.equal(paletteSlot(2,4),14);
+assert.equal(paletteSlot(3,0),15);
+assert.equal(paletteSlot(-1,0),-1);
+assert.equal(focusIdentity(3,0,0,0,0,0),'');
+assert.notEqual(focusIdentity(4,0,1,0,0,0),focusIdentity(4,0,2,0,0,0));
+assert.notEqual(focusIdentity(4,0,1,0,0,0),focusIdentity(4,1,1,0,0,0));
+assert.equal(focusIdentity(4,0,1,0,1,0),focusIdentity(4,0,2,0,1,0));
+assert.notEqual(focusIdentity(4,0,1,0,1,0),focusIdentity(4,0,1,1,1,0));
+console.log('PASS: native five-glyph row ordering and letter/control focus identities.');

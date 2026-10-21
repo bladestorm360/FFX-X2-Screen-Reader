@@ -1,0 +1,6 @@
+LIBRARY FFXLauncherNative
+EXPORTS
+    LauncherSpeech_Start
+    LauncherSpeech_Capture
+    FfxNative_Output
+    FfxNative_SpeechReady

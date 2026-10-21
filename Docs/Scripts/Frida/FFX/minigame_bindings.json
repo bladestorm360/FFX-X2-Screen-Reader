@@ -1,0 +1,464 @@
+[
+  {
+    "name": "bltz0000",
+    "checksum": 732075706,
+    "length": 4647290,
+    "workers": 41,
+    "bindings": [
+      {
+        "index": 11,
+        "low": 5202,
+        "high": 1
+      },
+      {
+        "index": 12,
+        "low": 5203,
+        "high": 1
+      },
+      {
+        "index": 166,
+        "low": 201330550,
+        "high": 1
+      },
+      {
+        "index": 175,
+        "low": 201330608,
+        "high": 1
+      },
+      {
+        "index": 192,
+        "low": 201330853,
+        "high": 1
+      },
+      {
+        "index": 215,
+        "low": 201330899,
+        "high": 1
+      }
+    ],
+    "pickups": [],
+    "source": "ffx_ps2/ffx/master/jppc/event/obj/bl/bltz0000/bltz0000.ebp"
+  },
+  {
+    "name": "bltz0000",
+    "checksum": 1282163248,
+    "length": 4647290,
+    "workers": 41,
+    "bindings": [
+      {
+        "index": 11,
+        "low": 5202,
+        "high": 1
+      },
+      {
+        "index": 12,
+        "low": 5203,
+        "high": 1
+      },
+      {
+        "index": 166,
+        "low": 201330550,
+        "high": 1
+      },
+      {
+        "index": 175,
+        "low": 201330608,
+        "high": 1
+      },
+      {
+        "index": 192,
+        "low": 201330853,
+        "high": 1
+      },
+      {
+        "index": 215,
+        "low": 201330899,
+        "high": 1
+      }
+    ],
+    "pickups": [],
+    "source": "ffx_ps2/ffx/master/jppc/event/obj/bl/bltz0000/cn_bltz0000.ebp"
+  },
+  {
+    "name": "bltz0000",
+    "checksum": 1612610588,
+    "length": 4646208,
+    "workers": 41,
+    "bindings": [
+      {
+        "index": 11,
+        "low": 5202,
+        "high": 1
+      },
+      {
+        "index": 12,
+        "low": 5203,
+        "high": 1
+      },
+      {
+        "index": 166,
+        "low": 201330550,
+        "high": 1
+      },
+      {
+        "index": 175,
+        "low": 201330608,
+        "high": 1
+      },
+      {
+        "index": 192,
+        "low": 201330853,
+        "high": 1
+      },
+      {
+        "index": 215,
+        "low": 201330899,
+        "high": 1
+      }
+    ],
+    "pickups": [],
+    "source": "ffx_ps2/ffx/master/jppc/event/obj/bl/bltz0000/psv_bltz0000.ebp"
+  },
+  {
+    "name": "bltz0000",
+    "checksum": 4016248118,
+    "length": 4647290,
+    "workers": 41,
+    "bindings": [
+      {
+        "index": 11,
+        "low": 5202,
+        "high": 1
+      },
+      {
+        "index": 12,
+        "low": 5203,
+        "high": 1
+      },
+      {
+        "index": 166,
+        "low": 201330550,
+        "high": 1
+      },
+      {
+        "index": 175,
+        "low": 201330608,
+        "high": 1
+      },
+      {
+        "index": 192,
+        "low": 201330853,
+        "high": 1
+      },
+      {
+        "index": 215,
+        "low": 201330899,
+        "high": 1
+      }
+    ],
+    "pickups": [],
+    "source": "ffx_ps2/ffx/master/jppc/event/obj/bl/bltz0000/psvcn_bltz0000.ebp"
+  },
+  {
+    "name": "nagi0000",
+    "checksum": 1730323603,
+    "length": 225132,
+    "workers": 150,
+    "bindings": [
+      {
+        "index": 67,
+        "low": 1811939356,
+        "high": 1
+      },
+      {
+        "index": 116,
+        "low": 201326780,
+        "high": 1
+      },
+      {
+        "index": 117,
+        "low": 201326781,
+        "high": 1
+      },
+      {
+        "index": 128,
+        "low": 218104009,
+        "high": 1
+      },
+      {
+        "index": 130,
+        "low": 218104011,
+        "high": 4
+      },
+      {
+        "index": 135,
+        "low": 201326803,
+        "high": 1
+      },
+      {
+        "index": 137,
+        "low": 201326805,
+        "high": 1
+      },
+      {
+        "index": 149,
+        "low": 201326817,
+        "high": 1
+      }
+    ],
+    "pickups": [
+      {
+        "worker": 39,
+        "element": 0,
+        "mask": 1
+      },
+      {
+        "worker": 40,
+        "element": 0,
+        "mask": 2
+      },
+      {
+        "worker": 41,
+        "element": 0,
+        "mask": 4
+      },
+      {
+        "worker": 42,
+        "element": 0,
+        "mask": 8
+      },
+      {
+        "worker": 43,
+        "element": 0,
+        "mask": 16
+      },
+      {
+        "worker": 44,
+        "element": 1,
+        "mask": 4
+      },
+      {
+        "worker": 45,
+        "element": 1,
+        "mask": 8
+      },
+      {
+        "worker": 46,
+        "element": 1,
+        "mask": 16
+      },
+      {
+        "worker": 47,
+        "element": 1,
+        "mask": 32
+      },
+      {
+        "worker": 48,
+        "element": 1,
+        "mask": 64
+      },
+      {
+        "worker": 49,
+        "element": 1,
+        "mask": 128
+      },
+      {
+        "worker": 50,
+        "element": 2,
+        "mask": 1
+      },
+      {
+        "worker": 51,
+        "element": 2,
+        "mask": 2
+      },
+      {
+        "worker": 52,
+        "element": 2,
+        "mask": 4
+      },
+      {
+        "worker": 53,
+        "element": 2,
+        "mask": 8
+      },
+      {
+        "worker": 54,
+        "element": 2,
+        "mask": 16
+      },
+      {
+        "worker": 55,
+        "element": 2,
+        "mask": 32
+      },
+      {
+        "worker": 56,
+        "element": 2,
+        "mask": 64
+      },
+      {
+        "worker": 57,
+        "element": 2,
+        "mask": 128
+      },
+      {
+        "worker": 58,
+        "element": 3,
+        "mask": 1
+      }
+    ],
+    "source": "ffx_ps2/ffx/master/jppc/event/obj/na/nagi0000/dbg_nagi0000.ebp"
+  },
+  {
+    "name": "nagi0000",
+    "checksum": 1119091750,
+    "length": 225368,
+    "workers": 150,
+    "bindings": [
+      {
+        "index": 67,
+        "low": 1811939356,
+        "high": 1
+      },
+      {
+        "index": 116,
+        "low": 201326780,
+        "high": 1
+      },
+      {
+        "index": 117,
+        "low": 201326781,
+        "high": 1
+      },
+      {
+        "index": 128,
+        "low": 218104009,
+        "high": 1
+      },
+      {
+        "index": 130,
+        "low": 218104011,
+        "high": 4
+      },
+      {
+        "index": 135,
+        "low": 201326803,
+        "high": 1
+      },
+      {
+        "index": 137,
+        "low": 201326805,
+        "high": 1
+      },
+      {
+        "index": 149,
+        "low": 201326817,
+        "high": 1
+      }
+    ],
+    "pickups": [
+      {
+        "worker": 39,
+        "element": 0,
+        "mask": 1
+      },
+      {
+        "worker": 40,
+        "element": 0,
+        "mask": 2
+      },
+      {
+        "worker": 41,
+        "element": 0,
+        "mask": 4
+      },
+      {
+        "worker": 42,
+        "element": 0,
+        "mask": 8
+      },
+      {
+        "worker": 43,
+        "element": 0,
+        "mask": 16
+      },
+      {
+        "worker": 44,
+        "element": 1,
+        "mask": 4
+      },
+      {
+        "worker": 45,
+        "element": 1,
+        "mask": 8
+      },
+      {
+        "worker": 46,
+        "element": 1,
+        "mask": 16
+      },
+      {
+        "worker": 47,
+        "element": 1,
+        "mask": 32
+      },
+      {
+        "worker": 48,
+        "element": 1,
+        "mask": 64
+      },
+      {
+        "worker": 49,
+        "element": 1,
+        "mask": 128
+      },
+      {
+        "worker": 50,
+        "element": 2,
+        "mask": 1
+      },
+      {
+        "worker": 51,
+        "element": 2,
+        "mask": 2
+      },
+      {
+        "worker": 52,
+        "element": 2,
+        "mask": 4
+      },
+      {
+        "worker": 53,
+        "element": 2,
+        "mask": 8
+      },
+      {
+        "worker": 54,
+        "element": 2,
+        "mask": 16
+      },
+      {
+        "worker": 55,
+        "element": 2,
+        "mask": 32
+      },
+      {
+        "worker": 56,
+        "element": 2,
+        "mask": 64
+      },
+      {
+        "worker": 57,
+        "element": 2,
+        "mask": 128
+      },
+      {
+        "worker": 58,
+        "element": 3,
+        "mask": 1
+      }
+    ],
+    "source": "ffx_ps2/ffx/master/jppc/event/obj/na/nagi0000/nagi0000.ebp"
+  }
+]

@@ -1,0 +1,36 @@
+// Original ATEL queue/dispatch functions, isolated fixture only.
+#pragma once
+struct AtelReplayFixup {unsigned offset,va;bool relative;};
+inline const auto queueRequestBodyStorage=::ffx_fixture::load<68>("native/queueRequestBody.bin",0x0388c15c23f2ed55ull);
+inline const auto& queueRequestBody=queueRequestBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,1>queueRequestFixups={{{57,0x86e990,true}}};
+inline const auto queueInsertBodyStorage=::ffx_fixture::load<408>("native/queueInsertBody.bin",0xf17cca146eb802ddull);
+inline const auto& queueInsertBody=queueInsertBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,8>queueInsertFixups={{{55,0x86a7c0,true},{119,0x1326ae8,false},{286,0x86dba0,true},{295,0x86dbc0,true},{304,0x86dbe0,true},{312,0x1326ae8,false},{335,0x86a7c0,true},{393,0x1327098,false}}};
+inline const auto queueDispatchBodyStorage=::ffx_fixture::load<205>("native/queueDispatchBody.bin",0x45183375c34a4019ull);
+inline const auto& queueDispatchBody=queueDispatchBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,6>queueDispatchFixups={{{8,0x86a7c0,true},{40,0x780d60,true},{122,0x869040,true},{129,0x8715f0,true},{160,0x8725f0,true},{167,0x862c00,true}}};
+inline const auto queueInitBodyStorage=::ffx_fixture::load<299>("native/queueInitBody.bin",0xbe8c453ab9ba5279ull);
+inline const auto& queueInitBody=queueInitBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,3>queueInitFixups={{{183,0x8636f0,true},{199,0x1325b60,false},{253,0x862c60,true}}};
+inline const auto queueFinishBodyStorage=::ffx_fixture::load<377>("native/queueFinishBody.bin",0x09235e1eba38ea7dull);
+inline const auto& queueFinishBody=queueFinishBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,7>queueFinishFixups={{{13,0x86a7c0,true},{94,0x86e990,true},{173,0x872800,true},{184,0x865390,true},{261,0x863980,true},{276,0x1325b60,false},{330,0x862c60,true}}};
+inline const auto queueAfterBodyStorage=::ffx_fixture::load<27>("native/queueAfterBody.bin",0xbfae473a43d56240ull);
+inline const auto& queueAfterBody=queueAfterBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,0>queueAfterFixups={{}};
+inline const auto queueBeforeBodyStorage=::ffx_fixture::load<28>("native/queueBeforeBody.bin",0xc613987f43505381ull);
+inline const auto& queueBeforeBody=queueBeforeBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,0>queueBeforeFixups={{}};
+inline const auto queueAppendBodyStorage=::ffx_fixture::load<45>("native/queueAppendBody.bin",0xc9e2f8336d570853ull);
+inline const auto& queueAppendBody=queueAppendBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,0>queueAppendFixups={{}};
+inline const auto queueAckBodyStorage=::ffx_fixture::load<87>("native/queueAckBody.bin",0x30ccb1eba237eff4ull);
+inline const auto& queueAckBody=queueAckBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,1>queueAckFixups={{{76,0x86e990,true}}};
+inline const auto queueDeactivateBodyStorage=::ffx_fixture::load<36>("native/queueDeactivateBody.bin",0x07ab5480791c6cdeull);
+inline const auto& queueDeactivateBody=queueDeactivateBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,2>queueDeactivateFixups={{{10,0x86de90,true},{16,0x86a7c0,true}}};
+inline const auto queueActivateBodyStorage=::ffx_fixture::load<35>("native/queueActivateBody.bin",0x8bd1e2779b5dcaddull);
+inline const auto& queueActivateBody=queueActivateBodyStorage.bytes;
+inline constexpr std::array<AtelReplayFixup,2>queueActivateFixups={{{10,0x86de90,true},{16,0x86a7c0,true}}};

@@ -1,0 +1,21 @@
+# Custom/FFX — current memory
+
+**October15 active fixes and grid request:** parent `ffx bug report.txt` read as
+requested; Kilika, Macalania, controller pass-through10ms requirement, Airship
+elevator and Help page buffers plus cautious Sphere Grid diagonal audit/F6
+numbered-node cursor dialog. Implementation/offline validation in progress,
+no new deployment or gameplay claim. [Current source record](ffx-x2-screen-reader/Docs/tester_report_20261015.md).
+
+**Current 0.5.6 installer/ZIP COMPLETE:** user confirms Help menus speak, but Help information pages still do not assemble into buffers. This remains an OPEN KNOWN ISSUE; further repair deferred by user, who explicitly authorized packaging. Recompiled the single installer from the verified deployed b5ca253b55deea860aefde489d9d96cbe400e1104e15976e51edd7d95879d6ff payload. Actual26 resources, PRISM/licenses/SDL3, Tolk backup/removal,805 source assertions,130 dependency assertions and final EXE short/long install/reinstall pass; settings preserved. Five-file ZIP/docs/checksums verified; prior artifacts backed up and obsolete marker removed only after checks. ZIP SHA256 c343f931f391e79ce737704ef7359631e80c1f0b38ba680480765242ffa21343. Monitor remains PAUSED; latest96% used/4% remaining, no secondary; stop at2%. No code changes, new deployment, game/native DLL execution, registry repair or publication. [Current release/evidence](ffx-x2-screen-reader/Docs/release.md). Earlier held/package checkpoints below are superseded.
+
+**Earlier menu/results deployment (superseded for opening/Escape/Help):** opening, Key Items/blank Overdrive, active-page character/Aeon/Help buffers, visible-only details, contextual Escape and two-phase battle-results buffers implemented/offline verified/guarded-deployed. All7 installed hashes and PRISM receipt/15 files pass; INI unchanged. Proxy `97ef1181c1a299444d40c42db4637aab17b1ad3d0602c06b273cfce89eebd27c`. Installer rebuild HELD pending new gameplay; prior EXE/ZIP marked DO_NOT_USE, monitor PAUSED. [Current evidence and remaining tests](ffx-x2-screen-reader/Docs/menu_followups_20261014.md).
+
+Read [active source memory](ffx-x2-screen-reader/CODEX_MEMORY.md) and shared development/model guidance. Previous October14 delivery (before new reports): deployment blockers and Stone Gaze/shared debuff speech repaired/offline verified; final opening/defaults canonical x86 native/launcher build, guarded actual FFX/Will deployment, seven installed hashes and PRISM receipt/runtime pass. SDL3/license present, Tolk absent. No engineering/deployment/package blocker remains in this scope.
+
+User confirms final Jecht auto-success works perfectly, fulfilling its installer condition; manual prompts and taunt suppression already confirmed. Only after final deployment verification, the single0.5.6 installer/ZIP was rebuilt and verified with PRISM/licenses/SDL3 and Tolk cleanup. Actual26 resources,130 dependency checks, short/long install/reinstall,805 source assertions and ZIP/docs/checksums pass. Prior artifacts preserved; marker removed. Fresh/unset auto-success defaults Off; user's all3 On settings remain byte-identical after deploy/package, and mixed saved On/Off survive upgrades. New opening audibility and unconfirmed gameplay remain user-side.
+
+[Final delivery/evidence](ffx-x2-screen-reader/Docs/title_prompt_and_settings_20261014.md#current-delivery-checkpoint), [release package](ffx-x2-screen-reader/releases/0.5.6/ffx-x2-screen-reader-0.5.6.zip), [precise state](ffx-x2-screen-reader/Docs/UsageResumeState.json), [gameplay procedure](ffx-x2-screen-reader/Docs/gameplay_acceptance_0.5.6.md).
+
+Reset monitor remains PAUSED by user; do not restart. Latest92% used/8% remaining, secondary unavailable; stop engineering at2% remaining. No game launch/control/probes, Tester Logs, real registry/backend tests, publication or prior-build restoration. Historical memory is linked from source memory; older held/pending checkpoints are superseded.
+
+Release handoff preference: present a clickable Windows Explorer shortcut (.lnk) to the containing release folder so the user can ship the package; use this instead of a ZIP attachment or a plain path. Current shortcut: releases/Open 0.5.6 release folder.lnk. Keep the shortcut outside the five-file distribution package.

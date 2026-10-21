@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const context=vm.createContext({});vm.runInContext(fs.readFileSync(path.join(__dirname,'../Frida/FFX/navigation_interactions.js'),'utf8'),context);
+const entries=[2,3,65535,5,4,6,7];
+assert.equal(context.activeInteraction(0,entries,1<<2),false);
+assert.equal(context.activeInteraction(1,entries,1<<2),true);
+assert.equal(context.activeInteraction(1<<4,entries,1<<4),true);
+assert.equal(context.activeInteraction(1<<3,entries,1<<4),false);
+entries[0]=8;assert.equal(context.activeInteraction(1,entries,1<<2),false);
+const desk={shape:3,x:0,z:30,width:6,depth:17,angle:0};
+assert.equal(context.zoneDistance(desk,{x:0,z:10}),3);
+assert.equal(context.zoneDistance(desk,{x:0,z:20}),0);
+assert.equal(context.zoneDistance({shape:2,x:0,z:0,endX:100,endZ:0},{x:80,z:2}),2);
+console.log('PASS: native enabled talk/exit channels, remapped no-op exclusion and interaction-zone geometry.');

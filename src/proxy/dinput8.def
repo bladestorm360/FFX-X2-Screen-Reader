@@ -1,3 +1,11 @@
 LIBRARY dinput8
 EXPORTS
     DirectInput8Create = proxy_DirectInput8Create
+    FfxNative_Features
+    FfxNative_Output
+    FfxNative_SpeechReady
+    FfxNative_ValidateExecutable
+    FfxNative_Generation
+    FfxNative_PositionalCue
+    FfxNative_ProfileAddress
+    FfxNative_AccessibilityMenuActive

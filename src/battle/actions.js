@@ -39,7 +39,8 @@ const CHR_DF0 = 0xDF0;  // action-state byte. 0=idle, 3=exec, 5=finalize.
 // NativeFunction wrapper for MsGetComData so we can resolve the cmdId's
 // text the same way FUN_00898bd0 does internally, without having to
 // duplicate its excel-bin walk logic.
-// Native binding/layout evidence: FUN_0079a4c0. Refer to the external original; copied implementation removed.
+// FUN_0079a4c0 takes a command identifier and output-base pointer, and returns
+// the native command-entry pointer. Keep the binding ABI and these owners aligned.
 const msGetComDataFn = new NativeFunction(
     rva(RVA_MS_GET_COM_DATA), 'pointer', ['uint32', 'pointer']
 );

@@ -34,8 +34,8 @@ export const NODE_TYPE_NAMES = {
 };
 
 export const SCENE_NAMES = {
-    0x01: 'Main Menu', 0x02: 'Abilities', 0x04: 'Equip', 0x06: 'Status',
-    0x07: 'Aeons', 0x09: 'Formation', 0x0A: 'Config', 0x0B: 'Help',
+    0x01: 'Main Menu', 0x02: 'Abilities', 0x03: 'Items', 0x04: 'Equip', 0x06: 'Status',
+    0x07: 'Aeons', 0x09: 'Customize', 0x0A: 'Config', 0x0B: 'Help',
     0x15: 'Overdrive'
 };
 

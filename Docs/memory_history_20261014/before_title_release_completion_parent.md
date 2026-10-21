@@ -1,0 +1,9 @@
+# Custom/FFX — current memory
+
+Read [active source memory](ffx-x2-screen-reader/CODEX_MEMORY.md) and the shared development/model guidance. Current native repairs, Stone Gaze and Jecht support are implemented/offline checked; the final warning-free canonical build and guarded deployment passed both FFX/Will, all7 installed hashes and PRISM receipt/runtime verification. Installer rebuilding is HELD for user gameplay; reset monitor PAUSED. Stop engineering at2% remaining. No launch/control/probes, Tester Logs, real registry/backend, publication or prior-build restoration.
+
+October14 latest: user confirms previous real Jecht auto-success, manual prompts and taunt suppression. Fixed the omitted center/Confirm-only tutorial loop. New requested auto pacing targets750ms/23 simulation steps and stops at original score11;24 original-bytecode rounds all score exactly11, reach original awards/learning, and finish responses at254/255 of300 steps (about8.5s).176 direct queries/all-four tutorial/manual/ownership/heap0 checks pass. Warning-free canonical eleven-build1, guarded actual FFX/Will deploy1 and all7 installed hashes/PRISM receipt PASS. New tutorial and pacing await user gameplay before installer rebuilding; marker retained, monitor PAUSED. Latest85% used/15% remaining, secondary unavailable.
+
+Current status/evidence: [source checkpoint](ffx-x2-screen-reader/Docs/UsageResumeState.json), [threading audit](ffx-x2-screen-reader/Docs/threading_audit_20261012.md), [Jecht record](ffx-x2-screen-reader/Docs/jecht_shot_20261014.md), [player procedure](ffx-x2-screen-reader/Docs/gameplay_acceptance_0.5.6.md).
+
+The former long dated entry, imported Claude routing links and technical history were preserved verbatim in [memory history](ffx-x2-screen-reader/Docs/memory_history_20261014/parent_entry.md). Historical permissions/claims do not override current instructions.

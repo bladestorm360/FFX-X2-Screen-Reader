@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "package_id": "prism-0.18.3-b68e9c9-windows-x86-msvc-c17-1aa76c88",
+  "version": "0.18.3",
+  "source_commit": "b68e9c94240cefb1f08b2306c26376e3ab300a7a",
+  "platform": "windows",
+  "architecture": "x86",
+  "abi": {
+    "calling_convention": "cdecl",
+    "boolean_bytes": 1,
+    "backend_id_bytes": 8,
+    "pointer_bytes": 4,
+    "version": 4611,
+    "mandatory_imports": [
+      "ole32.dll",
+      "KERNEL32.dll",
+      "api-ms-win-power-base-l1-1-0.dll",
+      "ADVAPI32.dll",
+      "RPCRT4.dll",
+      "USER32.dll",
+      "OLEAUT32.dll",
+      "SHLWAPI.dll",
+      "XmlLite.dll",
+      "api-ms-win-core-winrt-l1-1-0.dll",
+      "UIAutomationCore.DLL",
+      "api-ms-win-core-winrt-error-l1-1-1.dll"
+    ]
+  },
+  "binding_sha256": {
+    "prism.h": "a8ac4a2b3e91f3de0f24b7b2e3cf6cf8c1825197d064942016e6234467674acf",
+    "prism_version.h": "5a4d16504b20df777272dad406378eabcb3885519e239fb3496a16ebf9fa27bf"
+  },
+  "files": {
+    "prism-provenance.json": {
+      "source": "prism-provenance.json",
+      "sha256": "4b68fe7e332dd2c99b2c60a4dc459722714e1b62098493c6db7bd0a2f5a47653"
+    },
+    "prism.dll": {
+      "source": "prism.dll",
+      "sha256": "1aa76c8835963eccd210255b06b4db48551bd174dc965d205c9f68ae0c726885"
+    },
+    "Prism_LICENSE": {
+      "source": "Prism_LICENSE",
+      "sha256": "557d36c39369acf6de45f76c5d4ca500c7427aa47b9474fe7647514dddbb90a2"
+    },
+    "Prism_LICENSES_concurrentqueue_LICENSE.md": {
+      "source": "Prism_LICENSES_concurrentqueue_LICENSE.md",
+      "sha256": "a0f53fe6abd691d725dd9478cd906e9010c80f06c3de3f83f74576e574d5a3d4"
+    },
+    "Prism_LICENSES_djinni_LICENSE": {
+      "source": "Prism_LICENSES_djinni_LICENSE",
+      "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5"
+    },
+    "Prism_LICENSES_dr_wav_LICENSE": {
+      "source": "Prism_LICENSES_dr_wav_LICENSE",
+      "sha256": "a13603628866863f196c0201891a6dcc8062481e83b5d686f34cf9e45ceec899"
+    },
+    "Prism_LICENSES_fmt_LICENSE": {
+      "source": "Prism_LICENSES_fmt_LICENSE",
+      "sha256": "e53b24254a17f6acdaf967557c287dca7e920b22cc6290f6a84d57c34d942a6e"
+    },
+    "Prism_LICENSES_highway_LICENSE": {
+      "source": "Prism_LICENSES_highway_LICENSE",
+      "sha256": "d208152e2777ffd0126eacc1bd21c0320d69e4e6b622d21a2a12a47e8ef73763"
+    },
+    "Prism_LICENSES_moderncom_AUTHORS.md": {
+      "source": "Prism_LICENSES_moderncom_AUTHORS.md",
+      "sha256": "373aa5788d62a48b205b076a3cf966116960eee22aeef8146ea28a5a347c7d4b"
+    },
+    "Prism_LICENSES_moderncom_LICENSE": {
+      "source": "Prism_LICENSES_moderncom_LICENSE",
+      "sha256": "46bdc264e0055ac5e138a64cc7376b3f77b94e11256c43b6a19cf5ebd7006ac7"
+    },
+    "Prism_LICENSES_nvdaController_lgpl-2.1.txt": {
+      "source": "Prism_LICENSES_nvdaController_lgpl-2.1.txt",
+      "sha256": "30db0e56ab6acae4e198d348d348935d60a9db468420339e922e1720b34a4b9f"
+    },
+    "Prism_LICENSES_nvgt_LICENSE.md": {
+      "source": "Prism_LICENSES_nvgt_LICENSE.md",
+      "sha256": "c3f9771cadda97d53e0a1cc22565d5f48502968e863ab25ea77e46e0e505b215"
+    },
+    "Prism_LICENSES_prism_mpl-2.0.txt": {
+      "source": "Prism_LICENSES_prism_mpl-2.0.txt",
+      "sha256": "6ac0afba190f0aa30f9de97e8ae7ac5a1a6b7c3df42dbed92c13a096efcfa505"
+    },
+    "Prism_LICENSES_simdutf_apache-2.0.txt": {
+      "source": "Prism_LICENSES_simdutf_apache-2.0.txt",
+      "sha256": "850a7c05a1f9b8a354186d0be102432ef7bb9fec1b86a20914abf933cdcbaa91"
+    },
+    "Prism_NOTICE": {
+      "source": "Prism_NOTICE",
+      "sha256": "f545fa86ed196e8ad4cc0a1b420621dcb101696cb8940177240ac8105fddb6ce"
+    }
+  }
+}

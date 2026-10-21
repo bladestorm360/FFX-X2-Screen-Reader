@@ -1,0 +1,232 @@
+{
+  "glyphs": [
+    {
+      "worker": 57,
+      "label": "Floor panel 2: orange T, four squares"
+    },
+    {
+      "worker": 58,
+      "label": "Floor panel 3: yellow straight line, four squares"
+    },
+    {
+      "worker": 59,
+      "label": "Floor panel 4: orange T, four squares"
+    },
+    {
+      "worker": 60,
+      "label": "Floor panel 5: white square, four squares"
+    },
+    {
+      "worker": 61,
+      "label": "Floor panel 6: cyan zigzag, four squares"
+    },
+    {
+      "worker": 62,
+      "label": "Floor panel 7: white square, four squares"
+    },
+    {
+      "worker": 63,
+      "label": "Floor panel 8: yellow straight line, four squares"
+    },
+    {
+      "worker": 64,
+      "label": "Floor panel 9: blue L, four squares"
+    },
+    {
+      "worker": 65,
+      "label": "Floor panel 10: white square, four squares"
+    },
+    {
+      "worker": 66,
+      "label": "Floor panel 11: blue L, four squares"
+    },
+    {
+      "worker": 67,
+      "label": "Floor panel 12: white square, four squares"
+    },
+    {
+      "worker": 68,
+      "label": "Floor panel 13: red corner, three squares"
+    },
+    {
+      "worker": 69,
+      "label": "Floor panel 14: white square, four squares"
+    },
+    {
+      "worker": 70,
+      "label": "Floor panel 15: red corner, three squares"
+    },
+    {
+      "worker": 71,
+      "label": "Floor panel 16: cyan zigzag, four squares"
+    },
+    {
+      "worker": 72,
+      "label": "Floor panel 17: red corner, three squares"
+    },
+    {
+      "worker": 73,
+      "label": "Floor panel 18: red corner, three squares"
+    },
+    {
+      "worker": 74,
+      "label": "Floor panel 19: red corner, three squares"
+    },
+    {
+      "worker": 75,
+      "label": "Floor panel 20: white square, four squares"
+    },
+    {
+      "worker": 76,
+      "label": "Floor panel 21: cyan zigzag, four squares"
+    },
+    {
+      "worker": 77,
+      "label": "Floor panel 22: cyan mirrored zigzag, four squares"
+    },
+    {
+      "worker": 78,
+      "label": "Floor panel 23: blue L, four squares"
+    },
+    {
+      "worker": 79,
+      "label": "Floor panel 24: red corner, three squares"
+    },
+    {
+      "worker": 80,
+      "label": "Floor panel 25: blue L, four squares"
+    },
+    {
+      "worker": 81,
+      "label": "Floor panel 26: white square, four squares"
+    },
+    {
+      "worker": 82,
+      "label": "Floor panel 27: blue L, four squares"
+    },
+    {
+      "worker": 83,
+      "label": "Floor panel 28: yellow straight line, four squares"
+    }
+  ],
+  "sequences": [
+    {
+      "worker": 53,
+      "stage": 0,
+      "entryPc": 41959,
+      "endPc": 42056,
+      "gfx": [
+        12,
+        14,
+        16,
+        18,
+        28
+      ],
+      "workers": [
+        57,
+        58,
+        59,
+        61,
+        64
+      ]
+    },
+    {
+      "worker": 54,
+      "stage": 1,
+      "entryPc": 42109,
+      "endPc": 42686,
+      "gfx": [
+        70,
+        72,
+        46,
+        68,
+        60,
+        62
+      ],
+      "workers": [
+        74,
+        73,
+        71,
+        77,
+        80,
+        82
+      ]
+    },
+    {
+      "worker": 54,
+      "stage": 2,
+      "entryPc": 42109,
+      "endPc": 42686,
+      "gfx": [
+        70,
+        72,
+        54,
+        38,
+        52,
+        64,
+        56
+      ],
+      "workers": [
+        74,
+        73,
+        79,
+        66,
+        76,
+        78,
+        83
+      ]
+    },
+    {
+      "worker": 54,
+      "stage": 3,
+      "entryPc": 42109,
+      "endPc": 42686,
+      "gfx": [
+        70,
+        72,
+        42,
+        48,
+        50,
+        54,
+        38,
+        60,
+        68
+      ],
+      "workers": [
+        74,
+        73,
+        70,
+        68,
+        72,
+        79,
+        66,
+        80,
+        77
+      ]
+    },
+    {
+      "worker": 54,
+      "stage": 4,
+      "entryPc": 42109,
+      "endPc": 42686,
+      "gfx": [
+        70,
+        72,
+        42,
+        48,
+        38,
+        52,
+        62
+      ],
+      "workers": [
+        74,
+        73,
+        70,
+        68,
+        66,
+        76,
+        82
+      ]
+    }
+  ]
+}

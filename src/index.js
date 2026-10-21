@@ -1,5 +1,4 @@
-// Entry point: bundler builds this file and all transitive imports into
-// install/ffx_sr.js, loaded by frida-gadget at game startup.
+// Offline Frida reference/prototype entry point. Production is native C++.
 //
 // Install order matters: navigation registers its tick first so nav transition
 // detection runs BEFORE battle updates state.inBattle — the original script
@@ -13,11 +12,14 @@ import { install as installNavigation } from './navigation/index.js';
 import { install as installBattle } from './battle/index.js';
 import { install as installMenus } from './menus/index.js';
 import { logFile } from './core/speech.js';
+import { NATIVE_ALL_READERS } from './core/native.js';
 
-installNavigation();
-installBattle();
-installMenus();
-
-startFrame();
-
-logFile('FFX Screen Reader Mod fully loaded');
+if (!NATIVE_ALL_READERS) {
+    installNavigation();
+    installBattle();
+    installMenus();
+    startFrame();
+    logFile('FFX prototype readers loaded');
+} else {
+    logFile('Native production owns all readers; prototype producers disabled');
+}
