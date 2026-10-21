@@ -20,7 +20,10 @@ Repository/downloads: https://github.com/bladestorm360/FFX-X2-Screen-Reader
    every Git tree. A known retained game-code object blocks making that repository
    public even after its reachable refs were sanitized.
 2. Update README, CHANGELOG and controls from actual features/bindings, retaining
-   credits and known issues. Set the requested public version in
+   credits and known issues. Use short paragraphs and semantic Markdown lists
+   for separate issues/credits; single source newlines collapse on GitHub.
+   Verify rendered HTML structure rather than relying on source wrapping.
+   Set the requested public version in
    `src/native/build_version.hpp`, `src/installer/AssemblyInfo.cs` and the packaging
    default. The native Windows resource reads the shared version header; the
    startup log uses the public spelling. Preserve pinned runtime versions and the
@@ -105,13 +108,35 @@ documents. Failed manual reflection in a64-bit host and a fixture call missing
 its explicit PRISM test environment were corrected in the x86 independent
 verifier/configured test host; those failed invocations are not passing evidence.
 
-GitHub still retains the documented removed source object in the old private
-repository. The user explicitly authorized deletion/recreation, following
-BDFFHD. The CLI DELETE returned HTTP403 and the user says they will delete the
-repository manually. Recovery bundle/working-copy ZIP are verified outside Git.
-Publication now waits for authenticated404 of the old repository, then clean
-restoration/new identity/removed-object404 checks before public visibility and
-the verified draft release. [Replacement/access evidence](features/remote_cleanup_handoff_20261020.md).
+Publication is complete. The user deleted the old private repository after the
+authorized CLI DELETE returned HTTP403. Authenticated owner/name404 was verified
+before creating a fresh private repository, restoring clean master/three tags,
+and making it public. New repository ID1428963798 differs from old ID1191559099.
+All32 known removed objects return404 in the replacement repository; the known
+source blob also returns404 anonymously after publication. These checks establish
+API inaccessibility, not physical erasure of GitHub backups.
+[Replacement/access evidence](features/remote_cleanup_handoff_20261020.md).
+
+- Public release: [FFX Screen Reader1.0](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0).
+- Release ID420089987; published October21 at21:51:23UTC; Latest, non-draft and
+  non-prerelease. Asset ID663887107 is the ZIP above.
+- Uploaded draft and anonymous public downloads match the recorded ZIP SHA256.
+- The user chose to leave collaborator permissions unchanged on the replacement;
+  no collaborator invitations were sent.
+
+After publication, the user requested accessible formatting in GitHub's
+`README.md`. Commit `71ac394` splits long paragraphs into short paragraphs and
+semantic lists. GitHub's renderer and the published README HTML contain nine
+separate known-issue items and seven credit items. This verifies HTML structure;
+an actual screen-reader session was not run by the agent. The mistaken initial
+packaged-text edits were discarded before commit or packaging. The release ZIP,
+installer and tag remain byte-for-byte unchanged. Packaged-document equality is
+against tagged source625af61, before this website-only formatting correction.
+
+Final publication and README receipts are in
+`install/release-1.0-20261021/publication-verification.json` and
+`readme-public-verification.json`; external replacement recovery/checks are in
+`Analysis/FFX/RepositoryCleanup_20261021`.
 
 Earlier delivery records, Dropbox history and superseded release holds remain
 in [the historical release record](release_history_before_1.0_20261021.md).

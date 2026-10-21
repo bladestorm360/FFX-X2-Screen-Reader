@@ -58,7 +58,7 @@ hardware behavior are confirmed. Percentages are rough engineering estimates.
 | Full mod UI language catalog/manual override | not started | English mod labels/native translations documented separately |
 | HRTF playback and independent global spatial controls | not started | Existing stereo/rear-pitch output does not implement this baseline |
 | Full enemy analysis, other side activities, FFX-2/Last Mission | not started | Outside currently implemented FFX scope |
-| External game-source inputs and source-free repository/docs | in progress (~95%) | Local content/objects and remote refs sanitized; GitHub still retains a known old source blob; host-side removal unresolved |
+| External game-source inputs and source-free repository/docs | complete for reviewed local content/history and replacement remote | User deleted affected repository; clean history restored to new public ID1428963798; all32 known removed objects404; physical GitHub backup erasure is not claimed |
 
 ## Architecture and design entry points
 

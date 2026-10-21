@@ -4,8 +4,8 @@ Status: complete for implementation/offline verification; both173-hook profiles,
 original capacity/renderer and real status-worker checks pass. Warning-free
 release build and both installed-executable image preflights pass.
 The user released the hold and requested final1.0. The current1.0 native build
-is guarded-deployed and its installer/ZIP verified; public upload awaits the
-repository decision in Docs/release.md. This follow-up includes the previously verified
+is guarded-deployed and its verified installer/ZIP is published as Latest in the
+fresh public repository; see Docs/release.md. This follow-up includes the previously verified
 [speech repairs](seymour_amount_prompts_20261021.md).
 Logs, source/test freeze and seven-file verification receipt are retained in
 `install/battle-hp-20261021`. The previous receipt remains historical provenance.

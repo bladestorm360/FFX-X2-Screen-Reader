@@ -2,10 +2,12 @@
 
 October21: [the1.0/GitHub release procedure](../../release.md) supersedes the
 historical release0.5.9/Dropbox descriptions below. The user explicitly resumed
-deployment/packaging and requests public GitHub publication.1.0 is built,
-guarded-deployed and its final single-installer ZIP verified. The current GitHub
-repository still retains a removed game-code object; a safe clean-repository
-publication decision is pending. Future prepare-release requests include the
+deployment/packaging and requested public GitHub publication.1.0 is built,
+guarded-deployed, verified and published as Latest in the fresh public repository
+ID1428963798 after the user deleted the affected old repository. All32 known
+removed objects return404 in the replacement. The GitHub README subsequently
+received paragraph/list formatting only; the tagged installer/ZIP are unchanged.
+Future prepare-release requests include the
 reviewed source commit/push, annotated tag, verified draft ZIP and publication.
 Native Windows version metadata/startup stamp and installer version are1.0.0.0;
 `verify_release.ps1` independently verifies the final package in an x86 host.

@@ -1,6 +1,26 @@
 # GitHub retained-object cleanup handoff
 
-## October21 authorized replacement, waiting for manual deletion
+## October21 replacement completed
+
+Status: complete for the reviewed local content/history and canonical replacement
+repository. The user manually deleted old private ID1191559099 after the CLI
+DELETE returned403. Authenticated owner/name404 was verified before creation of
+new private ID1428963798 at the same URL. Clean master/three tags were restored;
+all32 known removed objects (23 blobs, seven commits and two tag objects) return
+authenticated404. Only then was the replacement made public and verified1.0
+published. Anonymous access to the known source blob also returns404. No claim
+about physical GitHub backup erasure is made.
+
+The user explicitly chose to leave permissions as they are on the replacement.
+No invitations to former collaborators were sent. External recovery and receipts
+remain in `Analysis/FFX/RepositoryCleanup_20261021`, including
+`manual-deletion-verified.json`, `replacement-verification.json` and the verified
+bundle/working-copy archive. [Final release evidence](../release.md) records
+the public release, unchanged tagged payload and later GitHub README formatting.
+
+Everything below describes the superseded blocker and retained recovery plan.
+
+## Historical October21 replacement plan, before manual deletion
 
 The user rejects retaining an affected private archive and explicitly authorizes
 deleting/recreating the old repository if needed, following BDFFHD's precedent.
@@ -33,7 +53,7 @@ physical GitHub backup erasure is implied by those checks.
 
 The earlier support draft and old cleanup facts below remain historical evidence.
 
-Status: **in progress (~95%)** overall repository cleanup. Current local files,
+Historical pre-replacement status: **in progress (~95%)**. Current local files,
 all local Git objects, and published master/two tag histories are sanitized.
 A metadata-only API check still retrieves one known removed decompiled-body
 blob. Full host-side removal is not complete and is not implied by a force push.

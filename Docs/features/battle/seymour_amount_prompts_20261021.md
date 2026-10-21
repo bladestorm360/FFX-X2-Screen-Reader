@@ -1,6 +1,6 @@
 # Battle mechanics, amounts, confirmations and Formation — October21
 
-Status: implemented, offline verified and guarded-deployed in1.0 after the user released the hold. The final single-installer ZIP is verified; GitHub publication awaits the repository decision in Docs/release.md. Gameplay confirmation is pending. The earlier staged receipt and initial hold below remain historical evidence. The four completed minigame assists remain included.
+Status: implemented, offline verified and guarded-deployed in1.0 after the user released the hold. The verified single-installer ZIP is published as Latest in the fresh public GitHub repository; see Docs/release.md. Gameplay confirmation is pending. The earlier staged receipt and initial hold below remain historical evidence. The four completed minigame assists remain included.
 
 The actual current log is beside FFX.exe. The sandbox exposed a stale empty copy and no process; the real read-only host view found the active session and454KB log. Logging works. The log confirms Mortiphasm100%, Spare Change without an amount, and at12:25:37.952 a learned-mode message missing both names. Use the real host view for own-session evidence and process closure checks. No Tester Logs, gameplay control, launch or runtime probe was used.
 
