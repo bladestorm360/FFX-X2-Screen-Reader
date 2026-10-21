@@ -106,9 +106,12 @@ its explicit PRISM test environment were corrected in the x86 independent
 verifier/configured test host; those failed invocations are not passing evidence.
 
 GitHub still retains the documented removed source object in the old private
-repository. The user was asked to approve preserving it as a private archive and
-creating a clean repository at the current canonical URL. Public publication is
-pending that decision; deployment and local package preparation continue.
+repository. The user explicitly authorized deletion/recreation, following
+BDFFHD. The CLI DELETE returned HTTP403 and the user says they will delete the
+repository manually. Recovery bundle/working-copy ZIP are verified outside Git.
+Publication now waits for authenticated404 of the old repository, then clean
+restoration/new identity/removed-object404 checks before public visibility and
+the verified draft release. [Replacement/access evidence](features/remote_cleanup_handoff_20261020.md).
 
 Earlier delivery records, Dropbox history and superseded release holds remain
 in [the historical release record](release_history_before_1.0_20261021.md).

@@ -8,9 +8,14 @@ install/reinstall,26 resources and exact five-file ZIP pass. Current evidence:
 `install/release-1.0-20261021`. ZIP SHA256
 `768c49042b3c73966a97656ed0f22973402860c908614b0b90d17ddd49a2963d`.
 Settings/prior releases preserved; gameplay pending; no game launch/probe.
-Publication awaits explicit approval to rename the old private repository and
-create a clean repository at the canonical URL: GitHub still retains known old
-source object f00dfd4. Do not make the affected repo public. Future release
+Publication waits for the user's manual deletion of old private repository
+ID1191559099: the user explicitly authorizes delete/recreate as with BDFFHD.
+CLI DELETE returned HTTP403. GitHub still serves known old source object f00dfd4;
+do not make the affected repo public. Clean history/working-copy recovery are
+verified outside Git in Analysis/FFX/RepositoryCleanup_20261021. Verify owner/name
+404, recreate private, restore clean master/three tags, verify new ID and known
+old objects404, then publicize/publish. [Evidence](Docs/features/remote_cleanup_handoff_20261020.md).
+Future release
 requests include commit/push/tag/draft download verification/publication; Dropbox
 is historical. Luna supplied bounded1.0 player docs; Sol reviewed, corrected
 wording/format and owns implementation/deployment/verification. No Astra.

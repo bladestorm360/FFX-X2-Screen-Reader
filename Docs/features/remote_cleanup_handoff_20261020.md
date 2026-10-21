@@ -1,5 +1,38 @@
 # GitHub retained-object cleanup handoff
 
+## October21 authorized replacement, waiting for manual deletion
+
+The user rejects retaining an affected private archive and explicitly authorizes
+deleting/recreating the old repository if needed, following BDFFHD's precedent.
+The BDFFHD record confirms manual deletion by the owner, followed by authenticated
+404/new repository ID/restored clean history/known-object404 checks. It does not
+provide a supported individual GitHub object-delete operation.
+
+The exact FFX target remains private repository ID1191559099,
+`bladestorm360/FFX-X2-Screen-Reader`, with clean old master734bd42 and the two
+clean old tags. Issues, pull requests, forks, stars, releases, hooks, deploy keys,
+Actions secrets/variables and environments are zero. The owner and two existing
+write collaborators were recorded outside Git for access recovery. Local current
+master5f395cd and annotatedv1.0/source625af61 are preserved, with a clean worktree.
+
+External recovery is verified at
+`Analysis/FFX/RepositoryCleanup_20261021`: the clean-history bundle passes
+`git bundle verify`; the tracked working-copy ZIP passes7-Zip integrity. Recovery
+hashes/refs, remote identity/settings/counts and collaborator roles are recorded.
+The verified1.0 ZIP and installed payload remain unchanged.
+
+The authorized DELETE attempt returned HTTP403, "Must have admin rights to
+Repository." No account/token permissions were changed and no browser workaround
+was attempted. The user explicitly says they will delete it manually. Waiting
+for that action; do not recreate against an existing repository or change its
+visibility. After confirmed authenticated owner/name404, create a fresh private
+repository at the same canonical URL, restore only clean master/three tags,
+verify its new identity and every known removed old object/commit is inaccessible,
+then make it public and publish the hash-verified1.0 draft release. No claim of
+physical GitHub backup erasure is implied by those checks.
+
+The earlier support draft and old cleanup facts below remain historical evidence.
+
 Status: **in progress (~95%)** overall repository cleanup. Current local files,
 all local Git objects, and published master/two tag histories are sanitized.
 A metadata-only API check still retrieves one known removed decompiled-body
