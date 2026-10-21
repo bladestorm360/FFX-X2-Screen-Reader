@@ -85,6 +85,26 @@ behavior change is the release startup stamp; Windows version resources and
 installer metadata are1.0.0.0. Release build/deployment/installer/package/GitHub
 receipts are retained under `install/release-1.0-20261021`.
 
+Local verification is complete: warning-free release build, guarded deployment/
+all7 installed hashes, source805/actual dependency130 installer assertions,
+actual final-EXE short/long install/reinstall,26 embedded resources and the exact
+five-file archive pass. Settings and0.5.7/0.5.8/0.5.9 packages are preserved.
+The independent verifier is `src/installer/verify_release.ps1`.
+
+- Source: `625af61d685b335d86314b0aefde9c04d815940e`.
+- Annotated local tag: `v1.0`, tag object `f7a3e6f02d016b7660bcf6ca3045cfc10d4f6c56`.
+- ZIP: `releases/1.0/ffx-x2-screen-reader-1.0.zip`,2,593,240 bytes.
+- SHA256: `768c49042b3c73966a97656ed0f22973402860c908614b0b90d17ddd49a2963d`.
+- Receipt: `install/release-1.0-20261021/verification.json`.
+
+Luna (`gpt-6-luna`, medium) supplied the bounded README/changelog/controls update.
+Sol reviewed/corrected wording/format and verified their exact packaged bytes;
+all native/version/build/deployment/installer/repository work was retained by Sol.
+No Astra or unresolved delegated edit. Known gameplay limits remain in the player
+documents. Failed manual reflection in a64-bit host and a fixture call missing
+its explicit PRISM test environment were corrected in the x86 independent
+verifier/configured test host; those failed invocations are not passing evidence.
+
 GitHub still retains the documented removed source object in the old private
 repository. The user was asked to approve preserving it as a private archive and
 creating a clean repository at the current canonical URL. Public publication is

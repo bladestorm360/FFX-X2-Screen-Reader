@@ -15,6 +15,9 @@ requests include commit/push/tag/draft download verification/publication; Dropbo
 is historical. Luna supplied bounded1.0 player docs; Sol reviewed, corrected
 wording/format and owns implementation/deployment/verification. No Astra.
 
+Earlier implementation checkpoints below retain their initial holds; the1.0
+request and deployed/package state above supersede those holds.
+
 [HP/MP follow-up](Docs/features/battle/hp_sources_20261021.md): H and targets now
 read committed native totals, replacing stale/uncapped action scratch values.
 Percentages and maximum preferences preserved. Switch's effective maximum is
