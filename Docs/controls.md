@@ -1,10 +1,12 @@
-# FFX player guide — 1.0
+# FFX player guide — 1.0.1
 
-This is the full control reference for the 1.0 release of the native FFX reader. See the [README](../README.md) for installation and a concise release overview, and the [changelog](../CHANGELOG.md) for release history.
+This is the full control reference for the 1.0.1 release of the native FFX reader. See the [README](../README.md) for installation and a concise release overview, and the [changelog](../CHANGELOG.md) for release history.
 
 ## Launcher setup
 
 The release installer includes the locked x86 PRISM 0.18.3 runtime, required licenses/notices and SDL3. It verifies a matching existing runtime read-only, backs up/removes Tolk and preserves saved settings.
+
+Launcher choices are spoken with Up/Down or Left/Right navigation in all eight native launcher languages. Labels follow the artwork and current language, including after changing language in native settings. Enter/Space activates the selected item; native settings and credits dialogs retain their own controls and screen-reader support.
 
 Close the game and launcher, extract the release ZIP and run **InstallFFXScreenReader.exe**. Select the detected installation or use **Browse**. If setup reports a previous launch redirect, choose **Repair launch redirection**, review and confirm the listed changes, and save the backup. Then choose **Install** and wait for **Installation complete**.
 
@@ -33,9 +35,11 @@ For the six Baaj seals, `warp 196 0` goes directly to Ruins — Antechamber and 
 
 ## Language
 
-If the game starts in Japanese, find its settings file under
+To change the game language itself, find its settings file under
 `Documents\SQUARE ENIX` in the FFX / FFX-2 HD Remaster subfolder. Change the
 language value from lowercase `jp` to lowercase `en`, save, and restart the game.
+This is optional for launcher accessibility; launcher speech follows the native
+launcher language setting.
 
 ## Keys
 
@@ -453,7 +457,7 @@ dialogue and cutscenes still cancel it.
 
 Passage exits retain stable numbers, including dungeon-floor passages; sorting and temporarily hidden exits do not renumber them.
 
-Release 1.0 includes the six Baaj Antechamber seals as navigation destinations.
+Release 1.0.1 includes the six Baaj Antechamber seals as navigation destinations. Automatic destruction-sphere collection verifies and retains the corresponding temple prerequisite flag after each native chest completes; all six trials are supported. Besaid sphere collection is gameplay-confirmed. A remote tester still needs to confirm Baaj Ruins unlock through normal gameplay without warps. Zanarkand's flag was already present in the supplied save despite a reported missing sphere.
 They activate by walking into the native regions; selecting or arriving at one
 does not press Talk or Confirm. The user confirms the missing Besaid treasure stays
 inactive and every eligible seal works. Disabled seals stay listed as currently

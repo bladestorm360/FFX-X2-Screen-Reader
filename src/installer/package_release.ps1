@@ -1,4 +1,4 @@
-param([string]$Version = '1.0',
+param([string]$Version = '1.0.1',
       [string]$TolkRoot = '', # Deprecated compatibility parameter; unused.
       [string]$RuntimeDirectory,
       [Parameter(Mandatory=$true)][string]$SevenZip)

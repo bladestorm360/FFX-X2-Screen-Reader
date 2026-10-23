@@ -4,5 +4,5 @@ using System.Reflection;
 // independent, stable bootstrap contract validated by InstallerEngine.
 [assembly: AssemblyTitle("FFX Screen Reader Setup")]
 [assembly: AssemblyProduct("FFX / FFX-2 Screen Reader")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]

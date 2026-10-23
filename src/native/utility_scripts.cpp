@@ -15,6 +15,7 @@ struct Continuation {
     int regY = 0;
     int choice = -1;
     bool waiting = false;
+    unsigned returnPc = 0;
 } active;
 unsigned nextReservation=0;
 struct Initialization {uintptr_t worker=0,signal=0;unsigned epoch=0;} initialization;
@@ -28,13 +29,24 @@ void finishing(Event& e) {
     const auto worker = reinterpret_cast<Worker>(address(0x46a7c0))(static_cast<int>(e.args[0]));
     e.before[0] = worker; e.before[1] = read<uintptr_t>(worker + 0x90);
     e.before[2] = read<uint16_t>(static_cast<uintptr_t>(e.before[1]) + 8,0xffff);
+    e.before[3] = 1;
+    if(active.returnPc && active.epoch==generation() && active.worker==worker && active.signal==static_cast<uintptr_t>(e.before[1])) {
+        const unsigned level=read<uint8_t>(active.signal+14)&15;
+        const auto type=read<uint8_t>(read<uintptr_t>(worker));
+        // The interpreter calls this function with its PC still at RET.
+        // Capture before native release/dispatch can reuse the same signal.
+        e.before[3]=level<=((type==5 || type==6)?1u:8u) &&
+            read<uintptr_t>(worker+0x12c+level*0x4c+0x18)==
+                active.chunk+read<unsigned>(active.chunk+0x30)+active.returnPc;
+    }
 }
 void finished(Event& e) {
     const auto worker = static_cast<uintptr_t>(e.before[0]), signal = static_cast<uintptr_t>(e.before[1]);
     if (!worker || !signal) return;
     const bool owned = active.epoch == generation() && active.worker == worker && active.signal == signal;
     if (owned) active = {};
-    puzzleCompleted(worker, signal, true, owned); viaScriptCompleted(true,owned);
+    const bool completed=e.before[3]!=0;
+    puzzleCompleted(worker, signal, completed, owned); viaScriptCompleted(completed,owned);
     puzzleTileCompleted(worker,static_cast<unsigned>(e.before[2]));
     puzzleGuideCompleted();
 }
@@ -103,7 +115,8 @@ void checkUtilityScript(const UtilityScript& script, const ScriptAction& action)
         throw std::runtime_error("The native entry table does not match the verified action");
     const auto entryOffset = read<unsigned>(header + 0x20);
     if (action.entry >= read<uint16_t>(header + 8) || entryOffset>span.size || (action.entry+1ull)*4>span.size-entryOffset ||
-        read<unsigned>(script.chunk + entryOffset + action.entry * 4) != action.entryPc || action.pc >= script.length)
+        read<unsigned>(script.chunk + entryOffset + action.entry * 4) != action.entryPc || action.pc >= script.length ||
+        (action.returnPc && (action.returnPc>=script.length || read<uint8_t>(script.chunk+script.codeOffset+action.returnPc)!=0x3c)))
         throw std::runtime_error("The native entry table does not match the verified action");
     const auto signal = read<uintptr_t>(worker + 0x88);
     if (!signal) throw std::runtime_error("The native worker has no free request slots");
@@ -113,7 +126,7 @@ void runUtilityScript(const UtilityScript& script, const ScriptAction& action) {
     const auto worker = utilityWorker(script, action.worker);
     const auto signal = read<uintptr_t>(worker + 0x88);
     const unsigned reservation=++nextReservation;
-    active = {worker, signal, script.chunk, generation(), action.entry, action.pc, reservation, script.allocationSerial, action.regY, action.choice, true};
+    active = {worker, signal, script.chunk, generation(), action.entry, action.pc, reservation, script.allocationSerial, action.regY, action.choice, true, action.returnPc};
     try { utilityRequest(script, action.worker, action.entry,[reservation](bool success) {
         if(success || active.reservation!=reservation || active.epoch!=generation()) return;
         const auto worker=active.worker,signal=active.signal; active={};

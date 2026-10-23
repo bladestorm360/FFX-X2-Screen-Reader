@@ -20,6 +20,10 @@ uintptr_t activationWorker = 0, activationSignal = 0;
 uintptr_t bonusWorker = 0, bonusSignal = 0;
 uintptr_t bonusChunk = 0;
 unsigned bonusSerial = 0;
+// Owner-local receipt for exactly the original destruction chest. Keep it
+// through Off so its native dialogue can finish, but never across a map/reset.
+uintptr_t collectionWorker=0,collectionSignal=0,collectionChunk=0;
+unsigned collectionSerial=0;
 const PuzzleContract* contract = nullptr;
 const TrialUtility* trial = nullptr;
 const PuzzleContract* findContract(const std::string& name) {
@@ -28,6 +32,7 @@ const PuzzleContract* findContract(const std::string& name) {
 }
 void stop(const UtilityText& reason) {
     armed = false; phase = Phase::Idle; activationSignal = activationWorker = 0;
+    collectionWorker=collectionSignal=collectionChunk=0;collectionSerial=0;
     emitUtilityText(reason);
 }
 UtilityScript context() {
@@ -45,6 +50,7 @@ void resetPuzzleSolver() {
     contract = nullptr; trial = nullptr; activationWorker = activationSignal = 0;
     bonusWorker=bonusSignal=0;
     bonusChunk=bonusSerial=0;
+    collectionWorker=collectionSignal=collectionChunk=0;collectionSerial=0;
     resetPuzzleGuide(); resetViaPurifico();
 }
 UtilityText puzzleCommand(std::wstring_view action) {
@@ -153,6 +159,29 @@ void puzzleInitialized(Event& event) {
 }
 void puzzleCompleted(uintptr_t worker, uintptr_t signal, bool completed, bool utility) {
     if (epoch != generation()) return;
+    if(utility && collectionWorker && worker==collectionWorker && signal==collectionSignal) {
+        collectionWorker=collectionSignal=0;
+        if(!completed) {stop(L"The trial script was interrupted. Enable the solver again when control returns.");return;}
+        try {
+            const auto script=context();
+            if(script.chunk!=collectionChunk || script.allocationSerial!=collectionSerial)
+                throw std::runtime_error("The trial resource changed before the chest finished");
+            // Explicit October22 requirement: Auto must retain the actual Baaj
+            // sphere prerequisite, not merely grant an item. The original chest
+            // normally ORs this bit before its final RET. Reconcile only after
+            // that exact owned RET, using the same declaration/native setter;
+            // never regrant its item, clear other temples or acknowledge a
+            // refused/interrupted/stale request. See destruction_flags_20261022.
+            const int before=utilityValue(script,0x01000a70,1);
+            if(!(before&trial->mask)) utilityWrite(script,{0x01000a70,1,before|static_cast<int>(trial->mask)});
+            const int after=utilityValue(script,0x01000a70,1);
+            if(!(after&trial->mask)) throw std::runtime_error("The completed chest did not retain its sphere flag");
+            recordLog("trial sphere flag worker=%u mask=%x before=%x after=%x reconciled=%u",
+                trial->collect.worker,trial->mask,before,after,(before&trial->mask)?0u:1u);
+        } catch(const std::exception& error) {stop(utilityError(L"Trial treasure collection stopped: ",error.what()));return;}
+        if(phase==Phase::Chest) phase=Phase::Finish;
+        return;
+    }
     if(utility && bonusWorker && worker==bonusWorker && signal==bonusSignal) {
         bonusWorker=bonusSignal=0;
         if(!completed) {stop(L"The remaining trial chest was interrupted. Enable the solver again when control returns.");return;}
@@ -167,7 +196,7 @@ void puzzleCompleted(uintptr_t worker, uintptr_t signal, bool completed, bool ut
         if(phase==Phase::BonusChest) phase=Phase::Finish;
         return;
     }
-    if(phase==Phase::Idle) return;
+    if(phase==Phase::Idle || phase==Phase::Chest) return;
     if (phase == Phase::Activation) {
         if (worker != activationWorker || signal != activationSignal) return;
     } else if (!utility) return;
@@ -176,7 +205,6 @@ void puzzleCompleted(uintptr_t worker, uintptr_t signal, bool completed, bool ut
         activationWorker = activationSignal = 0;
         phase=Phase::Prepare;
     } else if (phase == Phase::Reveal) phase = Phase::Collect;
-    else if (phase == Phase::Chest) phase = Phase::Finish;
     else if (phase == Phase::Completion) {
         phase = completionHasExit ? Phase::Leave : Phase::Idle;
         if(trial && !std::strcmp(trial->script,"dome0700")) utilityReply(zanarkandGateDirections);
@@ -209,6 +237,9 @@ void pumpPuzzleSolver() {
             utilityReply(L"Placing the Destruction Sphere and preparing its treasure. Confirm any game dialogue.");
         } else if (phase == Phase::Collect) {
             if (collected(script)) { phase = Phase::Finish; return; }
+            collectionWorker=utilityWorker(script,trial->collect.worker);
+            collectionSignal=read<uintptr_t>(collectionWorker+0x88);
+            collectionChunk=script.chunk;collectionSerial=script.allocationSerial;
             phase=Phase::Chest;
             (void)trialCommand(L"collect");
             if (!utilityBusy()) throw std::runtime_error("Chest collection did not start");

@@ -74,6 +74,46 @@ The installer retains the explicit launch-repair preview/confirmation/backup
 workflow. No real registry repair or gameplay probe is part of a release.
 Implementation/offline verification and user gameplay confirmation remain distinct.
 
+## Release1.0.1 — October23
+
+The requested release includes the [all-six destruction-sphere flag repair](features/puzzles/destruction_flags_20261022.md)
+and [launcher language/settings repair](features/distribution/launcher_languages_20261023.md).
+The user confirms Besaid sphere collection in gameplay. The remaining Baaj check
+is remote reproduction of the Ruins unlock through normal gameplay without
+warps. A tester reported Zanarkand missing, but its flag was already present in
+the supplied save; a missing Zanarkand flag is not established. Actual launcher
+focus/audio confirmation remains pending. Exit direction behavior is unchanged.
+
+Local verification is complete. Warning-free x86 release build and native/setup
+1.0.1.0 metadata pass; the development console is excluded. Startup forwarding,
+both native utility modes/all-six collection cases, final launcher adapter with
+eight startup locales/seven actions/64 settings transitions, both compiled-image
+preflights, guarded deployment and all seven installed hashes pass. Previous
+native/reader/original-bytecode evidence is reused with matching feature-input
+hashes; native release identity is separately recorded. No game was launched
+or controlled by the agent and no Tester Logs was accessed.
+
+Installer source805 assertions, actual final-EXE dependency130 assertions,
+actual final-EXE short98/long316-character install/reinstall,26 embedded
+resources, pinned runtime/licenses, every checksum/source-document equality and
+the exact five-file ZIP pass. Saved settings and the published1.0 package are
+unchanged. Evidence and source fingerprints are in
+`install/release-1.0.1-20261023`; `verify_release.ps1` independently verifies the
+final package. Full current-content/local-history audit is clean, including1092
+Git blobs. Source commit/tag and draft upload/publication verification follow.
+
+- ZIP: `releases/1.0.1/ffx-x2-screen-reader-1.0.1.zip`,2,595,055 bytes.
+- SHA256: `d38fdcd355f52f0de1891f765c66f24a51353aedc3b5e69d023ba54201218f52`.
+- Installer SHA256: `325918052b964647b5278c340117be58ee0833ae4d1e1fd4d23b7c13b2a9939b`.
+- Local receipt: `install/release-1.0.1-20261023/verification.json`.
+
+Luna (`gpt-6-luna`, medium) supplied the bounded README/changelog/controls update.
+Sol reviewed against the verified behavior, removed extra spacing and applied
+the user's later Besaid/Baaj/Zanarkand clarification before packaging. Exact
+packaged player-document equality passes. No delegated issue remains; all
+implementation, source review, build/deploy, verification and publication work
+stays with Sol. No Astra was used.
+
 ## Release1.0 — October21
 
 The user explicitly resumed deployment/installer packaging and requested public

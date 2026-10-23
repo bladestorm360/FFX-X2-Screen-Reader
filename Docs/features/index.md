@@ -49,11 +49,13 @@ current [mod/game architecture map](status.md#architecture-and-design-entry-poin
 | Requested chocobo, butterfly and Blitzball completion | [Completion implementation, native evidence and limits](puzzles/minigame_completion_20261020.md) |
 | Required Nucleus object collection and optional autosolve | [Implementation and original-native checks](puzzles/sin_collection_20261020.md) |
 | Six Baaj seal destinations, player-entry geometry and named save prerequisites | [Baaj implementation and verified delivery](navigation/baaj_seals_20261020.md) |
+| Automatic destruction-sphere collection and retained Baaj prerequisite flags | [Besaid/Zanarkand and all-six flag checks](puzzles/destruction_flags_20261022.md) |
 | Cid/Wakka identity, story-independent actor presence and moving destination selection | [Airship Cid tracking](navigation/airship_cid_20261020.md) |
 | Airship own-log repair, password N/punctuation and deferred Y | [Airship/password follow-up](puzzles/airship_password_20261019.md) |
 | Developer console, ordinary/test warps, progression setup restrictions | [Developer utilities](distribution/index.md#developer-utilities) |
 | Console-enabled Baaj build, exclusive Shift+F1 and test warp | [Console/F1 repair](runtime/console_f1_20261020.md) |
 | Original launcher, LAA, install/check/repair, locked dependencies, packaging | [Distribution](distribution/index.md) |
+| Japanese-default launcher and menu restoration after language/settings changes | [Launcher languages](distribution/launcher_languages_20261023.md) |
 
 ## Evidence and coverage
 

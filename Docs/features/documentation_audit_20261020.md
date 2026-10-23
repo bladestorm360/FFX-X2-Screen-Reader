@@ -10,6 +10,15 @@ pages.
 
 ## Current0.6 minigame completion review
 
+October23 scoped follow-up: [launcher language/settings repair](distribution/launcher_languages_20261023.md)
+was reviewed against the actual adapter, original MainForm/Program settings
+flow and all sixteen approved title images. Its topic documents the input-gate
+cause, current-metadata/rectangle ownership, exact artwork catalog, native
+modal/action handback, queue limits/cancellation, source evidence, extension,
+real-adapter regression and64-transition checks, comparable controlled response
+measurements and actual-launcher limits. Other feature coverage is reused at
+unchanged source hashes; the143-unit/37-setting inventory remains current.
+
 The existing explanatory inventory is reused for unchanged features. Sol reviewed
 new `minigame_completion.cpp/.hpp`, reader installation/reset, settings/revision
 semantics, contextual menu consumers and tests against the actual code and

@@ -3226,9 +3226,11 @@ Standard WinForms dialogs use their native screen-reader accessibility; the
 addon attaches no control focus/value speech or AccessibleName overrides there.
 Main selector deactivation captures/clears pending addon speech, disabled owner
 forms do not consume keys, and activation resumes the retained image selection.
-English hotspot
-labels are verified against the extracted title image; other-language images,
-mute icon keyboard access and credits-page content are not covered yet.
+[October23 language repair](features/distribution/launcher_languages_20261023.md)
+removes the old English-only attachment gate. All eight language variants at
+both artwork sizes are verified; current language/action identity supplies the
+label, and input resolves rebuilt native rectangles after settings. Mute icon
+keyboard access and credits-page content remain outside this repair's coverage.
 
 ### Additional silent-menu sources
 

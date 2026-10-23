@@ -1,5 +1,19 @@
 # Build, deployment, launcher, installer and developer utilities
 
+Current1.0.1 release: [release record](../../release.md) covers the verified
+sphere-flag and launcher language repairs, guarded deployment and actual final
+installer/ZIP checks. Native/setup metadata is1.0.1.0. This release excludes the
+developer console and supersedes the earlier console delivery/launcher hold.
+Settings and the published1.0 package are preserved. Besaid sphere collection
+is gameplay-confirmed; remote Baaj unlock without warps and real launcher
+confirmation remain pending. Historical delivery checkpoints follow.
+
+October23 local delivery enables the [development console](../runtime/console_f1_20261020.md#october23-current-development-console-delivery)
+with the October22 sphere-flag repair retained. Warning-free default development
+build, isolated console host, both image preflights and guarded deployment pass;
+all seven installed hashes match. Settings/published1.0 ZIP remain unchanged.
+This local console build is separate from the published release flavor.
+
 October21: [the1.0/GitHub release procedure](../../release.md) supersedes the
 historical release0.5.9/Dropbox descriptions below. The user explicitly resumed
 deployment/packaging and requested public GitHub publication.1.0 is built,
@@ -56,6 +70,14 @@ installer checks. Dropbox replacement is byte-verified; desktop Discord delivery
 is explicitly authorized. See the current release record for delivery status.
 
 ## Launcher and installer
+
+[October23 launcher language/settings repair](launcher_languages_20261023.md)
+removes the English-only input gate. Current native language and rebuilt menu
+rectangles supply each label/activation; native settings keep their own input
+and accessibility. All eight startup locales/seven actions and64 settings
+transitions pass the actual-adapter fixture and the warning-free1.0.1 release
+is guarded-deployed/packaged. Actual launcher confirmation remains pending;
+settings and prior release packages are unchanged.
 
 `src/launcher` retains the original launcher with a C++/CLI event adapter and
 shared native PRISM adapter. UI events, not an unattended poller, announce

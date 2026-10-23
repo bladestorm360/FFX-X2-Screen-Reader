@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "Docs/Scripts/Offline"))
 from extract_maps import room_index
 from field_text import TextEvidence
 from atel_model import instructions
+from compile_trials import reachable
 
 EVIDENCE = evidence_path(ROOT / "Docs/Scripts/Offline/output/FFX/20261003_audit")
 DESIGNS = EVIDENCE / "cloister_designs_20261004_062020_133594"
@@ -79,8 +80,9 @@ def action(flow, worker, entry, pc=None, reg_y=0):
 
 def cpp_action(a):
     fields=[a[k] for k in ("worker", "entry", "entryPc", "pc", "regY")]
-    if 'choice' in a or a.get('activateWorker'): fields.append(a.get('choice',-1))
-    if a.get('activateWorker'): fields.append('true')
+    if 'choice' in a or a.get('activateWorker') or a.get('returnPc'): fields.append(a.get('choice',-1))
+    if a.get('activateWorker') or a.get('returnPc'): fields.append('true' if a.get('activateWorker') else 'false')
+    if a.get('returnPc'): fields.append(a['returnPc'])
     return '{'+', '.join(map(str,fields))+'}'
 
 def contracts(maps):
@@ -112,6 +114,14 @@ def contracts(maps):
             reveal['activateWorker']=True
         chest_entry = 8 if name == "bevelle" else 2
         collect = action(flow, design["treasure"]["worker"], chest_entry, collect_pc, reg_y)
+        # Djose/Macalania start after the unselected graphic-case RET. Keep
+        # the unique final RET following this verified collection continuation.
+        returns = [s["pc"] for b in reachable(flow["workers"][collect["worker"]], chest_entry)
+                   for s in b["statements"] if s["kind"] == "end" and s["opcode"] == "RET"
+                   and s["pc"] >= collect["pc"]]
+        if len(returns) != 1 or decoded[returns[0]][0] != 0x3c:
+            raise ValueError("Collection must have one verified final RET")
+        collect['returnPc'] = returns[0]
         if reveal["pc"] not in decoded or collect["pc"] not in decoded:
             raise ValueError("Continuation is not an instruction boundary")
         # A continuation starts before its own literal pushes, never midway

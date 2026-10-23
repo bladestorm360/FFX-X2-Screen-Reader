@@ -1,5 +1,30 @@
 # Verification and remaining gameplay checks
 
+## Launcher language/settings follow-up — October23
+
+The [language repair](distribution/launcher_languages_20261023.md) is offline
+verified and included in the guarded-deployed1.0.1 release build.
+At the next convenient launcher test: with Japanese selected,
+press Down/Up and expect each choice spoken. Open Setting, change language,
+save/close, then use arrows/Enter; expect current-language labels and the correct
+action. Native settings controls keep their own input/speech. All eight startup
+locales/seven actions and64 settings transitions pass the actual-adapter fixture;
+actual launcher focus, sounds and audible output still need user confirmation.
+
+## Destruction-sphere flags — October22 priority
+
+Besaid sphere collection is gameplay-confirmed by the user on October23.
+The remaining priority is a remote tester reproducing Baaj Ruins unlock through
+normal gameplay without warps. The supplied save already has Zanarkand's flag,
+despite a reported missing sphere; a missing Zanarkand flag is not established.
+For any further trial-collection regression, test its Baaj seal after saving/reloading.
+Enable **F8 → Miscellaneous → Cloister of Trials → Solve current trial
+automatically**, interact normally and confirm the game's treasure dialogue.
+Expect the reward and retained sphere prerequisite; destruction-only solving
+stays in the trial. A repeat reward, hang, interruption message or inactive
+eligible seal is a failure. The supplied save is missing Besaid alone; no save
+was edited. [Offline checks, deployment state and limits](puzzles/destruction_flags_20261022.md).
+
 Current October18 repair evidence is in
 [Dylan follow-up](../dylan_reports_20261018.md) and its
 [deployment receipt](../../../Analysis/FFX/RepositoryEvidence/historical-install/dylan-followup-20261018/deployment-verification.json).

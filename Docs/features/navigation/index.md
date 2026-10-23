@@ -40,6 +40,13 @@ arrival. Repeated genuine arrivals are preserved.
 
 ## Routes and validity
 
+October23 clarification accepted by the user: list distance/bearing points to
+the stored exit reference position; the route instead chooses a reachable
+crossing of its native trigger area. These endpoints can produce different
+directions near a wide exit. Both use the shared camera-relative direction
+conversion. The user explicitly requested leaving exit behavior unchanged;
+the two reported Baaj routes were not independently measured at that position.
+
 The [Sea of Sorrow repair record](sin_sorrow_routes_20261020.md) documents the
 implemented directed-event route constraints and bend-preserving speech change.
 Source-free checks and the warning-free final developer build pass; guarded

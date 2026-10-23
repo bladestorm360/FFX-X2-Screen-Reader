@@ -37,7 +37,7 @@ hardware behavior are confirmed. Percentages are rough engineering estimates.
 | Beacon/walls/arrival/race/hunt sounds and stereo positioning | complete | Real SDL sample/ownership hosts; new search cancellation pending gameplay |
 | Reported Free Search audio loop | in progress (~90%) | Toggle/generation defect repaired; exact audible producer unconfirmed |
 | Auto walk, cancellation and pedestal/native input | complete | Route/action hosts; independent default-Off settings |
-| All six Cloister guides and optional solvers | complete | Real script/geometry/state hosts; solvers and named returns user-confirmed |
+| All six Cloister guides and optional solvers | complete | [Sphere flags](puzzles/destruction_flags_20261022.md): original1536 cases/both384 native matrices/readers pass; Besaid collection gameplay-confirmed October23. Remote Baaj unlock without warps remains pending; supplied save already has Zanarkand |
 | Zanarkand glyph sequence and floor labels | complete | Owned order/guide checks; first/return gates retained |
 | Via Purifico treasure/swimming progression | complete | Original script/floor/arrival hosts; remaining state combinations documented |
 | Gagazet targeting, swimmers and optional solve | complete | Native cue/geometry/state hosts; solving/returns/cross-water user-confirmed |
@@ -50,11 +50,12 @@ hardware behavior are confirmed. Percentages are rough engineering estimates.
 | Actual reported silent Proceed? choices | in progress (~40%) | Layer29 replay passes; user suspects wrong prompt; further work deferred |
 | Free Search Y purpose/control | not started | Investigation deferred by user; M's X/Z confirmed |
 | Six Baaj seal navigation targets | complete | Offline labels/64 flag combinations/native geometry pass; user confirms eligible seals work and missing-treasure Besaid stays inactive |
-| Baaj native activation/closed Fayth door report | complete; user accepted | Latest gameplay agrees with missing Besaid treasure; all eligible seals work. Report closed; all-six final door opening not claimed |
+| Baaj native activation/closed Fayth door report | complete; user accepted | Eligible seals work; Besaid sphere collection now confirmed. Remaining check: remote reproduction of Baaj Ruins unlock through normal gameplay without warps; supplied save already has Zanarkand |
 | Cid airship identity, presence and moving destination | complete | Both171-hook profiles pass four original variants/native capture/selection movement and worker transfer; warning-free build guarded-deployed, gameplay pending |
 | Developer console/warps with release exclusion | complete | Development/release utility hosts; progression restrictions retained |
-| Console-enabled Baaj test build and exclusive Shift+F1 | complete | Input/COM/console/dev-release utilities, two reader profiles and warning-free build pass; guarded-deployed, gameplay pending |
-| Original launcher, installer and locked dependencies | complete |0.5.9 release build/guarded deployment,805 source/130 final EXE assertions, short/long install/reinstall,26 resources and5 ZIP files verified |
+| Developer console and exclusive Shift+F1 | complete | [Historical October23 console delivery](runtime/console_f1_20261020.md) passed console/profile/deploy checks; ordinary Besaid/Zanarkand warps retain native entry semantics. The current1.0.1 release excludes the console |
+| Launcher menu after language/settings changes | complete | [Japanese-default repair](distribution/launcher_languages_20261023.md): old adapter reproduces failure; all eight startup locales/seven actions and64 settings transitions pass final real-adapter/PRISM surrogate; warning-free1.0.1 release deployed and packaged, real launcher confirmation pending |
+| Original launcher, installer and locked dependencies | complete |1.0.1 release build/guarded deployment,805 source/130 final EXE assertions, actual short/long install/reinstall,26 resources and5 ZIP files verified |
 | Full mod UI language catalog/manual override | not started | English mod labels/native translations documented separately |
 | HRTF playback and independent global spatial controls | not started | Existing stereo/rear-pitch output does not implement this baseline |
 | Full enemy analysis, other side activities, FFX-2/Last Mission | not started | Outside currently implemented FFX scope |

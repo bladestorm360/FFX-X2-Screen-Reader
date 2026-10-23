@@ -212,9 +212,18 @@ void natural(const PuzzleInteraction& interaction,unsigned source=0) {
     put(physicalSignal,8,static_cast<uint16_t>(interaction.entry));put(physicalSignal,10,static_cast<uint16_t>(source));put(physicalSignal,14,static_cast<uint8_t>(1));
     Event e;e.args[0]=ptr(w);e.args[1]=ptr(physicalSignal);fire(0x469040,e);
 }
-void complete(unsigned index) {
+void complete(unsigned index,bool finalChestReturn=true) {
+    // Model the interpreter's PC at the original final RET. The production
+    // collection guard must also refuse an earlier/native cancellation return.
+    const auto w=worker(index),sig=read<uintptr_t>(w+0x90);
+    if(finalChestReturn && sig) for(const auto& t:trialUtilities) {
+        if(std::memcmp(chunk.data()+0x1d0,t.script,8) || read<uint16_t>(w+0x2e)!=t.collect.worker ||
+            read<uint16_t>(sig+8)!=t.collect.entry || !t.collect.returnPc) continue;
+        const auto level=read<uint8_t>(sig+14)&15;
+        write<uintptr_t>(w+0x12c+level*0x4c+0x18,ptr(chunk)+0x1000+t.collect.returnPc);
+    }
     Event e;e.args[0]=index;fire(0x469170,e,true,false);
-    auto w=worker(index);write<uintptr_t>(w+0x80,0);write<uintptr_t>(w+0x90,0);
+    write<uintptr_t>(w+0x80,0);write<uintptr_t>(w+0x90,0);
     fire(0x469170,e,false,true);
 }
 }
@@ -351,10 +360,12 @@ void retirePuzzleGuideTargets() { std::abort(); }
 #include "bevelle_treasure_fixture.inc"
 #include "trial_intercept_fixture.inc"
 #include "trial_entry_fixture.inc"
+#include "trial_collection_fixture.inc"
 #include "gagazet_fixture.inc"
 #include "gagazet_timing_fixture.inc"
-int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);installUtilities();
+int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std::setvbuf(stdout,nullptr,_IONBF,0);installUtilities();
     nativeQueuedKilikaFixture();
+    trialCollectionFixtures();
     djoseSolverFixtures();
     allTrialInterceptFixtures();
     trialEntryFixtures();

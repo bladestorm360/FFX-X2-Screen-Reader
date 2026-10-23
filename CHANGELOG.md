@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 — 2026-10-23
+
+- Automatic Cloister destruction-sphere collection verifies and retains each temple’s Baaj prerequisite flag after the native chest completes, across all six supported trials. Besaid sphere collection is gameplay-confirmed. A remote tester still needs to confirm Baaj Ruins unlock through normal gameplay without warps. Zanarkand's flag was already present in the supplied save despite a reported missing sphere.
+- Launcher arrow and menu speech follows the current native language across all eight supported launcher languages, including Japanese startup and native settings changes. The production-adapter fixture passes; real launcher gameplay and audio confirmation are pending. Native settings controls and actions remain native.
+
 ## 1.0 — 2026-10-21
 
 - Includes four independent, saved, default-Off F8 > Miscellaneous preparation assists for Calm Lands Chocobo training, Remiem race, either Macalania butterfly course, and Blitzball. They preserve native results, rewards and progression.

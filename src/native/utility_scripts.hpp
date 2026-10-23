@@ -1,7 +1,9 @@
 #pragma once
 #include "utility_memory.hpp"
 namespace ffx {
-struct ScriptAction { unsigned worker, entry, entryPc, pc; int regY = 0, choice = -1; bool activateWorker = false; };
+// returnPc, when supplied, requires the owned request to reach this original
+// final RET. A native cancellation/other return cannot acknowledge its reward.
+struct ScriptAction { unsigned worker, entry, entryPc, pc; int regY = 0, choice = -1; bool activateWorker = false; unsigned returnPc = 0; };
 void installUtilityScripts();
 void runUtilityScript(const UtilityScript&, const ScriptAction&);
 void checkUtilityScript(const UtilityScript&, const ScriptAction&);

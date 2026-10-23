@@ -38,7 +38,7 @@ def findings(body, name):
 def main():
     files = []; violations = []; classes = collections.Counter()
     for base, directories, names in os.walk(REPOSITORY):
-        directories[:] = [name for name in directories if name not in (".git", "node_modules", "__pycache__")]
+        directories[:] = [name for name in directories if name not in (".git", "node_modules", "__pycache__", "Tester Logs")]
         for name in names:
             path = Path(base) / name; relative = path.relative_to(REPOSITORY).as_posix()
             size = path.stat().st_size; files.append({"path":relative,"bytes":size})

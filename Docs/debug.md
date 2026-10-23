@@ -1,3 +1,13 @@
+## October22 destruction-sphere flags
+
+The named Baaj save is0x3E: Besaid missing, Zanarkand and the other four present.
+Auto now qualifies the original chest's exact final RET, reconciles only its own
+verified Baaj bit and reads it back before continuing. Original1536 bytecode
+cases, both384-state native matrices, both173-hook readers and warning-free
+build/guarded deployment pass. All7 installed hashes verified; settings/save/1.0
+ZIP unchanged. Historic failure cause and fresh gameplay remain unconfirmed.
+[Mechanics, ownership, checks and delivery](features/puzzles/destruction_flags_20261022.md).
+
 ## October20 optional minigame completion follow-up
 
 All four documented0.6 assists are implemented through existing native
@@ -3333,3 +3343,21 @@ damage/heal popup arithmetic. Current user report remains a fresh gameplay
 check even when earlier notes called Change solved. [Source flow, original
 playback/capacity/renderer replay, worker proof and limits](features/battle/hp_sources_20261021.md).
 The user explicitly holds deployment while continuing the live session.
+
+### Japanese-default launcher / settings return — October23
+
+KEYWORDS: launcher Japanese LanguagePath mainSelections attached settings silent
+arrows MenuLabels native modal hotspot rebuild.
+The English-only UiReader.Attach gate put non-English MainForm in attached but
+never installed selection/activation/mouse handlers; the actual old adapter
+reproduces the Japanese arrow failure offline. The repair attaches independently
+of language and reads current LanguagePath/current native rectangles for every
+label/action. All eight approved artwork variants at both sizes are verified.
+Japanese Settings deliberately remains English, Chinese Eternal Calm remains
+English; preserve visible wording. All eight startup locales/seven actions,
+64 native-style settings transitions and fallback/recovery/modal/disposal checks
+pass actual adapters and the native PRISM worker in a controlled surrogate.
+Warning-free dev staging, comparable English response sample and installed-file
+preservation pass. Deployment held while user tests; actual launcher focus/audio
+confirmation pending. No Tester Logs or real game/launcher launch.
+[Mechanism, original/asset provenance, metrics and limits](features/distribution/launcher_languages_20261023.md).

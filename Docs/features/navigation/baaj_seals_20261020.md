@@ -1,5 +1,17 @@
 # Baaj Antechamber seals
 
+October23 update: the user confirms Besaid sphere collection in gameplay.
+The remaining check is a remote tester reproducing Baaj Ruins unlock through
+normal gameplay without warps. A tester reported Zanarkand missing, but its flag
+was already present in the supplied save; that report does not establish a
+missing Zanarkand flag. The earlier records below describe their original saves
+and checkpoints, not the newly confirmed Besaid collection.
+
+October22 reopens the separate Auto-collection report. The named save still
+contains0x3E: Besaid missing, Zanarkand and the other four present. Earlier
+acceptance below concerns native seal activation/labels, not proof that Auto
+retains every destruction-sphere flag. [Current collection repair and limits](../puzzles/destruction_flags_20261022.md).
+
 Implementation is **complete**, with **user gameplay confirmation on October20**.
 The user confirms Besaid starts and remains inactive because this save lacks
 its destruction-sphere treasure, while every eligible seal works. The user

@@ -17,6 +17,7 @@ using namespace System::Windows::Forms;
 [assembly: AssemblyVersion("1.0.0.0")];
 
 #include "launcher_large_address.hpp"
+#include "launcher_labels.hpp"
 
 namespace FfxLauncher {
 ref class Speech abstract sealed {
@@ -41,7 +42,6 @@ public:
 ref class UiReader sealed : IMessageFilter {
     Dictionary<Form^, int>^ mainSelections;
     HashSet<Control^>^ attached;
-    Dictionary<String^, String^>^ labels;
     static Object^ Field(Object^ target, String^ name) {
         auto field = target->GetType()->GetField(name, BindingFlags::Instance | BindingFlags::Public | BindingFlags::NonPublic);
         return field == nullptr ? nullptr : field->GetValue(target);
@@ -51,9 +51,19 @@ ref class UiReader sealed : IMessageFilter {
         auto method = dynamic_cast<MethodInfo^>(Field(rectangle, "OnMouseClick"));
         return method == nullptr ? "" : method->Name;
     }
-    String^ Choice(Object^ rectangle) {
-        String^ result;
-        return labels->TryGetValue(Action(rectangle), result) ? result : "";
+    static String^ LanguagePath(Form^ form) {
+        // MainForm survives settings changes, while its hotspot array and
+        // Program.LanguagePath change. Read this ready UI-owned value rather
+        // than caching startup language or making it an input-attachment gate.
+        try {
+            auto program=form->GetType()->Assembly->GetType("GameLauncher.Program");
+            auto language=program==nullptr?nullptr:program->GetProperty("LanguagePath", BindingFlags::Static | BindingFlags::Public);
+            auto path=language==nullptr?nullptr:dynamic_cast<String^>(language->GetValue(nullptr,nullptr));
+            return path==nullptr?L"":path;
+        } catch(Exception^) {return L"";} // Metadata failure must not disable arrows.
+    }
+    static String^ Choice(Form^ form,Object^ rectangle) {
+        return MenuLabels::Name(Action(rectangle),LanguagePath(form));
     }
     static MouseEventArgs^ MouseAt(Object^ rectangle, MouseButtons button, int clicks) {
         auto bounds = safe_cast<System::Drawing::Rectangle>(Field(rectangle, "Rect"));
@@ -83,7 +93,7 @@ ref class UiReader sealed : IMessageFilter {
                 if (hover != nullptr) hover->SetValue(rectangle, i == index);
             }
         }
-        form->AccessibleName = Choice(rectangles->GetValue(index));
+        form->AccessibleName = Choice(form,rectangles->GetValue(index));
         form->Invalidate();
         if (announce) Speech::Say(form->AccessibleName);
     }
@@ -119,7 +129,8 @@ ref class UiReader sealed : IMessageFilter {
             if (safe_cast<bool>(Field(rectangles->GetValue(i), "IsMouseOver")) &&
                 (!mainSelections->ContainsKey(form) || mainSelections[form] != i)) {
                 mainSelections[form] = i;
-                Speech::Say(Choice(rectangles->GetValue(i)));
+                form->AccessibleName=Choice(form,rectangles->GetValue(i));
+                Speech::Say(form->AccessibleName);
                 break;
             }
         }
@@ -135,31 +146,19 @@ ref class UiReader sealed : IMessageFilter {
         // Only attach the image-based selector, whose activation restores speech.
         if (form == nullptr || form->GetType()->FullName != "GameLauncher.MainForm" || !attached->Add(form)) return;
         form->Disposed += gcnew EventHandler(this, &UiReader::Removed);
-        // English hotspot labels were verified against us/titlemenu.png.
-        // Other language image labels have not been verified yet.
-        auto program = form->GetType()->Assembly->GetType("GameLauncher.Program");
-        auto language = program->GetProperty("LanguagePath", BindingFlags::Static | BindingFlags::Public);
-        String^ path = language == nullptr ? "" : safe_cast<String^>(language->GetValue(nullptr, nullptr));
-        if (path == "us" || path == "en") {
-            mainSelections[form] = 0;
-            form->Activated += gcnew EventHandler(this, &UiReader::MainActivated);
-            form->Deactivate += gcnew EventHandler(this, &UiReader::MainDeactivated);
-            form->MouseMove += gcnew MouseEventHandler(this, &UiReader::MouseMoved);
-            Select(form, 0, form->ContainsFocus);
-        }
+        // All verified launcher languages have the same native action layout.
+        // Keyboard/event ownership must exist even before language metadata is
+        // ready. Select/MouseMoved resolve current rectangles and localized text.
+        mainSelections[form] = 0;
+        form->Activated += gcnew EventHandler(this, &UiReader::MainActivated);
+        form->Deactivate += gcnew EventHandler(this, &UiReader::MainDeactivated);
+        form->MouseMove += gcnew MouseEventHandler(this, &UiReader::MouseMoved);
+        Select(form, 0, form->ContainsFocus);
     }
 public:
     UiReader() {
         mainSelections = gcnew Dictionary<Form^, int>();
         attached = gcnew HashSet<Control^>();
-        labels = gcnew Dictionary<String^, String^>();
-        labels["OnFFXClicked"] = "Final Fantasy X";
-        labels["OnSideStoryClicked"] = "Final Fantasy X Eternal Calm";
-        labels["OnFFX2Clicked"] = "Final Fantasy X-2";
-        labels["OnLastMissionClicked"] = "Final Fantasy X-2 Last Mission";
-        labels["OnCreditClicked"] = "Credits & Bonus Audio";
-        labels["OnCredit2014Clicked"] = "Additional Credits";
-        labels["OnConfigClicked"] = "Setting";
     }
     virtual bool PreFilterMessage(Message% message) {
         try {

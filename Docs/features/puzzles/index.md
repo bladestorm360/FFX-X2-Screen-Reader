@@ -18,6 +18,11 @@ Failing a hash/owner/context check refuses intervention and leaves native behavi
 
 ## Cloisters
 
+October22 [destruction-flag follow-up](destruction_flags_20261022.md) verifies
+the supplied save is missing Besaid alone, then checks Zanarkand/all six. Auto
+now accepts only the original chest's owned final RET and preserves/verifies its
+actual Baaj prerequisite before continuing. Gameplay confirmation is pending.
+
 `puzzle_solver.cpp`, `puzzle_completion.cpp`, `utility_trials.cpp` and generated
 trial data support Besaid, Kilika, Djose, Macalania, Bevelle and Zanarkand.
 The automatic option is separate/default Off; manual `puzzle_guide.cpp`,

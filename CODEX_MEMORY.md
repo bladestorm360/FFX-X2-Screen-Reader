@@ -1,4 +1,46 @@
-# FFX current memory — October21
+# FFX current memory — October23
+
+[Release1.0.1](Docs/release.md#release101--october23) is built, guarded-deployed
+and final installer/ZIP verified; source/tag/GitHub publication is in progress.
+It includes destruction-sphere flag retention and all-eight-language launcher
+navigation/settings restoration. Besaid collection is gameplay-confirmed; remote
+Baaj Ruins unlock without warps and actual launcher/audio remain pending.
+Zanarkand was already present in the supplied save despite a missing-sphere
+report. Release excludes the console and supersedes the earlier delivery holds
+below. All7 hashes/26 resources/5 ZIP files, source805/dependency130 installer
+assertions and actual short/long installs pass; INI/published1.0 ZIP unchanged.
+[Receipt](install/release-1.0.1-20261023/verification.json).
+Luna player docs reviewed/corrected by Sol; all technical work retained by Sol.
+
+[Launcher language/settings repair](Docs/features/distribution/launcher_languages_20261023.md)
+is complete/offline verified and staged. The old English-only attachment gate
+reproduces Japanese failure; all eight startup locales/seven actions and64
+settings transitions pass the real-adapter/PRISM surrogate after repair.
+Warning-free dev build retains console,419 prior inputs unchanged plus new label
+header. Installed seven-file console payload/config/settings/1.0 ZIP unchanged;
+deployment held while user tests. Real launcher confirmation pending. Approved
+read-only MetaMenu.vbf evidence remains outside Git; no game launch/probe or
+Tester Logs. [Receipt](install/launcher-languages-20261023/verification.json).
+Exit direction behavior is left unchanged at the user's October23 request.
+
+[Current developer console](Docs/features/runtime/console_f1_20261020.md#october23-current-development-console-delivery)
+is enabled and guarded-deployed at the user's request. Default development build
+is warning-free; isolated console host, both preflights and all7 installed hashes
+pass. All420 prior verified source/test inputs unchanged; October22 flag repair
+retained. [Receipt](install/dev-console-20261023/verification.json).
+Shift+F1, `warp besaid` or `warp zanarkand`, Enter: ordinary entrance0 transitions,
+no forced story/sphere setup; native destination entry scripts run normally.
+Settings/1.0 ZIP unchanged; no agent game launch/probe/warp or installer rebuild.
+
+[October22 sphere-flag follow-up](Docs/features/puzzles/destruction_flags_20261022.md)
+checks Besaid first, Zanarkand second. Named Summon save still0x3E: only Besaid
+missing. Auto now verifies an exact owned final chest RET and retains its Baaj
+bit before completion, preserving other flags. Original1536 bytecode cases,
+both native384-case matrices, both173-hook readers, warning-free build and
+guarded deployment pass. All7 installed hashes verified; INI/save/1.0 ZIP
+unchanged. [Receipt](install/destruction-flags-20261022/verification.json).
+Historic missing-flag cause is not proven by the save. No save edits, game
+launch/probe, Tester Logs or installer/publication work. Gameplay pending.
 
 [Release1.0/current procedure](Docs/release.md): user superseded deployment and
 installer holds, requests final1.0/public repo/GitHub ZIP publication following
