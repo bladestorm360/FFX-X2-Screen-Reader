@@ -100,12 +100,29 @@ the exact five-file ZIP pass. Saved settings and the published1.0 package are
 unchanged. Evidence and source fingerprints are in
 `install/release-1.0.1-20261023`; `verify_release.ps1` independently verifies the
 final package. Full current-content/local-history audit is clean, including1092
-Git blobs. Source commit/tag and draft upload/publication verification follow.
+Git blobs; all33 staged changed source/document files also pass the source-content
+audit. Publication is complete: the verified draft and anonymous public download
+match the local ZIP, and GitHub marks1.0.1 Latest, non-draft and non-prerelease.
 
 - ZIP: `releases/1.0.1/ffx-x2-screen-reader-1.0.1.zip`,2,595,055 bytes.
 - SHA256: `d38fdcd355f52f0de1891f765c66f24a51353aedc3b5e69d023ba54201218f52`.
 - Installer SHA256: `325918052b964647b5278c340117be58ee0833ae4d1e1fd4d23b7c13b2a9939b`.
 - Local receipt: `install/release-1.0.1-20261023/verification.json`.
+- Public release: [FFX Screen Reader1.0.1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.1).
+- Source commit: `5dc8cf66c81bbcba64ab52f286406d4959e80358`.
+- Annotated tag: `v1.0.1`, object `bf93cf9e23732dfbc13851175c2942a3084474b5`.
+- Release ID422032602; ZIP asset ID669617780. Full publication/readme and download
+  evidence: `install/release-1.0.1-20261023/publication-verification.json`.
+
+The first tag-lookup API returned404 after the draft creation succeeded. The
+release listing recovered that existing draft; no duplicate was created. Its
+tag/source/asset size/digest and downloaded bytes were checked before publication.
+Player-document bytes match the packaging worktree; their LF-normalized text
+matches the source tag. Packaged changelog/controls retain Windows CRLF while
+Git stores LF. GitHub's rendered README has semantic headings and lists.
+No game launch/control/probe, real registry repair or tester
+submission access was performed. The final publication-record commit changes
+only delivery records; tagged code and distributed bytes remain fixed.
 
 Luna (`gpt-6-luna`, medium) supplied the bounded README/changelog/controls update.
 Sol reviewed against the verified behavior, removed extra spacing and applied

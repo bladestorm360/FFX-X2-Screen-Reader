@@ -1,7 +1,9 @@
 # FFX current memory — October23
 
 [Release1.0.1](Docs/release.md#release101--october23) is built, guarded-deployed
-and final installer/ZIP verified; source/tag/GitHub publication is in progress.
+and [published Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.1).
+Source5dc8cf6/tagv1.0.1; final installer/ZIP, draft and anonymous public downloads
+match SHA256d38fdcd355f52f0de1891f765c66f24a51353aedc3b5e69d023ba54201218f52.
 It includes destruction-sphere flag retention and all-eight-language launcher
 navigation/settings restoration. Besaid collection is gameplay-confirmed; remote
 Baaj Ruins unlock without warps and actual launcher/audio remain pending.
