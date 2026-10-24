@@ -50,6 +50,8 @@ If Steam reports a missing executable while no redirect is found, clear this gam
 
 No manual DLL copying is needed.
 
+If Windows Security blocks the download, stop and report the threat name and affected filename from Protection history when available. Do not add an antivirus exclusion or disable protection. The October 24 installer update adds safer Windows DLL loading and clearer publisher information. Its exact ZIP, installer and embedded DLLs are checked with Defender before packaging; that local scan does not guarantee acceptance on another computer.
+
 The launcher now speaks arrow-selected choices in all eight native launcher languages. Its labels follow the artwork and current native language; native settings controls keep their own accessibility. To change the game language itself, use its settings file under `Documents\SQUARE ENIX` and restart.
 
 ## Known issues and coverage

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 installer follow-up — 2026-10-24
+
+- Setup restricts native DLL lookup to the Windows system folder and identifies the community publisher in its file properties. The game and launcher payload is unchanged.
+- Packaging requires active Defender with current definitions and successful scans of the exact final ZIP, installer and embedded DLLs. Scan errors and unavailable protection block packaging; no exclusions or protection changes are made.
+- A reported Defender download detection remains under investigation. The original package currently scans without detections locally; the exact reported threat and affected file are unknown, and Edge acceptance is unconfirmed. The installer remains unsigned because a trusted signing identity is not available.
+
 ## 1.0.1 — 2026-10-23
 
 - Automatic Cloister destruction-sphere collection verifies and retains each temple’s Baaj prerequisite flag after the native chest completes, across all six supported trials. Besaid sphere collection is gameplay-confirmed. A remote tester still needs to confirm Baaj Ruins unlock through normal gameplay without warps. Zanarkand's flag was already present in the supplied save despite a reported missing sphere.

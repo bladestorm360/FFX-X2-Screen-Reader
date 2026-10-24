@@ -3361,3 +3361,14 @@ Warning-free dev staging, comparable English response sample and installed-file
 preservation pass. Deployment held while user tests; actual launcher focus/audio
 confirmation pending. No Tester Logs or real game/launcher launch.
 [Mechanism, original/asset provenance, metrics and limits](features/distribution/launcher_languages_20261023.md).
+## October24 installer security investigation
+
+[Distribution security](features/distribution/security_20261024.md) records the
+relayed Edge/Defender download report, unreproduced original detection, setup
+DLL-search hardening, publisher metadata and mandatory exact-artifact scan gate.
+Original/rebuilt eight-target scans report no detection;807 source/130 dependency/
+20 gate checks and actual compiled-EXE loader/short/long installs pass. Existing
+26 resources/424 native inputs are unchanged. The rebuilt1.0.1 candidate is
+locally verified; release/vendor-submission decisions await the informed user
+choice required by the updated security contract. No game runtime/deployment,
+Tester Logs, security-setting changes or sample uploads occurred.

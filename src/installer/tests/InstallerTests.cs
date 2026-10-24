@@ -421,12 +421,16 @@ internal static class InstallerTests
     [STAThread]
     private static int Main(string[] args)
     {
+        if (args.Length != 0 && args[0] == "--loader-baseline") return InstallerSecurityTests.CheckLoader(false);
+        if (args.Length == 2 && args[0] == "--loader-embedded") return InstallerSecurityTests.CheckEmbedded(args[1]);
         InstallerRuntime.Initialize();
+        if (args.Length != 0 && args[0] == "--loader-hardened") return InstallerSecurityTests.CheckLoader(true);
         if (args.Length != 0 && args[0] == "--synthetic-process") { Thread.Sleep(2500); return 0; }
         try
         {
             if (args[0] == "--embedded") return EmbeddedInstallerTests.Run(args[1], args[2]);
             fixture = Path.GetFullPath(args[0]); Directory.CreateDirectory(fixture);
+            InstallerSecurityTests.Run(fixture, Assert);
             foreach (string name in InstallerEngine.PayloadNames) {
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));

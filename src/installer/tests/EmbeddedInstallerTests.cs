@@ -23,6 +23,7 @@ internal static class EmbeddedInstallerTests
         return assembly.GetType("FfxScreenReader.Setup.MigrationPlan", true).GetMethod("FromCatalog").Invoke(null, new object[] { game, fixture, status });
     }
     public static int Run(string executable, string game) {
+        InstallerSecurityTests.RunEmbedded(executable);
         Assembly assembly = Assembly.LoadFile(Path.GetFullPath(executable));
         Type program = assembly.GetType("FfxScreenReader.Setup.Program", true);
         object production = program.GetMethod("Engine", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);

@@ -1,4 +1,19 @@
-# FFX current memory — October23
+# FFX current memory — October24
+
+[Installer security follow-up](Docs/features/distribution/security_20261024.md)
+is implemented and offline verified: system-folder native DLL lookup, real
+publisher metadata and mandatory exact-artifact Defender packaging gate.
+Original/rebuilt EXE/ZIP/all6 embedded DLLs report no detection;807 source,
+130 dependency,20 gate checks and actual89/307-character install/reinstall pass.
+All26 resources/424 native inputs match deployed1.0.1; no game deployment/launch.
+The reported Edge download detection remains unresolved; no threat/file name
+was supplied, Edge is unavailable and trusted signing is not configured.
+User requests replacement within1.0.1; informed publication/vendor-submission
+decisions are pending under the updated security contract. Original preserved;
+candidate ZIP SHA25689efe9c345b5845803fd517c8e0015b1bbee064ced2ef26d3e62830d088336f0.
+Evidence/review request: `install/defender-20261024`. No protections changed,
+Tester Logs, sample uploads or publication; no delegation. Existing published
+October23 receipt below remains historical/current remote until replacement.
 
 [Release1.0.1](Docs/release.md#release101--october23) is built, guarded-deployed
 and [published Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.1).

@@ -1,5 +1,11 @@
 # Build, deployment, launcher, installer and developer utilities
 
+[October24 installer/distribution security](security_20261024.md) covers the
+reported Defender download block, exact-artifact scan gate, process-local DLL
+search hardening, publisher metadata, unsigned-build gap and unresolved Edge
+verification. The user requests a replacement installer within existing1.0.1;
+the original asset is preserved and no tag/history rewrite is authorized.
+
 Current1.0.1 release: [release record](../../release.md) covers the verified
 sphere-flag and launcher language repairs, guarded deployment and actual final
 installer/ZIP checks. Native/setup metadata is1.0.1.0. This release excludes the

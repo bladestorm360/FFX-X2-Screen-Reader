@@ -55,6 +55,7 @@ current [mod/game architecture map](status.md#architecture-and-design-entry-poin
 | Developer console, ordinary/test warps, progression setup restrictions | [Developer utilities](distribution/index.md#developer-utilities) |
 | Console-enabled Baaj build, exclusive Shift+F1 and test warp | [Console/F1 repair](runtime/console_f1_20261020.md) |
 | Original launcher, LAA, install/check/repair, locked dependencies, packaging | [Distribution](distribution/index.md) |
+| Installer security, antivirus scans, signing gaps and download reports | [Distribution security](distribution/security_20261024.md) |
 | Japanese-default launcher and menu restoration after language/settings changes | [Launcher languages](distribution/launcher_languages_20261023.md) |
 
 ## Evidence and coverage

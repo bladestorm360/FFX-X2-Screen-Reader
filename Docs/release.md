@@ -14,7 +14,9 @@ Repository/downloads: https://github.com/bladestorm360/FFX-X2-Screen-Reader
 
 1. Read guidance/memory and inspect the existing branch, remote owner/visibility,
    worktree, tags and releases. Preserve other work, settings, saves and previous
-   packages. Never overwrite a published release or silently replace its asset.
+   packages. Never overwrite a published release or replace its asset without
+   an explicit same-release replacement request. Preserve original bytes and
+   record the replacement source/checksums without moving an existing tag.
    Check the source-content boundary, including staged files and all published
    history. Commercial-game bodies, raw inputs and analysis exports stay outside
    every Git tree. A known retained game-code object blocks making that repository
@@ -46,6 +48,12 @@ Repository/downloads: https://github.com/bladestorm360/FFX-X2-Screen-Reader
    files, the source lock, checksum anchor and two pinned stock-game inventories.
    Matching existing PRISM is checked read-only; missing runtime installs with
    licenses. No separate dependency installer is shipped.
+   Packaging now requires the exact-artifact Defender gate described in
+   [distribution security](features/distribution/security_20261024.md), including
+   the final EXE/ZIP and every executable resource. Scanner errors/unavailability
+   block packaging. Sign with the established trusted identity where available;
+   record unavailable signing and unresolved reports explicitly. A reported
+   security block needs resolution or an informed, explicit release decision.
 6. Test the actual final EXE's resource/dependency and short/long fixture
    install/reinstall paths. Registry fixtures use the in-memory backend only.
    Independently check ZIP CRCs, one named root, exactly five files (installer,
@@ -75,6 +83,19 @@ workflow. No real registry repair or gameplay probe is part of a release.
 Implementation/offline verification and user gameplay confirmation remain distinct.
 
 ## Release1.0.1 — October23
+
+October24 same-release installer follow-up is locally built and verified at the
+user's request; publication awaits the informed decision required by the newly
+updated security guidance because the original Edge/Defender report remains
+unreproduced. [Security record and exact hashes](features/distribution/security_20261024.md).
+The candidate changes setup DLL-search security/publisher metadata and adds a
+mandatory packaging scan gate. All26 resources/424 prior native inputs match
+the deployed1.0.1 payload. All local checks and exact-artifact Defender scans
+pass; this does not close the download report. The published asset/tag below
+remain unchanged until a verified replacement is uploaded. Original local ZIP
+and package are preserved under `install/release-backups/1.0.1--20261024-031739-bc92d295`.
+Candidate ZIP SHA256 is
+`89efe9c345b5845803fd517c8e0015b1bbee064ced2ef26d3e62830d088336f0`.
 
 The requested release includes the [all-six destruction-sphere flag repair](features/puzzles/destruction_flags_20261022.md)
 and [launcher language/settings repair](features/distribution/launcher_languages_20261023.md).

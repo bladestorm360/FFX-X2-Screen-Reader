@@ -1,5 +1,14 @@
 # Feature documentation audit — October 20, 2026
 
+October24 installer-only follow-up: [distribution security](distribution/security_20261024.md)
+maps the reviewed startup/runtime initializer, publisher resources, installer
+builder, final-archive packaging call, scanner host/module and actual loader/
+source/dependency/resource fixtures. All26 embedded resources and424 prior
+native source/input hashes match the deployed1.0.1 receipt; unchanged gameplay
+feature documentation is reused. This does not infer an Edge verdict from
+static scans or close the reported download detection. Exact current scan,
+signature, build/test and pending release/submission limits are in that topic.
+
 This focused review checks the assigned menus, battle and distribution pages
 against current production sources and existing linked evidence. It is not a
 claim that every state has fresh gameplay confirmation. Implementation status,

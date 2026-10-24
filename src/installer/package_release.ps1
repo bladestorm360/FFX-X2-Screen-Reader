@@ -81,6 +81,10 @@ try {
     & $SevenZip t $zip
     if ($LASTEXITCODE -ne 0) { throw 'Release archive integrity check failed.' }
 } finally { Pop-Location }
+# Validate the exact finished archive, EXE and extracted embedded binaries before
+# replacing any local distribution. Unavailable/error/detection results block
+# packaging; this never changes Defender preferences or asks users to bypass it.
+& (Join-Path $PSScriptRoot 'verify_distribution_security.ps1') -InstallerPath $exe -ArchivePath $zip -EvidenceDirectory (Join-Path $work 'security')
 # Preserve the previous local release outside the refreshed distribution.
 # Both resolved source/destination paths are checked before directory moves.
 $release = Assert-WorkspacePath (Join-Path $repo ('releases\' + $Version))
