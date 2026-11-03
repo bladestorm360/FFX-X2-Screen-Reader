@@ -40,13 +40,10 @@ AtelPreparation utilityPreparation(uintptr_t* capturedChunk) {
     if(capturedChunk) *capturedChunk=chunk;
     return chunk?atelPreparation(chunk):AtelPreparation::Missing;
 }
-bool captureUtilityScript(UtilityScript& script) noexcept {
-    if(!nativeGameThread()) return false;
+namespace {
+bool captureUtilityScriptSlot(UtilityScript& script,uintptr_t controller,unsigned slot) noexcept {
     try {
-        const auto controller=read<uintptr_t>(address(0xf26ae8));
-        const unsigned count=read<uint16_t>(controller+0xc),global=read<uint16_t>(controller+0xa);
-        if(!controller || read<uint16_t>(controller+0x1a,0xffff)!=0 || !count || count>500 || global>=count) return false;
-        const auto worker=reinterpret_cast<WorkerGetter>(address(0x46a7c0))(static_cast<int>(global));
+        const auto worker=reinterpret_cast<WorkerGetter>(address(0x46a7c0))(static_cast<int>(slot));
         const auto header=read<uintptr_t>(worker),chunk=read<uintptr_t>(worker+4);AtelSpan span;
         if(!worker || !header || !nativeAtelSpan(chunk,span) || span.size<0x38 || header<chunk ||
             header-chunk>span.size || span.size-(header-chunk)<0x28) return false;
@@ -61,6 +58,28 @@ bool captureUtilityScript(UtilityScript& script) noexcept {
         script.length=length;script.codeOffset=offset;script.workers=workers;script.allocationSerial=span.serial;script.name=name;
         return true;
     } catch(...) {return false;}
+}
+}
+bool captureUtilityScript(UtilityScript& script) noexcept {
+    if(!nativeGameThread()) return false;
+    const auto controller=read<uintptr_t>(address(0xf26ae8));
+    const unsigned count=read<uint16_t>(controller+0xc),global=read<uint16_t>(controller+0xa);
+    if(!controller || read<uint16_t>(controller+0x1a,0xffff)!=0 || !count || count>500 || global>=count) return false;
+    return captureUtilityScriptSlot(script,controller,global);
+}
+unsigned activeUtilityScriptCount() noexcept {
+    if(!nativeGameThread()) return 0;
+    const auto controller=read<uintptr_t>(address(0xf26ae8));
+    const unsigned count=read<uint16_t>(controller+0xc);
+    if(!controller || read<uint16_t>(controller+0x1a,0xffff)!=0 || count>500) return 0;
+    return count;
+}
+bool captureUtilityScriptAt(UtilityScript& script,unsigned slot) noexcept {
+    if(!nativeGameThread()) return false;
+    const auto controller=read<uintptr_t>(address(0xf26ae8));
+    const unsigned count=read<uint16_t>(controller+0xc);
+    if(!controller || read<uint16_t>(controller+0x1a,0xffff)!=0 || !count || count>500 || slot>=count) return false;
+    return captureUtilityScriptSlot(script,controller,slot);
 }
 UtilityScript utilityScript() {
     UtilityScript script;

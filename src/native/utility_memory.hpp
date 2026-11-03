@@ -14,6 +14,13 @@ struct UtilityScript {
 struct UtilityBinding { unsigned low, high; int value; unsigned element = 0; };
 UtilityScript utilityScript();
 bool captureUtilityScript(UtilityScript&) noexcept; // Native bounded candidate, no allocated refusal text.
+// Several top-level scripts (e.g. bltz0000 plus its camera/UI/announcer
+// siblings) can be concurrently active; only one holds the single
+// controller+0xa "foreground" slot captureUtilityScript() reads. These let a
+// caller that needs to find a specific script by identity, regardless of
+// which slot is foreground, enumerate every active slot instead.
+unsigned activeUtilityScriptCount() noexcept;
+bool captureUtilityScriptAt(UtilityScript&,unsigned slot) noexcept;
 AtelPreparation utilityPreparation(uintptr_t* chunk=nullptr);
 unsigned scriptChecksum(const UtilityScript& script);
 uintptr_t utilityWorker(const UtilityScript& script, unsigned local);

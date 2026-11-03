@@ -238,8 +238,25 @@ bool minigameAssistAvailable(Setting id) {
     // UI availability must not depend on completion-resource preparation. The
     // native room/resource header also exposes the option before race start.
     if(id==Setting::RemiemAssist && areaIndex(read<uint16_t>(address(0xd2ca90)))==276) return true;
+    if(id==Setting::BlitzAssist) {
+        // bltz0000 runs concurrently with separate camera/UI/announcer top-level
+        // scripts, and only one of them holds the single "foreground" slot that
+        // captureUtilityScript() reads. Which one depends on which team is
+        // acting: whichever team gets the ball first tends to keep that slot for
+        // the rest of the match, starving bltz0000 of foreground and hiding this
+        // option all match whenever it's the player's own team. Scan every
+        // concurrently active top-level script instead of only that one slot.
+        const unsigned count=activeUtilityScriptCount();
+        for(unsigned i=0;i<count;++i) {
+            UtilityScript candidate;
+            if(!captureUtilityScriptAt(candidate,i)) continue;
+            if(candidate.name=="bltz0200" && candidate.length==113266 && candidate.workers==7) return true;
+            for(const auto& r:rules)
+                if(r.setting==Setting::BlitzAssist && candidate.name==r.name && candidate.length==r.length && candidate.workers==r.workers) return true;
+        }
+        return false;
+    }
     UtilityScript s;if(!captureUtilityScript(s)) return false;
-    if(id==Setting::BlitzAssist && s.name=="bltz0200" && s.length==113266 && s.workers==7) return true;
     for(const auto& r:rules) if(id==r.setting && s.name==r.name && s.length==r.length && s.workers==r.workers) return true;
     return false;
 }
