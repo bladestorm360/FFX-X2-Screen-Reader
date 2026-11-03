@@ -56,6 +56,31 @@ bool identity(UtilityScript& s,const Rule& r) {
         readyAtelIdentity(s.chunk,id) && id.span.serial==s.allocationSerial && id.length==s.length &&
         id.codeOffset==s.codeOffset && id.workers==s.workers && id.checksum==r.hash && s.name==id.name;
 }
+// Blitzball runs several concurrent top-level scripts (camera/UI/announcer)
+// beside bltz0000 (see minigameAssistAvailable()), and whichever one holds
+// the single controller+0xa "foreground" slot identity() reads depends on
+// which team is acting -- not reliably bltz0000. A genuine Blitz completion
+// write still arrives here with the firing worker itself (e.args[0]/j.worker),
+// so build the identity straight from that worker instead of trusting the
+// foreground snapshot.
+bool identityForWorker(UtilityScript& s,uintptr_t worker,const Rule& r) {
+    if(!nativeGameThread() || !worker) return false;
+    const auto controller=read<uintptr_t>(address(0xf26ae8));
+    const auto header=read<uintptr_t>(worker),chunk=read<uintptr_t>(worker+4);AtelSpan span;
+    if(!controller || !header || !chunk || !nativeAtelSpan(chunk,span) || span.size<0x38 ||
+        header<chunk || header-chunk>span.size || span.size-(header-chunk)<0x28) return false;
+    const unsigned length=read<unsigned>(chunk),offset=read<unsigned>(chunk+0x30),workers=read<uint16_t>(chunk+0x34),nameAt=read<unsigned>(chunk+0xc);
+    if(!length || offset>span.size || length>span.size-offset || !workers || workers>1024 ||
+        (0x38ull+workers*4)>span.size || nameAt>span.size-8) return false;
+    char name[9]{};if(!copy(chunk+nameAt,name,8)) return false;
+    for(unsigned i=0;i<8 && name[i];++i) if(!(name[i]>='a' && name[i]<='z') && !(name[i]>='0' && name[i]<='9')) return false;
+    s.controller=controller;s.worker=worker;s.header=header;s.chunk=chunk;
+    s.length=length;s.codeOffset=offset;s.workers=workers;s.allocationSerial=span.serial;s.name=name;
+    AtelIdentity id;
+    return s.name==r.name && s.length==r.length && s.workers==r.workers &&
+        readyAtelIdentity(s.chunk,id) && id.span.serial==s.allocationSerial && id.length==s.length &&
+        id.codeOffset==s.codeOffset && id.workers==s.workers && id.checksum==r.hash && s.name==id.name;
+}
 bool owner(UtilityScript& s,uintptr_t w,unsigned local) {
     uintptr_t actual=0;
     if(!captureUtilityWorker(s,local,actual) || w!=actual || read<uintptr_t>(w+4)!=s.chunk) return false;
@@ -150,15 +175,25 @@ bool prepare(Job& j) {
     auto& a=attempts[slot(j.rule->setting)];
     if(a.serial!=j.attempt || a.pending!=j.ticket || a.handled) return false;
     UtilityScript s;unsigned entry=0,pc=0;
-    if(!identity(s,*j.rule) || s.chunk!=j.chunk || s.controller!=j.controller || s.allocationSerial!=j.allocation ||
-        !owner(s,j.worker,j.rule->local) || read<uintptr_t>(j.worker+0x90)!=j.signal ||
+    const bool isBlitz=j.rule->setting==Setting::BlitzAssist;
+    if((isBlitz ? !identityForWorker(s,j.worker,*j.rule) : (!identity(s,*j.rule) || !owner(s,j.worker,j.rule->local))) ||
+        s.chunk!=j.chunk || s.controller!=j.controller || s.allocationSerial!=j.allocation ||
+        read<uintptr_t>(j.worker+0x90)!=j.signal ||
         !signal(j.worker,entry,pc,s) || entry!=j.rule->entry) return false;
     const auto at=s.chunk+s.codeOffset+j.rule->pc;
     unsigned index=0;
     if(read<uint8_t>(at)!=0xa0 || read<uint16_t>(at+1)!=j.rule->index || !binding(s,j.rule->low,index) || index!=j.rule->index) return false;
     j.writes=j.requests=0;
     j.source=read<uint16_t>(s.controller+0xa,0xffff);
-    return j.source<read<uint16_t>(s.controller+0xc) && plan(j,s);
+    // Blitz's own plan() branch below never calls request(), the only place
+    // j.source is consumed, so this bound (built from the engine's global
+    // "foreground script" index) must not veto a genuine Blitz completion
+    // that doesn't need it. That index can legitimately read as the "none"
+    // sentinel (0xffff) at the moment this runs -- observed happening
+    // specifically when the player's own team is acting -- which otherwise
+    // silently blocks every Blitz completion in that case.
+    const bool sourceOk=isBlitz || j.source<read<uint16_t>(s.controller+0xc);
+    return sourceOk && plan(j,s);
 }
 void invoke(Job& j) {
     using Setter=void(__cdecl*)(uintptr_t,int,int,int,int);
@@ -211,10 +246,12 @@ void changed(Event& e) {
     for(const auto& r:rules) {
         if(!setting(r.setting)) continue;
         const auto local=read<uint16_t>(e.args[0]+0x2e,0xffff);
-        const bool blitzReset=r.setting==Setting::BlitzAssist && local==23 && e.args[1]==52;
+        const bool isBlitz=r.setting==Setting::BlitzAssist;
+        const bool blitzReset=isBlitz && local==23 && e.args[1]==52;
         if(!blitzReset && (local!=r.local || e.args[1]!=r.index)) continue;
         UtilityScript s;unsigned entry=0,pc=0,index=0;
-        if(!identity(s,r) || !owner(s,e.args[0],local) || !signal(s.worker,entry,pc,s)) continue;
+        if(isBlitz ? !identityForWorker(s,e.args[0],r) : (!identity(s,r) || !owner(s,e.args[0],local))) continue;
+        if(!signal(s.worker,entry,pc,s)) continue;
         const unsigned reset=2868116; // W23 is unchanged in the PSV variant; W36 shifts later.
         const bool initial=blitzReset?(entry==6 && pc==reset && !e.args[3]):
             ((pc==r.initial1 || (r.initial2 && pc==r.initial2)) && (entry==6 || entry==7));
@@ -238,8 +275,25 @@ bool minigameAssistAvailable(Setting id) {
     // UI availability must not depend on completion-resource preparation. The
     // native room/resource header also exposes the option before race start.
     if(id==Setting::RemiemAssist && areaIndex(read<uint16_t>(address(0xd2ca90)))==276) return true;
+    if(id==Setting::BlitzAssist) {
+        // bltz0000 runs concurrently with separate camera/UI/announcer top-level
+        // scripts, and only one of them holds the single "foreground" slot that
+        // captureUtilityScript() reads. Which one depends on which team is
+        // acting: whichever team gets the ball first tends to keep that slot for
+        // the rest of the match, starving bltz0000 of foreground and hiding this
+        // option all match whenever it's the player's own team. Scan every
+        // concurrently active top-level script instead of only that one slot.
+        const unsigned count=activeUtilityScriptCount();
+        for(unsigned i=0;i<count;++i) {
+            UtilityScript candidate;
+            if(!captureUtilityScriptAt(candidate,i)) continue;
+            if(candidate.name=="bltz0200" && candidate.length==113266 && candidate.workers==7) return true;
+            for(const auto& r:rules)
+                if(r.setting==Setting::BlitzAssist && candidate.name==r.name && candidate.length==r.length && candidate.workers==r.workers) return true;
+        }
+        return false;
+    }
     UtilityScript s;if(!captureUtilityScript(s)) return false;
-    if(id==Setting::BlitzAssist && s.name=="bltz0200" && s.length==113266 && s.workers==7) return true;
     for(const auto& r:rules) if(id==r.setting && s.name==r.name && s.length==r.length && s.workers==r.workers) return true;
     return false;
 }
