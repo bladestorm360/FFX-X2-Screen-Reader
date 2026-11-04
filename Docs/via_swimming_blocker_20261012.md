@@ -1,5 +1,11 @@
 # Via Purifico swimming blocker — 2026-10-12
 
+November1 routine-fixture correction: the reader test now models this record's
+room209/area244/entrance1/story2220/underwater1 scalar state without opening the
+personal tester save. Original EV/floor/native behavior checks remain, and both
+173-hook profiles pass. This does not revalidate a current save or change the
+historical findings below. [Verification](features/navigation/mushroom_rock_lag_20261101.md).
+
 ## Tester report and scope
 
 A tester urgently reported a Via Purifico swimming run with Tidus, Rikku, and Wakka.

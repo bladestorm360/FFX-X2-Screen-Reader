@@ -19,6 +19,7 @@ current [mod/game architecture map](status.md#architecture-and-design-entry-poin
 | F8 settings, defaults, persistence, independent keyboard commands | [Settings](runtime/index.md#input-and-settings) |
 | Field menus, items/equipment/abilities, character targeting, Aeon attributes | [Menus](menus/index.md) |
 | Save/load slots, confirmations, naming, shops, Customize sold-item filtering | [System screens](menus/index.md#system-screens) |
+| Equipment capacity, keep/discard focus and native warnings | [Equipment overflow](menus/equipment_overflow_20261103.md) |
 | Conditional Monster Arena menu, native title/focus/instructions | [Monster Arena](menus/index.md#system-screens) |
 | Native dialogue, tutorial/Blitzball review, voice policy, repeat, Will captions | [Dialogue](menus/index.md#dialogue-and-review) |
 | Help topics/pages, prompts/empty character slots, line buffers, footer controls | [Help](menus/index.md#help-pages) |

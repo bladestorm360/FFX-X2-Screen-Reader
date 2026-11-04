@@ -1,4 +1,65 @@
-# FFX current memory — October24
+# FFX current memory — November4
+
+[Release1.0.2](Docs/release.md#release102--november4) is built, guarded-deployed,
+packaged and locally verified.807 installer/130 final-EXE dependency/20 scan-gate
+checks, actual short/long install/reinstall, final launcher/startup,26 resources,
+all7 installed hashes and unchanged INI pass. Exact EXE/ZIP/embedded DLL scans
+report no detection; unsigned status and unresolved old download report remain
+explicit. Source/tag/draft verification and informed publication decision are
+pending. [Single ledger](Docs/plan.md#november4-release102--scope-ledger);
+receipts install/release-1.0.2-20261104. Prior packages/Closed work are preserved.
+
+[November4 controller puzzle guidance](Docs/features/runtime/index.md#input-and-settings)
+is complete / Closed, offline verified and guarded-deployed. View/Select, release,
+then L1/LB reads selected guidance like F11 in supported field puzzles. An active
+saved LB mod binding keeps priority; F8 Home, ordinary native/Grid controls,
+one-shot hold/drain and stale/pressure handback are preserved. Real SDL/both
+native decoders, seven SDL-owner cases, actual menu predicates and input/COM
+checks pass; warning-free release build, exact-payload Defender and all7 installed
+hashes pass, INI unchanged. No navigation/bake changes or new UI strings/INI IDs.
+Actual hardware/audio pending; previous Closed systems/source remain intact.
+[Single ledger](Docs/plan.md#november4-controller-puzzle-guidance--scope-ledger);
+evidence Analysis/FFX/ControllerPuzzle_20261104/verification.json. No game/probe,
+Tester Logs, saves, installer/publication, remote write or delegation.
+
+[November3 Blitzball setup/possession repair](Docs/features/puzzles/minigame_completion_20261020.md)
+and [equipment capacity menu](Docs/features/menus/equipment_overflow_20261103.md)
+are complete / Closed, offline verified and guarded-deployed. Blitz visibility
+recognizes all24
+retained setup/match variants across loaded workers. Exact match completion uses
+the live W23 clock regardless of possession/current worker; PR1's foreground fix
+is adapted with attribution and existing membership/lifetime guards. Capacity
+reads native window7 prompts/name substitutions, effective Keep/Discard focus,
+equipment and I/Autodetail. Both173-hook profiles, profile/menu/settings/shared
+utility checks and warning-free release build pass; all7 scanned/staged/installed
+hashes match, INI unchanged, Defender reports no detection.144 native units/38
+settings have current indexed coverage. Actual gameplay/audio remains pending.
+No game/probe, Tester Logs, saves, remote write, installer/publication or delegation.
+[Single ledger](Docs/plan.md#november3-blitzball-setup-and-equipment-overflow--scope-ledger);
+evidence Analysis/FFX/SetupOverflow_20261103. Existing Closed work is preserved.
+
+[November2 shop description/extra-info repair](Docs/features/menus/shop_details_20261102.md)
+is Closed, offline verified and guarded-deployed. I/Autodetail read selected
+modifiers first, then the visible compared character. U reads only the visible
+comparison pane; independent default-Off Automatically read extra info is directly
+below Autodetail in F8 → Miscellaneous. Both keys still repeat in every toggle
+combination. Both173-hook profiles, menu/settings/input, warning-free release
+build, exact-payload Defender scan and all7 installed hashes pass; existing INI
+unchanged.38 settings preserve previous37 IDs/keys. Actual gameplay/audio pending;
+no game/probe, Tester Logs, personal saves, installer/publication or delegation.
+[Single ledger](Docs/plan.md#november2-shop-descriptions-and-extra-information--scope-ledger);
+final523-input evidence `Analysis/FFX/ShopDetails_20261102/verification.json`.
+
+[November1 Mushroom Rock/shared route repair](Docs/features/navigation/mushroom_rock_lag_20261101.md)
+is Closed, offline verified and guarded-deployed.433 map assets/327 floors,
+20928 original/current visibility/654 route comparisons and both173-hook reader
+profiles pass. Sampled Mushroom routes54–390ms→5–22ms; same Sea/City long medians
+79–301ms→5–14ms. Warning-free release-flavor build/exact-payload Defender scan,
+all7 installed/staged/scanned hashes and unchanged INI pass. Native hooks/settings
+and reachability pose-cache behavior retained; actual game/frame/audible response
+pending. No game/probe, personal/tester save read, Tester Logs, installer/package,
+publication or delegation. [Single ledger](Docs/plan.md#november1-mushroom-rock-lag-investigation--scope-ledger);
+final evidence `Analysis/FFX/MushroomRockFix_20261101/verification.json`.
 
 [Installer security follow-up](Docs/features/distribution/security_20261024.md)
 is implemented and offline verified: system-folder native DLL lookup, real
@@ -111,8 +172,8 @@ Active source: `src/native`, x86 dinput8 proxy and PRISM. Start with the
 **[complete feature index](Docs/features/index.md)** and
 [design/status register](Docs/features/status.md). They link source/data flow,
 thread/lifetime ownership, controls/settings, native evidence, safe extension and
-verification limits. [Source map](Docs/features/source-map.md) covers143 native
-units; [settings](Docs/features/runtime/settings.md) covers37 persisted options.
+verification limits. [Source map](Docs/features/source-map.md) covers144 native
+units; [settings](Docs/features/runtime/settings.md) covers38 persisted options.
 
 Packaged release: **0.5.9**, requested after the minigame investigation to unblock
 testers. Warning-free release build, guarded deployment, single installer/ZIP,

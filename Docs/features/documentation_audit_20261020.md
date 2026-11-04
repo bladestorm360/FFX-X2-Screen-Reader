@@ -1,5 +1,15 @@
 # Feature documentation audit — October 20, 2026
 
+November3 scoped follow-up: the [capacity menu](menus/equipment_overflow_20261103.md)
+and updated [Blitzball completion](puzzles/minigame_completion_20261020.md) explain
+the connected native producer, original layouts/clock/foreground contracts,
+read-only versus authorized mutation routes, bounds/cancellation, I/Autodetail,
+language limits, contributor attribution and offline/gameplay distinction.
+The reviewed responsibility manifest adds equipment_overflow to menus. Unchanged
+feature explanations, shared ownership and prior Closed designs are reused;
+no unrelated explanatory gaps were found. Final build/deployment evidence remains
+in the single November3 ledger rather than reopening old subsystem audits.
+
 October24 installer-only follow-up: [distribution security](distribution/security_20261024.md)
 maps the reviewed startup/runtime initializer, publisher resources, installer
 builder, final-archive packaging call, scanner host/module and actual loader/
@@ -13,7 +23,7 @@ This focused review checks the assigned menus, battle and distribution pages
 against current production sources and existing linked evidence. It is not a
 claim that every state has fresh gameplay confirmation. Implementation status,
 offline evidence and gameplay evidence remain separate in the [feature
-register](status.md). The [source map](source-map.md) is the current143-unit
+register](status.md). The [source map](source-map.md) is the current144-unit
 inventory; this table names the files directly reviewed for the three assigned
 pages.
 

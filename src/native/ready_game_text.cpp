@@ -128,19 +128,34 @@ TextRef planCharacterDescription(TextPlan& p,unsigned id,bool includeLevels) {
     return includeLevels?planConcat(p,result,labelNumber(p,L", Sphere Levels ",planInteger(p,levels))):result;
 }
 TextRef planShopEquipmentDescription(TextPlan& p,uintptr_t record) {
+    // I/Autodetail own only the selected modifiers. The shop producer appends
+    // the displayed compared-character label, then independently handles U's
+    // extra pane. Never mix HP/MP or current equipment into this description.
+    if(!record || read<uint8_t>(record+4,255)>=7 || read<uint8_t>(record+5,255)>1) return 0;
+    return planEquipmentDetails(p,record);
+}
+TextRef planShopComparedCharacter(TextPlan& p,uintptr_t record) {
+    const auto owner=read<uint8_t>(address(0x146ab60),255);
+    if(!record || owner>=7 || read<uint8_t>(record+4,255)>=7 || read<uint8_t>(record+5,255)>1) return 0;
+    const auto name=planPlayerName(p,owner);
+    return planPair(p,TextPlanOp::IfText,name,planConcat(p,planLiteral(p,L"Compared character: "),name));
+}
+TextRef planShopExtraInfo(TextPlan& p,uintptr_t record) {
     const auto owner=read<uint8_t>(address(0x146ab60),255),type=read<uint8_t>(record+5,255);
     if(!record || owner>=7 || read<uint8_t>(record+4,255)>=7 || type>1) return 0;
     using Character=uintptr_t(__cdecl*)(unsigned);using Gear=uintptr_t(__cdecl*)(unsigned,uintptr_t*);
     const auto saved=reinterpret_cast<Character>(address(0x3853f0))(owner);if(!saved) return 0;
     const auto index=read<uint8_t>(saved+0x2d+type,255);
     const auto current=index==255?0:reinterpret_cast<Gear>(address(0x3abbf0))(index,nullptr);
-    const auto status=planCharacterDescription(p,owner,false),name=planPlayerName(p,owner);
-    auto result=planConcat(p,name,planLiteral(p,L". "));result=planConcat(p,result,status);
-    result=planConcat(p,result,planLiteral(p,L". Current equipment: "));
-    auto equipment=planLiteral(p,L"None");
-    if(current) {const auto label=planEquipmentName(p,current);equipment=planConcat(p,planConcat(p,label,planLiteral(p,L", ")),planEquipmentDetails(p,current));}
-    result=planConcat(p,result,equipment);result=planConcat(p,result,planLiteral(p,L". Selected equipment: "));
-    return planConcat(p,result,planEquipmentDetails(p,record));
+    // Native8D85F0 suppresses this pane for owner>6; it draws current equipment
+    // (or native placeholder17), while the parent draws this owner's HP/MP.
+    // The screenshot/log confirm those values. There are no calculated deltas
+    // or hidden/full-stat reads. Only ready scalar/text facts cross to workers.
+    const auto status=planCharacterDescription(p,owner,false);
+    const auto equipment=current?planJoin(p,planEquipmentName(p,current),planEquipmentDetails(p,current)):
+        index==255?planMenuText(p,11,0x17):0;
+    const auto panel=planPair(p,TextPlanOp::IfText,equipment,planConcat(p,planLiteral(p,L"Current equipment: "),equipment));
+    return planPair(p,TextPlanOp::Periods,status,panel);
 }
 TextRef planCountedName(TextPlan& p,TextRef name,int64_t count) {
     const auto line=planConcat(p,name,labelNumber(p,L", ",planInteger(p,count)));

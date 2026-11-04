@@ -115,18 +115,10 @@ std::wstring battleSelectionVitals(unsigned command) {
     return join(parts,L". ");
 }
 std::wstring shopEquipmentDescription(uintptr_t record) {
-    const auto owner=read<uint8_t>(address(0x146ab60),255),type=read<uint8_t>(record+5,255);
-    if(!record || owner>=7 || read<uint8_t>(record+4,255)>=7 || type>1) return {};
-    using Character=uintptr_t(__cdecl*)(unsigned);
-    const auto saved=reinterpret_cast<Character>(address(0x3853f0))(owner);
-    if(!saved) return {};
-    const auto index=read<uint8_t>(saved+0x2d+type,255);
-    const auto current=index==255?0:reinterpret_cast<Gear>(address(0x3abbf0))(index,nullptr);
-    // 8D85F0 displays current and selected equipment panels. 8D8A70/8F4F10
-    // display ability names only; catalog effects and calculated changes are
-    // not drawn. Keep equal names on distinct panels, with their context.
-    const auto status=characterDescription(owner);
-    return playerName(owner)+L". "+status.substr(0,status.find(L", Sphere Levels"))+L". Current equipment: "+(current?equipmentName(current)+L", "+equipmentDetails(current):L"None")+
-        L". Selected equipment: "+equipmentDetails(record);
+    // Legacy formatter parity: primary shop detail is selected modifiers only.
+    // The production shop TextPlan owns the displayed character suffix and the
+    // separate, visibility-qualified U pane; character status is never appended.
+    if(!record || read<uint8_t>(record+4,255)>=7 || read<uint8_t>(record+5,255)>1) return {};
+    return equipmentDetails(record);
 }
 }

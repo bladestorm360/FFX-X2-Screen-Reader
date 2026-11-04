@@ -7,8 +7,9 @@
 #include <algorithm>
 namespace ffx {
 namespace {
-std::array<std::atomic<TextPlanReceiver>,9> receivers{};
-std::array<std::atomic<speechq::DomainMaintenance>,9> maintenance{};
+// Receiver9 is the shop's independently reviewed extra-information pane.
+std::array<std::atomic<TextPlanReceiver>,10> receivers{};
+std::array<std::atomic<speechq::DomainMaintenance>,10> maintenance{};
 void maintain() {for(auto& entry:maintenance) if(const auto fn=entry.load(std::memory_order_acquire)) fn();}
 TextRef node(TextPlan& p,TextPlanNode value) {
     if(!p.valid || p.count==p.nodes.size()) {p.valid=false;return 0;}

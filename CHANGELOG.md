@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.2 — 2026-11-04
+
+- Blitzball auto-win is available during team setup and completes a match when either team gains possession first. Thanks to Paul Lemm (Sephiroth101) for the worker-discovery and foreground-context fixes in [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1), adapted with the existing safety checks.
+- The equipment-capacity screen reads its native prompts, Keep/Discard focus, selected equipment and available details. Discarding and confirmation remain under player control.
+- Shop descriptions read equipment modifiers before the compared character. **U** reads the displayed comparison pane; **Automatically read extra info** is a separate saved, default-Off option below Autodetail in F8 > Miscellaneous. **I** and **U** remain available independently.
+- In supported field puzzles, enter controller mod mode with View/Select, release it, then press **L1/LB** for the selected puzzle guidance, matching **F11**. An existing saved L1/LB mod binding keeps priority.
+- Shared route smoothing uses a spatial index over the actual map geometry to avoid repeatedly checking every triangle. Offline comparisons preserve route results and reduce the sampled Mushroom Rock computation; actual game responsiveness remains awaiting confirmation.
+- Includes the October 24 installer hardening and mandatory scans of the exact ZIP, installer and embedded DLLs. The installer remains unsigned. The older reported download detection lacks a threat name or affected-file hash and remains unresolved; local scan results do not establish acceptance on another computer.
+
+These changes are implemented and offline verified. Fresh gameplay, controller and audible-response confirmation remain pending; see the [test procedure](Docs/features/verification.md).
+
 ## 1.0.1 installer follow-up — 2026-10-24
 
 - Setup restricts native DLL lookup to the Windows system folder and identifies the community publisher in its file properties. The game and launcher payload is unchanged.

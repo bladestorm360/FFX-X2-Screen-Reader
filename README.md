@@ -1,4 +1,4 @@
-# FFX Screen Reader — 1.0.1
+# FFX Screen Reader — 1.0.2
 
 The FFX Screen Reader makes Final Fantasy X HD Remaster on Steam accessible with spoken menus, dialogue, battles, field navigation, puzzle guidance and optional assistance.
 
@@ -30,7 +30,7 @@ Four independent preparation options assist Calm Lands Chocobo training, the Rem
 
 ## Installation
 
-1. Close the game and launcher. Extract the **1.0.1** release ZIP.
+1. Close the game and launcher. Extract the **1.0.2** release ZIP.
 2. Run **InstallFFXScreenReader.exe** and check the selected game folder. Use **Browse** if needed.
 3. If setup detects an old launch redirect, choose **Repair launch redirection**, review and confirm its listed changes, and save the backup. Then choose **Install**.
 4. Wait for **Installation complete**, close setup, start your screen reader and launch through Steam.
@@ -56,6 +56,8 @@ The launcher now speaks arrow-selected choices in all eight native launcher lang
 
 ## Known issues and coverage
 
+Release 1.0.2 adds the Blitzball setup/possession fixes, equipment-capacity speech, separate shop extra information, L1/LB puzzle guidance in mod mode and faster shared route smoothing. These changes pass offline checks; fresh gameplay, controller and audible-response confirmation remain pending.
+
 Release 1.0.1 verifies each temple’s Baaj prerequisite flag after its destruction-sphere chest completes, and restores spoken launcher choices in all eight native languages. Besaid sphere collection is gameplay-confirmed. Remote confirmation of Baaj Ruins unlock through normal gameplay without warps, and real launcher/audio confirmation, remain pending.
 
 - The airship **Proceed?** prompt remains unresolved or deferred.
@@ -77,12 +79,13 @@ Release 1.0.1 verifies each temple’s Baaj prerequisite flag after its destruct
 - [Grayfox96's Sphere Grid viewer](https://github.com/Grayfox96/FFX-Sphere-Grid-viewer), with layouts extracted using Karifean's FFXDataParser.
 - Controller and navigation-sound design draw on the user's Bravely Default mod.
 - Settings design draws on the user's FF12 mod.
+- Paul Lemm (Sephiroth101), for the Blitzball worker-discovery and foreground-context fixes in [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1).
 
 See [dependency notices](src/native/DEPENDENCIES.md).
 
 Source: [GitHub](https://github.com/bladestorm360/FFX-X2-Screen-Reader).
 
-Download the latest release: [FFX Screen Reader 1.0.1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/latest).
+Download the latest release: [FFX Screen Reader 1.0.2](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/latest).
 
 For a problem report, include:
 

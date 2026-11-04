@@ -1,5 +1,11 @@
 @echo off
 setlocal
+:: The bounded runner's GNU MAKEFLAGS=-j1 is invalid for this NMake generator.
+:: NMake already runs one recipe at a time and these CMake flags do not use /MP.
+:: Keep the enclosing job's hard memory/CPU/slot limits; remove only the two
+:: incompatible parallelism requests for this inherently serial build tool.
+set "MAKEFLAGS="
+set "CMAKE_BUILD_PARALLEL_LEVEL="
 set "SDL_BUILD=%~dp0..\..\install\sdl3-x86"
 set "SDL_STAGE=%~dp0..\..\install\native"
 if not exist "%SDL3_SOURCE%\CMakeLists.txt" (

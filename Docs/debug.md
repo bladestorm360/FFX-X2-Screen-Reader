@@ -1,3 +1,29 @@
+## November2 shop descriptions and extra information
+
+The user's current own log and screenshot identify the producer: the shop
+description helper combined character HP/MP, current gear and selected modifiers
+into one I/Autodetail text. The primary now reads selected modifiers/empty slots
+then the displayed comparison character. U owns the separately qualified visible
+comparison pane; default-Off Automatically read extra info is independent and
+directly below Autodetail. Both keys still repeat in all toggle combinations.
+No numeric deltas are displayed by the retained renderer; none are invented.
+Both173-hook profiles, buy/sell/four-toggle/32-repeat/visibility/cancellation
+cases, settings/menu/input and warning-free build/scanned guarded deployment pass.
+Settings and the Closed route geometry are unchanged. Actual gameplay remains
+pending. [Producer, native evidence, lifecycle and final receipt](features/menus/shop_details_20261102.md).
+No game launch/probe, Tester Logs, personal saves or package/publication.
+
+## November1 Mushroom Rock/shared route lag
+
+Private full-floor visibility scans were the demonstrated hotspot. Mushroom
+Valley/Beach have17665/12824 triangles;433 assets/327 nonempty floors pass bounds
+and original/current comparisons. The exact shared-smoother acceleration passes
+native gates/water/events, both173-hook readers and guarded deployment/all7 hashes.
+Sampled Mushroom routes54–390ms→5–22ms; settings unchanged. Actual gameplay/frame/
+audible impact remains unmeasured. [Implementation, evidence and limits](features/navigation/mushroom_rock_lag_20261101.md).
+No game launch/probe, personal/tester save read or Tester Logs. Existing unrelated
+issues, scene capture and reachability pose-cache behavior remain separate.
+
 ## October22 destruction-sphere flags
 
 The named Baaj save is0x3E: Besaid missing, Zanarkand and the other four present.
@@ -3372,3 +3398,15 @@ Original/rebuilt eight-target scans report no detection;807 source/130 dependenc
 locally verified; release/vendor-submission decisions await the informed user
 choice required by the updated security contract. No game runtime/deployment,
 Tester Logs, security-setting changes or sample uploads occurred.
+# November4 controller puzzle guidance
+
+Mod mode L1/LB was unassigned in the normal field defaults; F8 already owns it
+as Home. A fixed fallback now queues unshifted F11 only for the actual supported
+guide and no active saved LB mod assignment. Native-return guard rechecks the
+guide, native-menu/Grid and battle context; no naming/repeat fallback is allowed.
+Both native decoder routes consume the edge through hold/release and queue
+refusal. No command IDs, INI keys/defaults, guide producers or map data change.
+The menu fixture initially lacked the newly referenced nativeGameThread symbol;
+adding an explicit test owner repairs that host link and tests worker refusal.
+Current checks and delivery are recorded only in the
+[November4 scope ledger](plan.md#november4-controller-puzzle-guidance--scope-ledger).

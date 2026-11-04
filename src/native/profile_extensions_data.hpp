@@ -646,6 +646,15 @@ inline constexpr ExtensionOperand extensionOperands[]={
     {0x146a9e8,0x4d2b10,519,0},
     {0x146a9e8,0x4d2b10,551,0},
     {0x1469ec8,0x4ba620,272,0},
+    // Capacity UI facts from both existing results-owner bodies. Repeated
+    // operands must agree after resolution in each supported executable.
+    {0x146a148,0x4ba620,595,0},
+    {0x146a148,0x4bdb30,199,0},
+    {0x21cc580,0x4ba620,1192,0},
+    {0x21cc580,0x4bdb30,275,0},
+    {0x21cc590,0x4ba620,2938,0},
+    {0x21cc590,0x4bdb30,40,0},
+    {0x1f10f8e,0x4bdb30,428,0},
     {0x1469ec8,0x4ba620,300,0},
     {0x1469ed4,0x4ba620,343,0},
     {0x1469ec8,0x4ba620,365,0},

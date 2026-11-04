@@ -30,6 +30,9 @@ The automatic option is separate/default Off; manual `puzzle_guide.cpp`,
 step selection, status and path guidance. F9/F10 move guide steps; F11 reads the
 current step and Shift+F11 uses the inferred-step route. F8 exposes context
 actions and status. Guides are mod-owned assistance, not an extra native menu.
+Controller Mod mode then L1/LB now requests the same F11 selected guidance when
+that mod control is unassigned. It shares actual-guide/context checks, preserves
+saved assignments and does not enable automatic puzzle solving.
 
 Natural interaction interception substitutes only the qualified owned script
 entry/choice and arranges its actual native solver job. Suppressing every script
@@ -110,14 +113,13 @@ confirmation.
 ## Minigames
 
 [Optional minigame completion](minigame_completion_20261020.md) records the four
-independent default-Off 0.6 development assists: Calm Lands Chocobo training,
-Remiem race, either Makalania butterfly course, and Blitzball. The preparation
-menu rows use native race/hunt/team contexts, preserve native rewards and
-progression, and introduce no field F-key. All nine native variants, the64-case
-Remiem flags matrix, score/story/choice boundaries, menu/settings and regression
-checks pass. The warning-free release-flavor build is guarded-deployed with all
-seven installed hashes verified. They are excluded from the preserved0.5.9
-package; installer rebuilding is held and gameplay confirmation is pending.
+independent default-Off assists: Calm Lands Chocobo training, Remiem race, either
+Makalania butterfly course, and Blitzball. November3 repairs setup visibility
+across24 retained native Blitz resources and uses the live clock independently
+of possession/current worker. All nine native variants, shared utility and
+menu/settings/profile checks pass. The warning-free scanned release-flavor
+payload is guarded-deployed; prior installers/packages and the remote remain
+unchanged by this task. Actual gameplay/audio confirmation is pending.
 
 `jecht.cpp`/`jecht_voice.cpp` own S.S. Winno practice and timed memory prompts.
 Default-Off automatic success uses the original practice/memory/result path;

@@ -21,6 +21,9 @@ int main() {
             Setting::ChocoboAssist,Setting::RemiemAssist,Setting::ButterflyAssist,Setting::BlitzAssist};
         constexpr Setting cues[]={Setting::GagazetCues};
         loadSettings();
+        check(!setting(Setting::AutoExtraInfo) && settingInfo(Setting::AutoExtraInfo).initial==0,"fresh extra information defaults Off");
+        check(static_cast<unsigned>(Setting::AutoDetail)==2 && static_cast<unsigned>(Setting::BlitzAssist)==36 &&
+            static_cast<unsigned>(Setting::AutoExtraInfo)==37,"new extra setting preserves all previous setting IDs");
         for(const auto id:assists)check(settingInfo(id).initial==0 && setting(id)==0,"fresh auto-success must default Off");
         for(const auto id:cues)check(settingInfo(id).initial==1 && setting(id)==1,"fresh puzzle cues must default On");
         check(GetFileAttributesW(path.c_str())==INVALID_FILE_ATTRIBUTES,"loading fresh defaults must not create a settings file");
@@ -30,6 +33,7 @@ int main() {
             WritePrivateProfileStringW(nullptr,nullptr,nullptr,path.c_str());
             loadSettings();
             for(const auto id:assists)check(setting(id)==0,"missing assistance key must default Off");
+            check(!setting(Setting::AutoExtraInfo),"legacy INI with no extra-info key inherits Off without rewriting");
             check(contents(path)==ini,"missing-key loading must preserve exact file bytes");
         }
         for(unsigned mask=0;mask<1024;++mask) {
@@ -48,6 +52,15 @@ int main() {
             for(unsigned i=0;i<_countof(assists);++i)check(setting(assists[i])==static_cast<int>((mask>>i)&1),"saved On/Off must override changed defaults");
             check(setting(cues[0])==static_cast<int>((mask>>_countof(assists))&1),"saved cue On/Off must override changed defaults");
             check(contents(path)==ini,"loading settings must preserve exact file bytes");
+        }
+        for(unsigned mask=0;mask<4;++mask) {
+            const std::string ini="; independent descriptions\r\n[Accessibility]\r\nauto_detail="+std::to_string(mask&1)+
+                "\r\nauto_extra_info="+std::to_string((mask>>1)&1)+"\r\n";
+            {std::ofstream out(path,std::ios::binary);out<<ini;check(out.good(),"write independent extra-info setting fixture");}
+            WritePrivateProfileStringW(nullptr,nullptr,nullptr,path.c_str());loadSettings();
+            check(setting(Setting::AutoDetail)==static_cast<int>(mask&1) && setting(Setting::AutoExtraInfo)==static_cast<int>((mask>>1)&1),
+                "all four saved Autodetail/extra-info combinations load independently");
+            check(contents(path)==ini,"loading independent extra-info settings preserves exact bytes");
         }
         for(const auto id:{Setting::ChocoboAssist,Setting::RemiemAssist,Setting::ButterflyAssist,Setting::BlitzAssist}) {
             const auto before=settingRevision(id);setSetting(id,setting(id));

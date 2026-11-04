@@ -1,5 +1,11 @@
 # Navigation, route validity, audio and movement
 
+[November1 Mushroom Rock/shared route repair](mushroom_rock_lag_20261101.md) is
+offline verified and guarded-deployed:433 map assets/327 native floors audited,
+20928 visibility/654 route comparisons and both reader profiles pass. Private
+visibility acceleration retains exact routes while reducing sampled long-route
+cost substantially. Actual game/frame/audible response remains unconfirmed.
+
 Airship Cid identification and offline verification are **complete**; guarded deployment is complete; gameplay remains unconfirmed. Both reader profiles pass actual capture, selection, movement and worker transfer. [Airship Cid identity and tracking](airship_cid_20261020.md) records the native/model identity, live actor handling and test limits.
 
 The Baaj report is closed by user gameplay confirmation: Besaid correctly remains inactive without its treasure, and every eligible seal works. Final door opening with all six prerequisites was not tested in this save. See [Baaj evidence and confirmation](baaj_seals_20261020.md).

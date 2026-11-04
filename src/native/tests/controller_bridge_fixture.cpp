@@ -13,12 +13,14 @@
 #include <map>
 namespace ffx {
 bool captureControllerBinding(uint64_t);
-bool testForeground=true,fixtureMenu=false,fixtureGrid=false;
+bool testForeground=true,fixtureMenu=false,fixtureGrid=false,fixtureGuidance=false;
 bool nativeGameThread() {return true;}
 bool nativeReaderResourcesReady() noexcept {return true;}
 unsigned generation() {return 1;}
-unsigned actions=0,menuKeys=0,motors=0,lastVk=0; bool lastShift=false,lastControl=false,blitz=false;
+unsigned actions=0,menuKeys=0,motors=0,lastVk=0,lastMenuVk=0; bool lastShift=false,lastControl=false,blitz=false;
 unsigned queuedControllerHotkeys=0,queuedVk=0; bool queuedShift=false,queuedControl=false;
+bool delayedControllerKey=false,refuseControllerKey=false;
+bool(*pendingControllerGuard)()=nullptr;
 bool fieldReview=false;
 bool sensorReview=false;
 bool battleSensorAvailable() { return sensorReview; }
@@ -42,13 +44,15 @@ uintptr_t address(unsigned rva) {
 bool inBattle() { return battle; }
 bool sphereGridOpen() { return fixtureGrid; }
 bool modMenuActive() { return fixtureMenu; }
+bool puzzleGuidanceAvailable() { return fixtureGuidance; }
 bool utilityConsoleActive() { return false; }
-void modMenuKey(unsigned,bool) { ++menuKeys; }
+void modMenuKey(unsigned vk,bool) { ++menuKeys;lastMenuVk=vk; }
 void dispatchHotkey(unsigned vk,bool shift,bool control) { lastVk=vk; lastShift=shift; lastControl=control; if(vk==VK_F8) fixtureMenu=true; else ++actions; }
 // Queue timing is covered by the real input fixture; this fake verifies controller routing/consumption only.
 bool queueControllerHotkey(unsigned vk,bool shift,bool control,bool(*guard)()) {
-    if(!guard || !guard()) return false;
+    if(refuseControllerKey || !guard || !guard()) return false;
     ++queuedControllerHotkeys; queuedVk=vk; queuedShift=shift; queuedControl=control;
+    if(delayedControllerKey) {pendingControllerGuard=guard;return true;}
     dispatchHotkey(vk,shift,control); return true;
 }
 bool blitzReviewAvailable() { return blitz; }
@@ -111,7 +115,9 @@ int main() {
     button(pad::South,false); button(pad::View,true); button(pad::View,false); button(pad::Menu,true);
     check(fixtureMenu && !readGame(),"settings chord captures native Start");
     button(pad::Menu,false); button(pad::Up,true); check(menuKeys==1 && !readGame(),"controller navigates mod menu exclusively");
-    button(pad::Up,false); fixtureMenu=false; pumpController(); pumpController();
+    button(pad::Up,false);fixtureGuidance=true;button(pad::LB,true);
+    check(lastMenuVk==VK_HOME && !readGame(),"F8 retains L1 Home even when a guide is available underneath");
+    button(pad::LB,false);fixtureGuidance=false;fixtureMenu=false;pumpController();pumpController();
     auto modCommand=[&](int control,unsigned vk) {
         button(pad::View,true); button(pad::View,false); button(control,true);
         check(lastVk==vk && !readGame(),"contextual mod command consumes native game action");
@@ -119,6 +125,43 @@ int main() {
         button(control,false); pumpController();
     };
     modCommand(pad::West,'G'); modCommand(pad::South,VK_F9); modCommand(pad::East,VK_F10);
+    // The new fixed fallback owns only a free LB in an actual field guide.
+    // Real SDL edges and both native decoders must keep a held shoulder quiet.
+    fixtureGuidance=true;
+    auto guideArm=[&] {button(pad::View,true);button(pad::View,false);};
+    auto guideCancel=[&] {button(pad::LB,false);button(pad::View,true);button(pad::View,false);pumpController();};
+    const auto nativeShoulderActions=actions;
+    button(pad::LB,true);check((readGame()&XINPUT_GAMEPAD_LEFT_SHOULDER) && actions==nativeShoulderActions,"ordinary L1 remains native even in a guide");button(pad::LB,false);
+    const auto guides=queuedControllerHotkeys;guideArm();button(pad::LB,true);
+    check(queuedControllerHotkeys==guides+1 && queuedVk==VK_F11 && !queuedShift && !queuedControl && !readGame(),"Mod mode L1 queues unshifted F11 and consumes XInput");
+    uint8_t guidePad[0x400]{};Event guideDecoded;guideDecoded.ecx=reinterpret_cast<uintptr_t>(guidePad);
+    for(unsigned parent:{0x22db80u,0x22dd50u}) {
+        std::memset(guidePad,0xff,sizeof(guidePad));guideDecoded.parentRva=parent;nativeListeners[0x22d700](guideDecoded);
+        check(!read<uint8_t>(guideDecoded.ecx+0x39c),"guide L1 cannot leak through either native controller decoder");
+    }
+    pumpController();check(queuedControllerHotkeys==guides+1,"held guide L1 never repeats");button(pad::LB,false);pumpController();
+    modCommand(pad::LB,VK_F11);check(queuedControllerHotkeys==guides+2,"a fresh guide press repeats independently");
+    // A saved eligible mod binding takes priority over the fallback chord.
+    learnControllerBinding(pad::Map);captureControllerBinding(pad::bit(pad::LB));pumpController();pumpController();
+    const auto assigned=queuedControllerHotkeys;modCommand(pad::LB,'M');check(queuedControllerHotkeys==assigned,"saved L1 mod command is preserved");
+    resetControllerBindings();pumpController();pumpController();
+    for(unsigned context=0;context<4;++context) {
+        fixtureGuidance=context!=0;nativeScene=context==1?4:0;fixtureGrid=context==2;battle=context==3;
+        const auto before=queuedControllerHotkeys;guideArm();button(pad::LB,true);
+        check(queuedControllerHotkeys==before,"ordinary field, native menus, Grid and battle do not acquire puzzle L1");guideCancel();
+        if(fixtureGrid) {button(pad::LB,true);check(readGame()&XINPUT_GAMEPAD_LEFT_SHOULDER,"Grid's ordinary L1 character control is preserved");button(pad::LB,false);}
+    }
+    battle=false;nativeScene=0;fixtureGrid=false;fixtureGuidance=true;
+    delayedControllerKey=true;pendingControllerGuard=nullptr;guideArm();button(pad::LB,true);button(pad::LB,false);pumpController();
+    check(pendingControllerGuard && pendingControllerGuard(),"accepted guide command carries its real context recheck");
+    fixtureGuidance=false;check(!pendingControllerGuard(),"leaving the guide rejects delayed F11 instead of reading a name/repeating speech");fixtureGuidance=true;
+    nativeScene=4;check(!pendingControllerGuard(),"queued guide refuses a new native menu");nativeScene=0;
+    fixtureGrid=true;check(!pendingControllerGuard(),"queued guide refuses Grid entry");fixtureGrid=false;
+    battle=true;check(!pendingControllerGuard(),"queued guide refuses battle entry");battle=false;delayedControllerKey=false;pendingControllerGuard=nullptr;
+    refuseControllerKey=true;const auto pressured=queuedControllerHotkeys;guideArm();button(pad::LB,true);
+    check(queuedControllerHotkeys==pressured && !readGame(),"queue refusal still swallows native L1");
+    refuseControllerKey=false;pumpController();check(queuedControllerHotkeys==pressured,"held refused L1 does not retry or leak");button(pad::LB,false);pumpController();fixtureGuidance=false;
+    puts("PASS: Mod mode L1 puzzle F11, both native decoder handbacks, held/repeat/pressure, saved binding priority and queued guide/menu/Grid/battle context guards.");
     battle=true; const auto beforeStatusSpeech=speechInputs; modCommand(pad::West,'H');
     check(speechInputs>beforeStatusSpeech,"controller status query interrupts before producing character details"); battle=false;
     button(pad::Left,true); check(lastVk==VK_OEM_4 && !lastShift && !readGame(),"field dpad selects previous destination without mod mode");

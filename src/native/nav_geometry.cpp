@@ -27,23 +27,122 @@ double floorHeight(const Triangle& t, Point p) {
     const double v = ((c.z-a.z)*(p.x-c.x)+(a.x-c.x)*(p.z-c.z))/determinant;
     return u*a.y+v*b.y+(1-u-v)*c.y;
 }
-bool lineOfSight(const Mesh& mesh, Point a, Point b) {
+// Smoothing probes many rejected shortcuts on winding maps. A full floor scan
+// for each probe made one ordinary route consume hundreds of milliseconds.
+// This temporary, balanced X/Z hierarchy only selects candidate triangles;
+// the exact clipping/height/event tests below remain the passability authority.
+// It borrows this owned mesh only for one smooth() call, never a native pointer.
+class VisibilityIndex {
+    struct Bounds {double minX,maxX,minZ,maxZ;};
+public:
+    struct Row {const Triangle* triangle;double determinant;Bounds bounds;};
+    struct Work {double begin,end;unsigned node;};
+private:
+    struct Node {Bounds bounds;unsigned begin=0,end=0,left=0,right=0;};
+    std::vector<Row> rows,unbounded;
+    std::vector<Node> nodes;
+    static Bounds merged(Bounds a,Bounds b) {
+        return {std::min(a.minX,b.minX),std::max(a.maxX,b.maxX),std::min(a.minZ,b.minZ),std::max(a.maxZ,b.maxZ)};
+    }
+    static bool intersects(Bounds box,Point a,Point b,double& low) {
+        low=0;double high=1;
+        const auto axis=[&](double from,double to,double minimum,double maximum) {
+            const double delta=to-from;
+            if(delta==0) return from>=minimum && from<=maximum;
+            const double first=(minimum-from)/delta,last=(maximum-from)/delta;
+            low=std::max(low,std::min(first,last));high=std::min(high,std::max(first,last));
+            return low<=high;
+        };
+        return axis(a.x,b.x,box.minX,box.maxX) && axis(a.z,b.z,box.minZ,box.maxZ);
+    }
+    unsigned build(unsigned begin,unsigned end) {
+        nav::checkComputation();
+        const unsigned at=static_cast<unsigned>(nodes.size());nodes.push_back({rows[begin].bounds,begin,end});
+        for(unsigned i=begin+1;i<end;++i) {nav::checkComputation();nodes[at].bounds=merged(nodes[at].bounds,rows[i].bounds);}
+        if(end-begin<=8) return at;
+        const auto box=nodes[at].bounds;const bool x=box.maxX-box.minX>=box.maxZ-box.minZ;
+        const unsigned middle=begin+(end-begin)/2;
+        std::nth_element(rows.begin()+begin,rows.begin()+middle,rows.begin()+end,[x](const Row& a,const Row& b) {
+            nav::checkComputation();return x?a.bounds.minX+a.bounds.maxX<b.bounds.minX+b.bounds.maxX:
+                a.bounds.minZ+a.bounds.maxZ<b.bounds.minZ+b.bounds.maxZ;
+        });
+        const auto left=build(begin,middle),right=build(middle,end);
+        nodes[at].left=left;nodes[at].right=right;return at;
+    }
+public:
+    explicit VisibilityIndex(const Mesh& mesh) {
+        rows.reserve(mesh.triangles.size());
+        for(const auto& triangle:mesh.triangles) {
+            nav::checkComputation();if(!walkable(triangle)) continue;
+            const auto p=triangle.points[0],q=triangle.points[1],r=triangle.points[2];
+            const double first=(q.z-r.z)*(p.x-r.x),second=(r.x-q.x)*(p.z-r.z),determinant=first+second;
+            if(std::abs(determinant)<.0001) continue;
+            Bounds box{std::min({p.x,q.x,r.x}),std::max({p.x,q.x,r.x}),std::min({p.z,q.z,r.z}),std::max({p.z,q.z,r.z})};
+            // Near-parallel barycentric clipping admits up to 1.1e-6 beyond
+            // each coordinate. Widen the candidate box conservatively; it
+            // never grants a route. Ill-conditioned/nonfinite rows bypass the
+            // index altogether so it cannot replace their original decision.
+            const double marginX=(box.maxX-box.minX+1)*.00001,marginZ=(box.maxZ-box.minZ+1)*.00001;
+            box.minX-=marginX;box.maxX+=marginX;box.minZ-=marginZ;box.maxZ+=marginZ;
+            Row row{&triangle,determinant,box};
+            if(!std::isfinite(determinant) || !std::isfinite(box.minX) || !std::isfinite(box.maxX) ||
+                !std::isfinite(box.minZ) || !std::isfinite(box.maxZ) || std::abs(first)+std::abs(second)>std::abs(determinant)*1e8)
+                unbounded.push_back(row);
+            else rows.push_back(row);
+        }
+        // Balanced median splits keep recursion logarithmic (at most sixteen
+        // levels for the native 32767-triangle transport). Storage is O(floor).
+        if(!rows.empty()) {nodes.reserve(rows.size());build(0,static_cast<unsigned>(rows.size()));}
+    }
+    template<class Clip> bool covered(Point a,Point b,const Clip& clip,std::vector<Work>& work) const {
+        work.clear();
+        constexpr unsigned Interval=std::numeric_limits<unsigned>::max();
+        const auto later=[](const Work& x,const Work& y) {return x.begin>y.begin;};
+        const auto push=[&](Work item) {work.push_back(item);std::push_heap(work.begin(),work.end(),later);};
+        const auto consume=[&](const Row& row) {
+            nav::checkComputation();double low=0,high=1;
+            if(clip(row,low,high)) push({std::max(0.0,low),std::min(1.0,high),Interval});
+        };
+        const auto pushNode=[&](unsigned at) {double low;if(intersects(nodes[at].bounds,a,b,low)) push({low,0,at});};
+        if(!std::isfinite(a.x) || !std::isfinite(a.z) || !std::isfinite(b.x) || !std::isfinite(b.z)) {
+            for(const auto& row:rows) consume(row);
+        } else if(!nodes.empty()) pushNode(0);
+        for(const auto& row:unbounded) consume(row);
+        double reached=0;
+        while(!work.empty()) {
+            nav::checkComputation();
+            // Node entry is a conservative lower bound on every interval it
+            // can contain. Visit near-to-far and stop at the first proved gap;
+            // rejected long shortcuts need not inspect their distant floors.
+            if(work.front().begin>reached+.000001) return false;
+            std::pop_heap(work.begin(),work.end(),later);const auto item=work.back();work.pop_back();
+            if(item.node==Interval) {
+                reached=std::max(reached,item.end);if(reached>=1-.000001) return true;
+            } else {
+                const auto& node=nodes[item.node];
+                if(node.left) {pushNode(node.left);pushNode(node.right);}
+                else for(unsigned i=node.begin;i<node.end;++i) {
+                    double low;if(intersects(rows[i].bounds,a,b,low)) consume(rows[i]);
+                }
+            }
+        }
+        return false;
+    }
+};
+bool lineOfSight(const Mesh& mesh,const VisibilityIndex& index,Point a,Point b,std::vector<VisibilityIndex::Work>& work) {
     if(!routeSegmentAllowed(mesh,a,b)) return false;
     // Cover the complete segment with clipped triangle intervals. Sampling
     // every five units can skip a narrow wall or gap between two sample points.
-    std::vector<std::pair<double,double>> intervals;
-    for(const auto& t:mesh.triangles) {
-        nav::checkComputation();if(!walkable(t)) continue;
+    return index.covered(a,b,[&](const VisibilityIndex::Row& row,double& low,double& high) {
+        const auto& t=*row.triangle;
         const auto p=t.points[0],q=t.points[1],r=t.points[2];
-        const double determinant=(q.z-r.z)*(p.x-r.x)+(r.x-q.x)*(p.z-r.z);
-        if(std::abs(determinant)<.0001) continue;
+        const double determinant=row.determinant;
         auto coordinates=[&](Point point) {
             const double u=((q.z-r.z)*(point.x-r.x)+(r.x-q.x)*(point.z-r.z))/determinant;
             const double v=((r.z-p.z)*(point.x-r.x)+(p.x-r.x)*(point.z-r.z))/determinant;
             return std::array<double,3>{u,v,1-u-v};
         };
         const auto first=coordinates(a),last=coordinates(b);
-        double low=0,high=1;
         auto clip=[&](double start,double finish) {
             const double change=finish-start;
             if(std::abs(change)<.0000001) { if(start<-.000001) high=-1; }
@@ -55,16 +154,8 @@ bool lineOfSight(const Mesh& mesh, Point a, Point b) {
             const double startHeight=floorHeight(t,a)-a.y,endHeight=floorHeight(t,b)-b.y;
             clip(8-startHeight,8-endHeight); clip(8+startHeight,8+endHeight);
         }
-        if(low<=high && high>=0 && low<=1) intervals.push_back({std::max(0.0,low),std::min(1.0,high)});
-    }
-    std::sort(intervals.begin(),intervals.end(),[](const auto& a,const auto& b) {nav::checkComputation();return a<b;});
-    double covered=0;
-    for(const auto& interval:intervals) {
-        if(interval.first>covered+.000001) return false;
-        covered=std::max(covered,interval.second);
-        if(covered>=1-.000001) return true;
-    }
-    return false;
+        return low<=high && high>=0 && low<=1;
+    },work);
 }
 }
 double distanceXZ(Point a, Point b) { return std::hypot(a.x - b.x, a.z - b.z); }
@@ -206,11 +297,15 @@ std::vector<Point> smooth(const Mesh& mesh, const std::vector<Point>& points) {
     if(!mesh.events.ready) return {};
     for(size_t i=1;i<points.size();++i) if(!routeSegmentAllowed(mesh,points[i-1],points[i])) return {};
     if (points.size() <= 2) return points;
+    const VisibilityIndex visibility(mesh);
+    // Reuse only scratch capacity across probes. Every candidate still runs
+    // the complete segment coverage proof; no sampled/grid shortcut is used.
+    std::vector<VisibilityIndex::Work> intervals;
     std::vector<Point> out{points[0]};
     for (size_t i = 0; i < points.size() - 1;) {
         nav::checkComputation();
         size_t next = i + 1;
-        for (size_t j = points.size() - 1; j > i + 1; --j) if (lineOfSight(mesh, points[i], points[j])) { next = j; break; }
+        for (size_t j = points.size() - 1; j > i + 1; --j) if (lineOfSight(mesh,visibility,points[i],points[j],intervals)) { next = j; break; }
         out.push_back(points[next]); i = next;
     }
     return out;

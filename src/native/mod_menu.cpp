@@ -43,7 +43,7 @@ constexpr unsigned audioItems[]={option(Setting::Beacon),option(Setting::BeaconV
     option(Setting::WallVolume),option(Setting::WallRange),option(Setting::Arrival),option(Setting::ArrivalVolume),
     option(Setting::RaceCues),option(Setting::ButterflyCues),option(Setting::LightningWarning),option(Setting::JechtCues),BeaconPreview,WallPreview,Back};
 constexpr unsigned navigationItems[]={option(Setting::AutoWalk),option(Setting::AutoWalkPath),option(Setting::HideUnreachable),option(Setting::PartialSteps),option(Setting::HiddenAirshipDestinations),HiddenAirshipMenu,Back};
-constexpr unsigned miscItems[]={option(Setting::AutoDetail),option(Setting::VoicedDialogue),option(Setting::CombatDetail),
+constexpr unsigned miscItems[]={option(Setting::AutoDetail),option(Setting::AutoExtraInfo),option(Setting::VoicedDialogue),option(Setting::CombatDetail),
     option(Setting::MenuIndex),option(Setting::OverdriveAssist),option(Setting::OverdriveCues),option(Setting::LightningAutoDodge),option(Setting::JechtAssist),option(Setting::ShowMaximumHp),option(Setting::ShowMaximumMp),option(Setting::PolishText),option(Setting::ChocoboAssist),option(Setting::RemiemAssist),option(Setting::ButterflyAssist),option(Setting::BlitzAssist),SpeechBackendMenu,BindingsMenu,TrialMenu,GagazetMenu,SinMenu,Back};
 constexpr unsigned gagazetItems[]={option(Setting::GagazetAssist),option(Setting::GagazetCues),GagazetGuide,GagazetSelected,GagazetStatus,Back};
 constexpr unsigned sinItems[]={SinMenu,SinGuide,SinStatus,Back};
@@ -357,6 +357,7 @@ void openHiddenAirshipMenu() {
 }
 void modMenuReply(const std::wstring&) {}
 bool modMenuActive() { return active.load() || spherePlannerActive() || wakkaMenuActive(); }
+bool puzzleGuidanceAvailable() { return nativeGameThread() && guideKeysAvailable(); }
 void modMenuKey(unsigned vk,bool shift) {
     if(wakkaMenuActive()) { wakkaMenuKey(vk); return; }
     if(spherePlannerActive()) { spherePlannerKey(vk,shift); return; }

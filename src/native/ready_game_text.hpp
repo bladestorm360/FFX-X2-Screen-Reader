@@ -20,6 +20,8 @@ TextRef planEquipmentDetails(TextPlan&,uintptr_t);
 TextRef planEquippedItemName(TextPlan&,unsigned,bool armor);
 TextRef planCharacterDescription(TextPlan&,unsigned,bool includeLevels=true);
 TextRef planShopEquipmentDescription(TextPlan&,uintptr_t);
+TextRef planShopComparedCharacter(TextPlan&,uintptr_t);
+TextRef planShopExtraInfo(TextPlan&,uintptr_t);
 TextRef planCountedName(TextPlan&,TextRef,int64_t); // Empty name suppresses quantity.
 void planSelectionDetail(TextPlan&,TextRef,bool automatic);
 }

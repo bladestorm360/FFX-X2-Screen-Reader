@@ -38,6 +38,7 @@ are covered in [Distribution](distribution/index.md).
 | [copied_text.cpp](../../src/native/copied_text.cpp) | [runtime](runtime/index.md) |
 | [dialogue_voice.cpp](../../src/native/dialogue_voice.cpp) | [menus](menus/index.md) |
 | [direct_input.cpp](../../src/native/direct_input.cpp) | [runtime](runtime/index.md) |
+| [equipment_overflow.cpp](../../src/native/equipment_overflow.cpp) | [menus](menus/index.md) |
 | [esc_capture.cpp](../../src/native/esc_capture.cpp) | [menus](menus/index.md) |
 | [esc_details.cpp](../../src/native/esc_details.cpp) | [menus](menus/index.md) |
 | [esc_settings.cpp](../../src/native/esc_settings.cpp) | [menus](menus/index.md) |

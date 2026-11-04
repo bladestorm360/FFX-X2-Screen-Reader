@@ -96,11 +96,11 @@ for r in records:
         guards = {b["raw_low"] for worker in flow["workers"] for b in worker["bindings"]}
         assert set(range(0x0c000043, 0x0c00004a)) <= guards
     if kind == "BlitzAssist":
-        # All eight real action menu variants converge on this one accepted
-        # return assignment; no movement/formation/forfeit text is a trigger.
-        delta = 1082 if length == 4646208 else 0
-        for menu_pc in (3074033,3074060,3074087,3074114,3074183,3074210,3074237,3074264):
-            assert statements[menu_pc-delta]["id"] == 0x13b
+        # Native clock entry advances independently of carrier/Action Commands.
+        # Both ordinary and PSV variants keep this W23 location unchanged.
+        assert local == 23 and entry == 6 and pc == 2864990
+        assert trigger["value"] == "(L6:map:000144:T5[0] + 1)"
+        assert w["entries"][entry] == 2864973
         clock = [s for b in flow["workers"][23]["blocks"] for s in b["statements"]]
         assert any(s["pc"] == 2868116 and s.get("variable") == 52 and s.get("value") == "0" for s in clock)
     archive_name = r["source"].replace("\\", "/")

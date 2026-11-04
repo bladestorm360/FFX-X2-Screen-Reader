@@ -36,6 +36,7 @@ unsigned __cdecl nativeMenuMask() {return menuMaskValue;}
 uintptr_t address(unsigned rva) {return rva==0x4aa410?reinterpret_cast<uintptr_t>(&nativeMenuMask):0;}
 bool inBattle() {return false;}
 bool modMenuActive() {return false;}
+bool puzzleGuidanceAvailable() {return false;}
 bool utilityConsoleActive() {return false;}
 bool sphereGridOpen() {return false;}
 bool blitzReviewAvailable() {return false;}

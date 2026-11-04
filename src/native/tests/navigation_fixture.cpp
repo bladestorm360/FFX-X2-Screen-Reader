@@ -2,6 +2,7 @@
 #include "../atel.hpp"
 #include "../navigation.hpp"
 #include "../navigation_cancel.hpp"
+#include "visibility_reference.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
@@ -19,6 +20,47 @@ Triangle triangle(Point a, Point b, Point c) {
     t.center={(a.x+b.x+c.x)/3,(a.y+b.y+c.y)/3,(a.z+b.z+c.z)/3};
     for(auto& n:t.neighbours)n=-1;
     return t;
+}
+void visibilityFixtures() {
+    const auto parity=[](const Mesh& mesh,Point a,Point b) {
+        const std::vector<Point> points{a,{(a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2},b};
+        const auto old=visibility_reference::smooth(mesh,points),current=smooth(mesh,points);
+        check(old.size()==current.size(),"indexed visibility retains original shortcut decision");
+        for(size_t i=0;i<old.size();++i)
+            check(old[i].x==current[i].x && old[i].y==current[i].y && old[i].z==current[i].z,"indexed visibility retains exact route coordinates");
+    };
+    // Parallel edges exercise the original barycentric epsilon just outside
+    // the polygon; candidate boxes must not turn that tolerance into a wall.
+    for(double scale:{1.0,10000.0,1000000.0}) {
+        Mesh edge;edge.triangles={triangle({0,0,0},{scale,0,0},{0,0,1})};
+        parity(edge,{scale*.1,0,-.0000005},{scale*.8,0,-.0000005});
+        parity(edge,{scale*.1,0,-.000002},{scale*.8,0,-.000002});
+        parity(edge,{scale*.1,8,0},{scale*.8,8,0});
+        parity(edge,{scale*.1,8.000001,0},{scale*.8,8.000001,0});
+        edge.fixedHeight=true;parity(edge,{scale*.1,900,0},{scale*.8,900,0});
+    }
+    Mesh floors;
+    for(unsigned i=0;i<32;++i) {
+        // Disjoint strips plus overlapping high floors exercise heap entry
+        // order, true narrow gaps, early coverage and native height rejection.
+        const double x=i*12.0;
+        for(double y:{0.0,100.0}) {
+            floors.triangles.push_back(triangle({x,y,0},{x+10,y,0},{x,y,10}));
+            floors.triangles.push_back(triangle({x+10,y,0},{x+10,y,10},{x,y,10}));
+        }
+    }
+    unsigned seed=12419;
+    for(unsigned i=0;i<256;++i) {
+        seed=seed*1664525u+1013904223u;const auto a=floors.triangles[seed%floors.triangles.size()].center;
+        seed=seed*1664525u+1013904223u;const auto b=floors.triangles[seed%floors.triangles.size()].center;
+        parity(floors,a,b);floors.fixedHeight=!floors.fixedHeight;parity(floors,a,b);
+    }
+    // Ill-conditioned projected triangles are deliberately tested by the old
+    // clipper rather than trusted to a numerically narrow hierarchy box.
+    Mesh thin;thin.triangles={triangle({1000000,0,1000000},{2000000,0,2000000},{2000000,0,2000000.000001})};
+    parity(thin,thin.triangles[0].points[0],thin.triangles[0].points[1]);
+    floors.events.count=1;floors.events.rows[0]={{4,0,-1},{4,0,11},{6,0,5},20};
+    parity(floors,{1,0,5},{9,0,5});parity(floors,{9,0,5},{1,0,5});
 }
 #include "navigation_zone_followups.inc"
 #include "navigation_exit_followups.inc"
@@ -112,5 +154,6 @@ int main() {
     check(cancelled==6 && findTriangle(large,{2,0,2})==0,"canceled copied computations stop and restore prior TLS predicate");
     zoneFixtures();
     exitValidationFixtures();
+    visibilityFixtures();
     std::puts("PASS: native ATEL ownership, availability, counter zones, crossing exits, navmesh indices, A* and smoothing fixtures.");
 }

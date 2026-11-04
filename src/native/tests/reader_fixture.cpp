@@ -198,6 +198,8 @@ uintptr_t encoded(unsigned off, const char* text) {
         else if(*text=='-') *dst=0x47;
         else if(*text=='.') *dst=0x48;
         else if(*text=='!') *dst=0x3b;
+        else if(*text=='+') *dst=0x45;
+        else if(*text=='%') *dst=0x3f;
         else {
             const char* found = std::strchr(charset,*text);
             check(found != nullptr,"fixture text charset");
@@ -280,16 +282,20 @@ unsigned __cdecl fixtureStat(uintptr_t saved,uintptr_t entry,int) {
 }
 uintptr_t __cdecl requirementsTable() { return address(0x2110100); }
 int __cdecl increase(int, unsigned, unsigned* id, unsigned* needed) { *id=1; *needed=5; return 1; }
+double fixtureNativeEventMs=0,fixtureUsableEventMs=0;
 void event(unsigned id, uintptr_t arg, const std::function<void()>& change={}, uintptr_t result=0) {
     auto& list=listeners[id]; check(!list.empty(),"registered event");
     std::vector<Event> calls(list.size());
+    const auto measuredBegin=std::chrono::steady_clock::now();
     for(size_t i=0;i<list.size();++i) {
         auto& e=calls[i]; e.rva=id; e.args[0]=arg; e.result=result; e.epoch=generation();
         if(list[i].enter) list[i].enter(e);
     }
     if(change) change();
     for(size_t i=0;i<list.size();++i) if(list[i].leave) list[i].leave(calls[i]);
+    fixtureNativeEventMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-measuredBegin).count();
     prepareCopiedControlNames();drainSpeechDomainsForTest();
+    fixtureUsableEventMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-measuredBegin).count();
 }
 void fixturePhysicalPart(unsigned chunk,unsigned bytes) {
     // Exact, explicit fixture allocation: one EV01 part containing the already
@@ -387,6 +393,8 @@ ffx::MessagePage messagePage(unsigned slot,uintptr_t source) {
 #include "sin_native_followups.inc"
 #include "sin_platform_followups.inc"
 #include "via_swimming_followups.inc"
+#include "shop_detail_followups.inc"
+#include "equipment_overflow_followups.inc"
 int main(int argc, char** argv) {
     std::setvbuf(stdout,nullptr,_IONBF,0);
     SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);
@@ -796,9 +804,10 @@ int main(int argc, char** argv) {
     set<uint8_t>(0xd3205c+0x2d,254);
     set<uint8_t>(0x2310800+0xb,1); set<uint16_t>(0x2310800+0xe,1);
     check(equipmentDetails(address(0x2101040))==L"Ether, 1 empty slot","equipment ability and empty slot details");
-    check(shopEquipmentDescription(address(0x2101040))==L"Tidus. HP 100/200, MP 17/30. Current equipment: Sonic Steel, Potion. Selected equipment: Ether, 1 empty slot","shop reads both rendered panels without catalog effects or computed comparisons");
+    check(shopEquipmentDescription(address(0x2101040))==L"Ether, 1 empty slot","shop primary detail contains only selected modifiers and slots");
     check(equipmentDescription(address(0x2101040))==L"Ether, 1 empty slot","equipment descriptions contain visible abilities once");
     visibleEquipmentFixtures();
+    shopDetailFixtures();
     // Description owners: actual native strings and distinct selection events,
     // both manual and automatic; equal text on another row remains speakable.
     encoded(0x2100300,"Native command bar help");
@@ -840,7 +849,7 @@ int main(int argc, char** argv) {
     buttonGlyphFixtures();
     swimmingProgressionFixtures();
     exitLabelFixtures();airshipSearchFixtures();introCueFixtures();viaSwimmingFixtures();
-    escFocusFixtures();specialFeatureNotificationFixtures();battleResultsBufferFixtures();realHelpPageFixtures();nativeHelpRendererFixture();gridNativeReplayFixture();customizeNativeReplayFixture();
+    escFocusFixtures();specialFeatureNotificationFixtures();battleResultsBufferFixtures();equipmentOverflowFixtures();realHelpPageFixtures();nativeHelpRendererFixture();gridNativeReplayFixture();customizeNativeReplayFixture();
     std::printf("PASS: production native menu, Help, sphere, battle and hotkey fixtures (%zu hook sites, %s profile).\n",listeners.size(),nativeProfile == NativeProfile::Installed ? "installed" : "reference");
     VirtualFree(reinterpret_cast<void*>(testBase),0,MEM_RELEASE);
     return 0;

@@ -112,6 +112,20 @@ mirror F2–F5 and triggers mirror cursor route keys. October18 Grid commands no
 join the keyboard FIFO at native return, preventing an earlier snapshot phase.
 Do not move ordinary pass-through movement into that queue.
 
+November4: Mod mode then L1/LB reads selected puzzle guidance through the same
+unshifted F11 handler. `mod_menu.cpp::puzzleGuidanceAvailable` exports the existing
+actual-guide predicate to the native owner. `controller.cpp::puzzleCommandContext`
+additionally rejects battle, Grid and native menus, and is rechecked by the
+ordinary queued-input return phase. The fixed fallback yields to an eligible
+saved LB mod binding; command IDs, binding defaults and INI schema are unchanged.
+F8 still owns LB as Home, and ordinary native shoulders retain their controls.
+One edge queues one command; complete/drain consumes both native decoder routes
+even on queue refusal. No guide producer, physical hook, worker wait or map work
+is added. Existing guide text/localization and selected-step semantics are reused.
+Focused real-SDL bridge, SDL-owner, mod-menu and input fixtures cover this route;
+the single scope/status/evidence record is the
+[November4 ledger](../../plan.md#november4-controller-puzzle-guidance--scope-ledger).
+
 `settings.cpp::options` is the authority for defaults/ranges/INI keys. F8's
 `mod_menu.cpp` groups Speech options/Audio/Navigation/Miscellaneous, bindings, backend, active
 trial, Gagazet and optional airship choices. Defaults include Autodetail Off,

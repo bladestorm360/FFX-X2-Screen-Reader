@@ -77,10 +77,11 @@ void baajNavigationFixtures() {
     fixturePhysicalPart(chunk,end-64);static nav::Scene copied;ZeroMemory(&copied,sizeof(copied));
     copied.epoch=generation();copied.count=37;copied.actorCount=1;copied.playerIndex=0;copied.partCount=1;copied.allowed=true;
     check(nativeAtelSpan(address(chunk),copied.parts[0].span),"Baaj prepared allocation identity");
-    std::ifstream save(ffx_fixture::repositoryRoot().parent_path()/"Saves/Dylan/Summon/ffx_000",std::ios::binary);check(save.good(),"named Summon save exists");
-    save.seekg(64+0x1ec);save.read(reinterpret_cast<char*>(copied.saved.bytes.data()),copied.saved.bytes.size());
-    check(save.gcount()==copied.saved.bytes.size(),"complete bounded saved-fact bank copied");copied.saved.valid=true;
-    check(copied.saved.bytes[0xa70]==0x3e,"provided save records five prerequisite flags, not all six");
+    // Retained October20/22 report fact, not a dependency on a personal save
+    // remaining on disk. The original Baaj script and all64 native flag cases
+    // below still execute; this scenario models its documented five-flag bank.
+    // See Docs/features/navigation/baaj_seals_20261020.md.
+    copied.saved.valid=true;copied.saved.bytes[0xa70]=0x3e;
     for(unsigned i=0;i<6;++i) {
         const unsigned local=30+i,w=workerBase+local*0x1000,g=w+0x284;const auto target=navigationTarget(catalog,local);
         check(target && target->identity==3 && std::wstring(target->label)==names[i] && read<uint8_t>(address(chunk+script.workers[local].header))==6,"six authored seal identities match original type6 workers");
@@ -100,7 +101,7 @@ void baajNavigationFixtures() {
     for(const auto& entity:entities) {inactive+=entity.inactive;check(entity.zone.valid && entity.zone.crossing && !entity.zone.talk,"owned seal routes use walk-in geometry");}
     if(inactive!=1 || entities[3].name!=L"Besaid seal" || !entities[3].inactive)
         for(const auto& entity:entities) std::fwprintf(stderr,L"Baaj guard worker%d %ls inactive%d\n",entity.worker,entity.name.c_str(),entity.inactive);
-    check(inactive==1 && entities[3].name==L"Besaid seal" && entities[3].inactive,"real saved guard keeps Besaid listed but inactive");
+    check(inactive==1 && entities[3].name==L"Besaid seal" && entities[3].inactive,"recorded saved guard keeps Besaid listed but inactive");
     // Each label is cross-qualified against the matching temple treasure write,
     // not a guessed ordinal. Exercise every missing flag against real Baaj code.
     constexpr unsigned treasureMasks[]={2,4,16,1,8,32};

@@ -14,6 +14,11 @@ struct UtilityScript {
 struct UtilityBinding { unsigned low, high; int value; unsigned element = 0; };
 UtilityScript utilityScript();
 bool captureUtilityScript(UtilityScript&) noexcept; // Native bounded candidate, no allocated refusal text.
+// PR #1 (Sephiroth101): concurrent Blitz scripts need indexed discovery rather
+// than the controller's transient current-worker slot. Native owner only;
+// at most500 slots, with the same live resource/allocation bounds as above.
+unsigned activeUtilityScriptCount() noexcept;
+bool captureUtilityScriptAt(UtilityScript&,unsigned slot) noexcept;
 AtelPreparation utilityPreparation(uintptr_t* chunk=nullptr);
 unsigned scriptChecksum(const UtilityScript& script);
 uintptr_t utilityWorker(const UtilityScript& script, unsigned local);

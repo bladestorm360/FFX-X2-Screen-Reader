@@ -1,5 +1,11 @@
 # Baaj Antechamber seals
 
+November1 routine-fixture correction: the reader test now models the already
+documented0x3E saved-flag state instead of opening the personal Summon file.
+Original Baaj EV/native replay and all prerequisite/endpoint matrices remain;
+both173-hook profiles pass. Historical save findings below are unchanged. See
+[the route repair's verification record](mushroom_rock_lag_20261101.md).
+
 October23 update: the user confirms Besaid sphere collection in gameplay.
 The remaining check is a remote tester reproducing Baaj Ruins unlock through
 normal gameplay without warps. A tester reported Zanarkand missing, but its flag

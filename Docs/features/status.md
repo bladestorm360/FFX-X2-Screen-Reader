@@ -12,11 +12,13 @@ hardware behavior are confirmed. Percentages are rough engineering estimates.
 | Executable profiles, proxy/hook lifecycle, resource retirement | complete | Profile/ABI/owner hosts pass; actual field-freeze cause unresolved |
 | PRISM speech/braille, backend choice, cancellation/history | complete | Production adapter/queue/domain hosts; hardware remains backend dependent |
 | Native text, glyphs, Polish fan-translation detection | complete | Getter/decoder/profile fixtures; native translations distinct from mod UI |
-| Keyboard/controller mode, bindings and focus handback | complete | Input/COM/controller hosts; new F-key correction pending gameplay |
+| Keyboard/controller mode, bindings and focus handback | complete | [November4 controller guidance](runtime/index.md#input-and-settings): Mod mode L1/LB queues selected puzzle guidance when unassigned; real SDL/both decoders, context/hold/pressure, F8/Grid and saved bindings pass. Actual hardware/audio pending |
 | F8 settings, defaults and deferred persistence | complete | Actual registration/settings/menu hosts; saved settings preserved |
 | Field equipment/item/ability menus and target details | complete | Native menu fixtures; historical gameplay evidence in menu topic |
 | Save/load, naming, shops and Customize filtering | complete | Native getter/predicate replay; new Password subject pending gameplay |
+| Shop modifier description and independent extra-pane review | complete / Closed | [Current slice](menus/shop_details_20261102.md): selected modifiers then visible character on I/Autodetail; U/independent default-Off automatic extra pane. All four toggle combinations, repeated I/U, visibility/cancellation, persistence/menu/input and both173-hook reader profiles pass; warning-free release build/scanned payload/guarded deployment verified. Gameplay pending |
 | Monster Arena conditional menu | complete | Native capture/focus/render cases; not an automatic capture solver |
+| Equipment capacity keep/discard menu | complete / Closed | [Native results-owner reader](menus/equipment_overflow_20261103.md): both173-hook profiles, current native warning/name substitutions, I/Autodetail, eight labels and bounds/exit/idle cases pass; warning-free scanned payload guarded-deployed. Gameplay pending |
 | Dialogue, voice policy, tutorial/Blitzball review and timed captions | complete | Speech/voice/caption fixtures; optional Blitzball auto-win has its own producer below |
 | Help pages, line buffers and footer controls | complete | Native renderer/full-page fixtures; Help buffers user-confirmed |
 | Escape/title/configuration and Special Features notifications | complete | Native reader fixtures; hardware/mapping limits documented |
@@ -30,6 +32,7 @@ hardware behavior are confirmed. Percentages are rough engineering estimates.
 | Tidus/Auron/Lulu/Wakka cues and optional assistance | complete | Native cue/input hosts; manual Wakka timing pending gameplay |
 | NPC/event/object/shop/save/chest/exit identification | complete | Supported catalog/owned capture plus six Baaj regions verified and deployed; gameplay limits remain |
 | Collision routes, dynamic gates, water/depth transitions | complete for existing scope | Mesh/reachability/arrival hosts; Sea of Sorrow ledges and live Sin gate repair verified/deployed below |
+| Mushroom Rock and shared route lag repair | complete; guarded-deployed | [Repair](navigation/mushroom_rock_lag_20261101.md):433 map assets/327 floors,20928 visibility/654 route comparisons, both173-hook profiles, warning-free build, exact-payload scan/all7 hashes pass. Long sampled routes improve sharply; gameplay/frame/audible impact remains unmeasured |
 | Sea of Sorrow dead-end investigation | complete | Exact1220-triangle floor/production route and original callback facts reproduce return loop; current log corroborates landing |
 | Directed Sea of Sorrow ledge routes and preserved bend instructions | complete | Original floor, both reader profiles, reachability/beacon/Auto walk/native-action checks pass; guarded-deployed; user gameplay-confirmed October20 |
 | Later Sin rising/disappearing obstacles | complete for investigated scope | Approved exact floors pass192 City exit routes/all64 gate states and connected Nucleus/40401 candidate positions; four missing boarding targets pass both reader profiles, warning-free build and guarded deployment; full ride/gameplay pending |
@@ -43,7 +46,7 @@ hardware behavior are confirmed. Percentages are rough engineering estimates.
 | Gagazet targeting, swimmers and optional solve | complete | Native cue/geometry/state hosts; solving/returns/cross-water user-confirmed |
 | Jecht practice cues and optional success | complete | Tutorial/input hosts; final behavior user-confirmed |
 | Supported Lightning, Chocobo and butterfly assistance | complete | Scoped cue/input/route hosts; other side activities incomplete |
-| Calm Lands/Remiem, butterfly and Blitzball optional completion | complete |0.6: all9 original variants,64 Remiem flags, score/choice/story matrices, menu/settings, both reader profiles and native regressions pass; warning-free release-flavor build guarded-deployed, gameplay pending, installer held |
+| Calm Lands/Remiem, butterfly and Blitzball optional completion | complete / Closed | [November3 update](puzzles/minigame_completion_20261020.md): Blitz setup visibility across24 retained resources, firing-member identity and possession-independent live clock; all9 native variants/score/story/cancel matrices and shared utility regressions pass. Warning-free scanned release-flavor payload guarded-deployed; gameplay pending, no installer/package change |
 | Airship coordinates, six-region picker and Shift+M | complete | Registration/search-state checks; both real menu paths pending new gameplay |
 | Airship image destination list | complete | Native image/render cases; list reading user-confirmed |
 | Password entered-text subject and punctuation controls | complete | Selector/copied-cell hosts; entry confirmed, new subject pending |
@@ -82,7 +85,7 @@ The [Baaj region contract](navigation/baaj_seals_20261020.md#native-behavior-and
 adds the newly investigated mechanic; the
 [keyboard/password contract](puzzles/airship_keys_20261020.md) adds this task's
 selector/key ownership design. [Source map](source-map.md) covers all143 native
-production units and [settings](runtime/settings.md) all37 persisted options.
+production units and [settings](runtime/settings.md) all38 persisted options.
 
 The [verification procedure](verification.md) separates offline evidence,
 historical gameplay confirmation and remaining checks. Baaj and the earlier audio/key/password repairs passed offline checks and

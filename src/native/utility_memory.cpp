@@ -40,11 +40,17 @@ AtelPreparation utilityPreparation(uintptr_t* capturedChunk) {
     if(capturedChunk) *capturedChunk=chunk;
     return chunk?atelPreparation(chunk):AtelPreparation::Missing;
 }
-bool captureUtilityScript(UtilityScript& script) noexcept {
+unsigned activeUtilityScriptCount() noexcept {
+    if(!nativeGameThread()) return 0;
+    const auto controller=read<uintptr_t>(address(0xf26ae8));
+    const unsigned count=read<uint16_t>(controller+0xc);
+    return controller && read<uint16_t>(controller+0x1a,0xffff)==0 && count<=500?count:0;
+}
+bool captureUtilityScriptAt(UtilityScript& script,unsigned global) noexcept {
     if(!nativeGameThread()) return false;
     try {
         const auto controller=read<uintptr_t>(address(0xf26ae8));
-        const unsigned count=read<uint16_t>(controller+0xc),global=read<uint16_t>(controller+0xa);
+        const unsigned count=read<uint16_t>(controller+0xc);
         if(!controller || read<uint16_t>(controller+0x1a,0xffff)!=0 || !count || count>500 || global>=count) return false;
         const auto worker=reinterpret_cast<WorkerGetter>(address(0x46a7c0))(static_cast<int>(global));
         const auto header=read<uintptr_t>(worker),chunk=read<uintptr_t>(worker+4);AtelSpan span;
@@ -61,6 +67,11 @@ bool captureUtilityScript(UtilityScript& script) noexcept {
         script.length=length;script.codeOffset=offset;script.workers=workers;script.allocationSerial=span.serial;script.name=name;
         return true;
     } catch(...) {return false;}
+}
+bool captureUtilityScript(UtilityScript& script) noexcept {
+    if(!nativeGameThread()) return false;
+    const auto controller=read<uintptr_t>(address(0xf26ae8));
+    return captureUtilityScriptAt(script,read<uint16_t>(controller+0xa,0xffff));
 }
 UtilityScript utilityScript() {
     UtilityScript script;

@@ -49,6 +49,16 @@ in the linked follow-ups take precedence.
 
 ## System screens
 
+[Equipment capacity management](equipment_overflow_20261103.md) reads the native
+keep/discard lists, replacement focus, selected equipment and capacity warnings.
+I/Autodetail use current modifiers; all selection/discard decisions remain native.
+
+[November2 shop detail separation](shop_details_20261102.md) keeps selected
+modifiers then the displayed compared character on Autodetail/I. Qualified U
+reviews the visible comparison pane independently. The default-Off Automatically
+read extra info option is immediately below Autodetail; manual I/U remain usable
+in every automatic-setting combination. No computed stat comparisons are added.
+
 `save_load_menu.cpp` and system slot capture distinguish populated, empty and
 unavailable slots, native focus and native help text. `shops.cpp` handles native
 shop/sell/customization lists and prices; `confirmations.cpp` owns confirmation

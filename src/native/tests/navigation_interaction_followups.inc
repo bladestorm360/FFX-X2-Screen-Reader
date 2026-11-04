@@ -139,14 +139,14 @@ void visibleEquipmentFixtures() {
     constexpr unsigned piece=0x2101040;
     set<uint8_t>(piece+0xb,1); set<uint16_t>(piece+0xe,1); set<uint16_t>(piece+0x10,2);
     check(equipmentDetails(address(piece))==L"Potion, Ether","all four renderer slots are scanned even before native normalization");
-    set<uint8_t>(piece+4,7); check(shopEquipmentDescription(address(piece)).empty(),"invalid comparison owner cannot narrate hidden data");
+    set<uint8_t>(piece+4,7); check(shopEquipmentDescription(address(piece)).empty(),"invalid selected owner cannot narrate hidden data");
     set<uint8_t>(piece+4,0); set<uint8_t>(0xd3205c+0x2d,255);
-    check(shopEquipmentDescription(address(piece))==L"Tidus. HP 100/200, MP 17/30. Current equipment: None. Selected equipment: Potion, Ether","empty current panel has explicit context");
+    check(shopEquipmentDescription(address(piece))==L"Potion, Ether","primary shop formatter excludes the current equipment and vitals");
     set<uint8_t>(0x146ab60,1);
     set<unsigned>(0xd3205c+0x94+0x1c,520); set<unsigned>(0xd3205c+0x94+0x24,520);
     set<unsigned>(0xd3205c+0x94+0x20,12); set<unsigned>(0xd3205c+0x94+0x28,12);
     set<uint8_t>(0xd3205c+0x94+0x2d,254);
-    check(shopEquipmentDescription(address(piece))==L"Yuna. HP 520/520, MP 12/12. Current equipment: Sonic Steel, Potion. Selected equipment: Potion, Ether","shop describes the displayed comparison character rather than the selected gear owner");
+    check(shopEquipmentDescription(address(piece))==L"Potion, Ether","selected modifiers do not become comparison-character statistics");
     set<uint8_t>(0x146ab60,0);
     set<uint8_t>(0xd3205c+0x2d,254); set<uint8_t>(piece+0xb,2);
     set<uint16_t>(piece+0xe,2); set<uint16_t>(piece+0x10,0xff);

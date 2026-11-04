@@ -1,10 +1,13 @@
-# Optional minigame completion — October20
+# Optional minigame completion — October20, updated November3
 
-Status: **complete** for the four documented activities in prospective **0.6**.
-Expanded native component/regression checks and the warning-free release-flavor
-build pass; guarded deployment verifies all seven installed files. Gameplay
-confirmation is pending. The packaged0.5.9 release is preserved;
-installer rebuilding and packaging remain held for gameplay testing.
+Status: **complete / Closed** for the four documented activities and the November3
+Blitzball setup/foreground/possession follow-up in the [single ledger](../../plan.md#november3-blitzball-setup-and-equipment-overflow--scope-ledger).
+All24 retained Blitz resources/nine original activity matrices, shared utility
+regressions, profile/menu/settings and both complete reader profiles pass.
+The warning-free release-flavor build and exact-payload Defender scan pass;
+guarded deployment verifies all seven installed files and unchanged settings.
+Gameplay confirmation remains pending. This maintenance task leaves previous
+installers/packages and the remote repository unchanged.
 
 ## Player behavior and controls
 
@@ -18,14 +21,17 @@ settings, manual controls and reward dialogues retain their own behavior.
 | Chocobo training auto-success / `chocobo_assist` | Calm Lands South, before choosing training | Completes whichever of the four courses the player starts; Catcher supplies a native perfect-time result. Confirm the normal results/reward dialogue. |
 | Remiem race auto-success / `remiem_assist` | Remiem, before starting the race | First victory, then the next unearned chest-count prize from one through five chests, all without poles. After every tier is owned, uses the native five-chest repeat result. |
 | Butterfly hunt auto-success / `butterfly_assist` | Either Makalania hunt map, before starting | Supplies seven pickups in that actual course/story phase. The normal30/40-second timer and cleanup remain. Open the game's chest manually. |
-| Blitzball auto-win / `blitz_assist` | Team setup or the match resource | A confirmed live Action Commands choice triggers the player's win. Setup, movement, formation, forfeit, cancelled and unrelated choices do not trigger it. Native results, story, standings and prizes remain game-owned. |
+| Blitzball auto-win / `blitz_assist` | All active native Blitzball setup/match resource variants | The first qualified live match-clock tick triggers the player's win, regardless of opening possession or an Action Commands choice. Setup alone never starts it. Native results, story, standings and prizes remain game-owned. |
 
 Turn an option Off for ordinary manual play. Enabling outside an active attempt
 never starts an activity. Availability uses bounded native room/resource headers,
 so the menu does not wait for background completion-resource preparation.
-Remiem also accepts its area276 room aliases, including room290. Blitz setup is
-bltz0200,113266 bytes/seven workers; its known checksum is58a5c0a5. Availability
-alone permits a setting row, never a completion mutation.
+Remiem also accepts its area276 room aliases, including room290. Blitz availability
+checks at most500 loaded native worker slots for the eight-character bltz family,
+including setup resources bltz0200/0201 and their variants. It does not require a
+particular setup size, checksum or foreground worker. Availability alone permits
+a setting row, never a completion mutation; the four exact match checksum/PC/
+declaration rows still qualify every completion.
 
 The mod emits no fabricated result narration or direct inventory grant. Existing
 native dialogue/menus and existing race/hunt readers remain the output producers.
@@ -46,8 +52,9 @@ The existing interpreter0x464180 enter/leave records a thread-local interpreter
 worker/epoch, preserving the previous nested frame. The typed setter0x4713a0
 leave event accepts only the matching interpreter parent, worker, entry, exact
 POPV PC, variable index, scalar element and live declaration. Initial/reset
-assignments rearm an attempt; the first qualified running tick or accepted live
-Blitz action queues its completion. Unrelated indices and all-Off preferences
+assignments rearm an attempt; the first qualified running tick queues completion,
+including Blitz's own clock worker rather than a player-only Action Commands
+return. Unrelated indices and all-Off preferences
 return before native/context inspection. These are existing hooked addresses;
 no polling, timer, broad capture or additional physical hook target is added.
 
@@ -81,13 +88,13 @@ native replay hashes are in the external `proof.json` described below.
 | lmyt0000 |37071 /105 /ef16e26d | W35:7, PC23068, index17 /0x56000000; initialization22898 | Original finish-line collision W102:2 PC36147 |
 | mcfr0100 Central |78486 /55 /908ca3c3 | W37:8, PC31126, index50 /0x56000000; initial30841/30956 | Counter W36:6 PC30448, seventh-pickup chest W27:13 |
 | mcfr0200 North |14255 /40 /c248925f | W26:8, PC12339, index35 /0x56000000; initial12054/12169 | Counter W25:6 PC11661, seventh-pickup chest W17:13 |
-| bltz0000 three variants |4647290 /41 /2ba296ba,4c6c4230,ef631536 | W36:6 accepted Action Commands return PC3074303, index258 /0x0c00128d | W23 final-period timeout, then W31/W38/outside-match result engine |
-| bltz0000 PSV variant |4646208 /41 /601e7c1c | Same accepted assignment at3073221 | Same clock/reset location as the other variants |
+| bltz0000 three variants |4647290 /41 /2ba296ba,4c6c4230,ef631536 | W23:6 clock increment PC2864990, index52 /0x5c000144 | W23 final-period timeout, then W31/W38/outside-match result engine |
+| bltz0000 PSV variant |4646208 /41 /601e7c1c | Same W23 clock assignment at2864990 | Same clock/reset location as the other variants |
 
 Blitz W23:6 clock reset index52 /0x5c000144 at2868116 rearms the next match.
-Its PC does **not** shift with the PSV W36 action code. Eight real Common013B
-Action Commands displays converge on the accepted return assignment. Native
-return values0..2 are accepted;255/cancel and other values are refused.
+Its PC does **not** shift with the PSV W36 action code. The clock's entry6 begins
+at2864973; its increment is independent of carrier identity or a player action.
+The old W36 Action Commands trigger is superseded by the November3 repair.
 
 ## Activity mechanics and decisions
 
@@ -123,7 +130,8 @@ starter timer/cleanup and W13/W7:8 result processing continue; the player opens
 the normal chest. No timer shortcut, direct sigil grant or fixed blue-actor
 assumption is used. Existing manual cue/path producers remain separate.
 
-**Blitzball.** At the exact accepted W36 Action Commands assignment, require both
+**Blitzball.** At the exact original W23 running-clock assignment, require a positive
+clock no greater than the native limit, both
 scores0x1452/1453 in0..99, period0x1454 in0..1 and native limit0x5c000148 in1..36000.
 Cap opponent at98, retain or raise own score to at least opponent+1, set period1
 and set clock0x5c000144 to that limit. Native W23 final-period expiry preempts
@@ -133,6 +141,38 @@ prize, overdrive, weapon, story or league variable is written. Story special
 cases, cutscenes and actual prize presentation still need gameplay confirmation.
 
 ## Ownership, bounds, cancellation and recovery
+
+November3 foreground/possession correction adapts
+[PR1 by Paul Lemm /Sephiroth101](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1),
+reviewed at head2d91bd319bc838b49fe1142c1b584832a60b624a (visibility commit
+efb54bb0848517b1021afb442ec413be8bce5f2c). The contributor reports real matches
+working with either opening possession; that is contributor evidence, not this
+session's gameplay verification. The PR has no automated checks/reviews.
+
+The useful changes are indexed loaded-worker discovery, firing-worker rather
+than current-worker resource identity, and removing the irrelevant current-
+source bound from Blitz's request-free plan. The local integration keeps the
+shared bounded capture validation in utility_memory.cpp, and additionally
+verifies actual controller membership/local worker/header through the existing
+nativeWorkerIdentity/captureUtilityWorker routes before each mutation. It retains
+controller type/count/allocation and exact checksum/PC/declaration checks.
+Neither an arbitrary pointer claiming the right resource nor a current-worker
+sentinel is treated as identity. Other activities retain their existing current-
+worker path and native request-source bounds.
+
+The PR alone retains exact bltz0200 setup matching and the W36 Action Commands
+dependency. Those do not fully cover this task's setup variants/opponent-first
+report; local completion instead observes W23's actual running clock. No remote
+merge, push, review comment or other external write was performed. Contributor
+implementation reasoning is credited in source; this is not agent delegation.
+
+The focused host checks all24 retained Blitz resource variants before resource
+preparation, absent/current-other foreground workers, stopped/reset/out-of-range
+clocks, all four exact match variants, no player choice (all action sentinel/
+choice values), native score/half/story bounds, cancellation and one-shot action
+retirement. Source-matched previous activity checks are retained. Native setup
+availability never queues a completion; actual game input/animation/results and
+audio remain unconfirmed in this session.
 
 Four owner-local `Attempt` states and four fixed `Job` slots use serial/ticket
 identity, one pending action per activity, plus resource/allocation/signal identity.

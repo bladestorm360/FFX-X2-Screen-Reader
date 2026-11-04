@@ -2,6 +2,7 @@
 #include "ready_game_text.hpp"
 #include "status_review.hpp"
 #include "esc_details.hpp"
+#include "equipment_overflow.hpp"
 namespace ffx {
 namespace {
 bool results=false,dirty=false;
@@ -90,6 +91,7 @@ void assemble(bool present,bool replace) {
     if(finishStatusRows(batch)) dirty=false;
 }
 void opening(Event& e) {
+    beginEquipmentOverflow();
     closeBattleReview();page=previousState=-1;dirty=false;
     // Variant 1 opens capacity management, not a new reward episode.
     results=e.args[1]!=1;
@@ -124,7 +126,10 @@ void advanced(Event&) {
     // The outer callback includes Confirm's complete fast-forward loop. Announce
     // each participant's final gain once, never one utterance per rolling tick.
     if(results && ((next==0 && state>=0xd) || (page==0 && next==1))) gainedLevels();
-    if(next<0) {if(page>=0) closeBattleReview();page=-1;previousState=state;return;}
+    if(next<0) {
+        if(page>=0) closeBattleReview();
+        page=-1;previousState=state;observeEquipmentOverflow();return;
+    }
     dirty=true;
     if(next!=page) {page=next;assemble(true,true);}
     // Both native Confirm fast-forward loops finish inside this outer call.
@@ -139,6 +144,6 @@ void refreshBattleResultReview() {
     // Refresh on demand during rolling animation; never enqueue a page per frame.
     if(dirty && battleResultsReviewActive()) assemble(false,false);
 }
-void resetBattleResults() {results=dirty=false;page=previousState=-1;closeBattleReview();}
+void resetBattleResults() {resetEquipmentOverflow();results=dirty=false;page=previousState=-1;closeBattleReview();}
 void installBattleResults() {hook(0x4bdb30,nullptr,opening);hook(0x4ba620,nullptr,advanced);}
 }

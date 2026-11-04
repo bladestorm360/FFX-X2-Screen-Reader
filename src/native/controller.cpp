@@ -176,6 +176,18 @@ void command(int id) {
     dispatchHotkey(keys[id].vk,keys[id].shift);
 }
 bool gridCommandContext() {return !inBattle() && sphereGridOpen();}
+bool puzzleCommandContext() {
+    // F11 has naming/repeat meanings elsewhere. A queued controller guide must
+    // still own an actual field guide at the native return, never those fallbacks.
+    return !inBattle() && !nativeMenuActive(false) && puzzleGuidanceAvailable();
+}
+bool modControlAssigned(int control,bool battle,bool nativeMenu) {
+    // This fixed default chord fills a free mod control; existing saved mod
+    // assignments retain priority. No command IDs or INI schema are changed.
+    for(int id=0;id<pad::CountCommands;++id)
+        if(pad::context(id,true,battle,nativeMenu) && controllerBinding(id)==control) return true;
+    return false;
+}
 uint64_t freeBattleFaceMask(bool nativeMenu) {
     // Field face assignments do not own these buttons in battle. Preserve any
     // configured battle command before choosing an otherwise unused face.
@@ -308,6 +320,13 @@ void pumpController() {
             if(router.mod) {router.complete();result.exclusive=true;}
         } else if(battleNow && router.mod && (result.edges&faces) && (result.edges&freeBattleFaceMask(nativeMenu))) {
             dispatchHotkey('O');router.complete();result.exclusive=true;
+        } else if(router.mod && (result.edges&pad::bit(pad::LB)) &&
+            !modControlAssigned(pad::LB,battle,nativeMenu) && puzzleCommandContext()) {
+            consumed|=pad::bit(pad::LB);
+            queueControllerHotkey(VK_F11,false,false,puzzleCommandContext);
+            // Even a refused queue claim must consume/drain the native shoulder
+            // edge. The common queue reports pressure; holding never retries.
+            router.complete();result.exclusive=true;
         } else {
         for(int id=0;id<pad::CountCommands;++id) {
             const int control=controllerBinding(id);

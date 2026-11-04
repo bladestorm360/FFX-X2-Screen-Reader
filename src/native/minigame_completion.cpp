@@ -25,10 +25,12 @@ constexpr Rule rules[]={
     {Setting::RemiemAssist,"lmyt0000",0xef16e26d,37071,105,35,7,23068,17,0x56000000,22898,0,36147,0},
     {Setting::ButterflyAssist,"mcfr0100",0x908ca3c3,78486,55,37,8,31126,50,0x56000000,30841,30956,30448,0},
     {Setting::ButterflyAssist,"mcfr0200",0xc248925f,14255,40,26,8,12339,35,0x56000000,12054,12169,11661,0},
-    {Setting::BlitzAssist,"bltz0000",0x2ba296ba,4647290,41,36,6,3074303,258,0x0c00128d,0,0},
-    {Setting::BlitzAssist,"bltz0000",0x4c6c4230,4647290,41,36,6,3074303,258,0x0c00128d,0,0},
-    {Setting::BlitzAssist,"bltz0000",0x601e7c1c,4646208,41,36,6,3073221,258,0x0c00128d,0,0},
-    {Setting::BlitzAssist,"bltz0000",0xef631536,4647290,41,36,6,3074303,258,0x0c00128d,0,0}
+    // W23's real match clock advances for either team's possession. Waiting
+    // for W36 Action Commands excluded an opponent winning the opening ball.
+    {Setting::BlitzAssist,"bltz0000",0x2ba296ba,4647290,41,23,6,2864990,52,0x5c000144,2868116,0},
+    {Setting::BlitzAssist,"bltz0000",0x4c6c4230,4647290,41,23,6,2864990,52,0x5c000144,2868116,0},
+    {Setting::BlitzAssist,"bltz0000",0x601e7c1c,4646208,41,23,6,2864990,52,0x5c000144,2868116,0},
+    {Setting::BlitzAssist,"bltz0000",0xef631536,4647290,41,23,6,2864990,52,0x5c000144,2868116,0}
 };
 struct Attempt {
     uintptr_t chunk=0,signal=0; unsigned epoch=0,allocation=0,serial=0,pending=0; bool handled=false;
@@ -50,11 +52,21 @@ thread_local uintptr_t interpreter=0;
 thread_local unsigned interpreterEpoch=0;
 unsigned slot(Setting s) {return s==Setting::ChocoboAssist?0u:s==Setting::RemiemAssist?1u:s==Setting::ButterflyAssist?2u:3u;}
 bool allowed() {return nativeGameThread() && gameFocused() && !scene && !inBattle() && !modMenuActive() && !utilityConsoleActive();}
-bool identity(UtilityScript& s,const Rule& r) {
+bool matches(const UtilityScript& s,const Rule& r) {
     AtelIdentity id;
-    return captureUtilityScript(s) && s.name==r.name && s.length==r.length && s.workers==r.workers &&
+    return s.name==r.name && s.length==r.length && s.workers==r.workers &&
         readyAtelIdentity(s.chunk,id) && id.span.serial==s.allocationSerial && id.length==s.length &&
         id.codeOffset==s.codeOffset && id.workers==s.workers && id.checksum==r.hash && s.name==id.name;
+}
+bool identity(UtilityScript& s,const Rule& r,uintptr_t worker) {
+    if(r.setting!=Setting::BlitzAssist) return captureUtilityScript(s) && matches(s,r);
+    // Adapt PR #1's firing-worker identity fix while retaining membership and
+    // controller-type checks. A current-worker sentinel is valid between VM
+    // callbacks; it must not veto an observed member or a request-free plan.
+    const auto controller=read<uintptr_t>(address(0xf26ae8));
+    NativeWorkerIdentity id;
+    return nativeWorkerIdentity(controller,read<uintptr_t>(worker+4),r.local,id) && id.worker==worker &&
+        captureUtilityScriptAt(s,id.global) && matches(s,r);
 }
 bool owner(UtilityScript& s,uintptr_t w,unsigned local) {
     uintptr_t actual=0;
@@ -135,12 +147,12 @@ bool plan(Job& j,UtilityScript& s) {
         // chest. The starter's normal30/40-second timer and cleanup continue.
         return add(j,s,0x0c000042,7) && request(j,s,j.rule->workers==55?36u:25u,6,j.rule->targetPc);
     }
-    int choice=-1,own=-1,opponent=-1,limit=0,period=-1;
-    if(!value(s,0x0c00128d,choice) || choice<0 || choice>2 || !value(s,0x1452,own) || own<0 || own>99 ||
+    int clock=0,own=-1,opponent=-1,limit=0,period=-1;
+    if(!value(s,0x5c000144,clock) || clock<=0 || !value(s,0x1452,own) || own<0 || own>99 ||
         !value(s,0x1453,opponent) || opponent<0 || opponent>99 || !value(s,0x5c000148,limit) || limit<=0 || limit>36000 ||
-        !value(s,0x1454,period) || period<0 || period>1) return false;
+        clock>limit || !value(s,0x1454,period) || period<0 || period>1) return false;
     opponent=std::min(opponent,98);own=std::max(own,opponent+1);
-    // Native W23 expires the final period and preempts the live W36 action;
+    // Native W23 expires the final period regardless of the current carrier;
     // W31/W38 and the outside-match engine still decide results and prizes.
     return add(j,s,0x1452,own) && add(j,s,0x1453,opponent) && add(j,s,0x1454,1) && add(j,s,0x5c000144,limit);
 }
@@ -150,7 +162,7 @@ bool prepare(Job& j) {
     auto& a=attempts[slot(j.rule->setting)];
     if(a.serial!=j.attempt || a.pending!=j.ticket || a.handled) return false;
     UtilityScript s;unsigned entry=0,pc=0;
-    if(!identity(s,*j.rule) || s.chunk!=j.chunk || s.controller!=j.controller || s.allocationSerial!=j.allocation ||
+    if(!identity(s,*j.rule,j.worker) || s.chunk!=j.chunk || s.controller!=j.controller || s.allocationSerial!=j.allocation ||
         !owner(s,j.worker,j.rule->local) || read<uintptr_t>(j.worker+0x90)!=j.signal ||
         !signal(j.worker,entry,pc,s) || entry!=j.rule->entry) return false;
     const auto at=s.chunk+s.codeOffset+j.rule->pc;
@@ -158,7 +170,7 @@ bool prepare(Job& j) {
     if(read<uint8_t>(at)!=0xa0 || read<uint16_t>(at+1)!=j.rule->index || !binding(s,j.rule->low,index) || index!=j.rule->index) return false;
     j.writes=j.requests=0;
     j.source=read<uint16_t>(s.controller+0xa,0xffff);
-    return j.source<read<uint16_t>(s.controller+0xc) && plan(j,s);
+    return (j.rule->setting==Setting::BlitzAssist || j.source<read<uint16_t>(s.controller+0xc)) && plan(j,s);
 }
 void invoke(Job& j) {
     using Setter=void(__cdecl*)(uintptr_t,int,int,int,int);
@@ -203,7 +215,7 @@ void entered(Event& e) {e.before[24]=interpreter;e.before[25]=interpreterEpoch;i
 void left(Event& e) {interpreter=e.before[24];interpreterEpoch=static_cast<unsigned>(e.before[25]);}
 void changed(Event& e) {
     // Default-Off and unrelated operands return before any engine/context read.
-    if(e.args[1]!=17 && e.args[1]!=35 && e.args[1]!=50 && e.args[1]!=52 && e.args[1]!=104 && e.args[1]!=258) return;
+    if(e.args[1]!=17 && e.args[1]!=35 && e.args[1]!=50 && e.args[1]!=52 && e.args[1]!=104) return;
     if(!setting(Setting::ChocoboAssist) && !setting(Setting::RemiemAssist) &&
         !setting(Setting::ButterflyAssist) && !setting(Setting::BlitzAssist)) return;
     if(!allowed() || e.epoch!=generation() || e.parentRva!=0x464180 || interpreterEpoch!=generation() ||
@@ -211,21 +223,18 @@ void changed(Event& e) {
     for(const auto& r:rules) {
         if(!setting(r.setting)) continue;
         const auto local=read<uint16_t>(e.args[0]+0x2e,0xffff);
-        const bool blitzReset=r.setting==Setting::BlitzAssist && local==23 && e.args[1]==52;
-        if(!blitzReset && (local!=r.local || e.args[1]!=r.index)) continue;
+        if(local!=r.local || e.args[1]!=r.index) continue;
         UtilityScript s;unsigned entry=0,pc=0,index=0;
-        if(!identity(s,r) || !owner(s,e.args[0],local) || !signal(s.worker,entry,pc,s)) continue;
-        const unsigned reset=2868116; // W23 is unchanged in the PSV variant; W36 shifts later.
-        const bool initial=blitzReset?(entry==6 && pc==reset && !e.args[3]):
-            ((pc==r.initial1 || (r.initial2 && pc==r.initial2)) && (entry==6 || entry==7));
-        if(blitzReset && !initial) continue;
-        if(!blitzReset && !initial && (entry!=r.entry || pc!=r.pc)) continue;
-        const auto low=blitzReset?0x5c000144u:r.low;
+        if(!identity(s,r,e.args[0]) || !owner(s,e.args[0],local) || !signal(s.worker,entry,pc,s)) continue;
+        const bool initial=(pc==r.initial1 || (r.initial2 && pc==r.initial2)) && (entry==6 || entry==7);
+        if(initial && r.setting==Setting::BlitzAssist && e.args[3]) continue;
+        if(!initial && (entry!=r.entry || pc!=r.pc)) continue;
+        const auto low=r.low;
         if(read<uint8_t>(s.chunk+s.codeOffset+pc)!=0xa0 || read<uint16_t>(s.chunk+s.codeOffset+pc+1)!=e.args[1] ||
             !binding(s,low,index) || index!=e.args[1]) continue;
         auto& a=attempts[slot(r.setting)];
         const auto sig=read<uintptr_t>(s.worker+0x90);
-        if(initial || a.epoch!=generation() || a.chunk!=s.chunk || a.allocation!=s.allocationSerial || (!blitzReset && a.signal!=sig)) {
+        if(initial || a.epoch!=generation() || a.chunk!=s.chunk || a.allocation!=s.allocationSerial || a.signal!=sig) {
             const auto serial=a.serial+1;a={};a.epoch=generation();a.chunk=s.chunk;a.allocation=s.allocationSerial;a.signal=sig;a.serial=serial;
         }
         if(!initial) queue(r,s);
@@ -238,8 +247,18 @@ bool minigameAssistAvailable(Setting id) {
     // UI availability must not depend on completion-resource preparation. The
     // native room/resource header also exposes the option before race start.
     if(id==Setting::RemiemAssist && areaIndex(read<uint16_t>(address(0xd2ca90)))==276) return true;
+    // Visibility is read-only and needs no bytecode-specific completion proof.
+    // The native Blitz family covers team/technique setup and match variants;
+    // mutations still require the exact checksum/PC/declarations above.
+    if(id==Setting::BlitzAssist) {
+        const auto count=activeUtilityScriptCount();
+        for(unsigned i=0;i<count;++i) {
+            UtilityScript s;
+            if(captureUtilityScriptAt(s,i) && s.name.size()==8 && s.name.compare(0,4,"bltz")==0) return true;
+        }
+        return false;
+    }
     UtilityScript s;if(!captureUtilityScript(s)) return false;
-    if(id==Setting::BlitzAssist && s.name=="bltz0200" && s.length==113266 && s.workers==7) return true;
     for(const auto& r:rules) if(id==r.setting && s.name==r.name && s.length==r.length && s.workers==r.workers) return true;
     return false;
 }

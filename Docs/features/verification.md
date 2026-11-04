@@ -1,5 +1,71 @@
 # Verification and remaining gameplay checks
 
+## Controller puzzle guidance — November4
+
+At the next supported Cloister, Via or Gagazet puzzle, press View/Select, release
+it, then press L1/LB. Expect the selected guidance, matching F11. Hold L1/LB:
+it should speak once and not activate a native shoulder action. Release and
+repeat to reread. Existing F9/F10 step selection remains independent.
+
+Normal L1/LB and Grid character switching should still work outside mod mode;
+in F8, LB should still select the first row. An existing saved active LB mod
+assignment takes priority over this default guidance shortcut. Failure symptoms:
+silence in a supported guide, repeated speech while held, a native action leaking,
+or a guide command turning into naming/repeat after changing context. Actual
+hardware/audio confirmation remains pending; no new game launch/probe is needed.
+
+## Blitzball and capacity menu — November3 priority when reachable
+
+The repaired candidate covers all24 retained Blitz setup/match resources, absent
+or other foreground workers, all four exact completion variants, and both
+executable profiles' keep/discard reader. Actual gameplay/audio is pending.
+
+1. At Blitzball team setup, open F8 → Miscellaneous. Find and enable Blitzball
+   auto-win. Start normally; expect the native win after live time starts,
+   including when the opponent gets the opening ball. No Action Commands choice
+   should be needed. Confirm the game's ordinary results/rewards.
+2. If equipment capacity is naturally exceeded, expect the warning, Keep/Discard
+   list and selected gear to read. Move through both lists using normal game
+   controls. Press I for selected modifiers; Autodetail may read them automatically.
+   Choose what to keep/discard yourself and follow the game's read warnings.
+
+Report a missing toggle, possession-dependent completion, silence on either list,
+wrong replacement-target equipment, or unread capacity/discard warnings. No need
+to fill inventory or change progression solely for this check.
+
+## Shop details — November2 priority at the next shop
+
+The [shop repair](menus/shop_details_20261102.md) is guarded-deployed. Both game
+profiles pass offline buy/sell, all four automatic-setting combinations, repeated
+I/U, visibility, stale-context, settings/menu and input-ownership checks. Actual
+game input and audible output remain unconfirmed.
+
+1. Highlight equipment in a shop. Press I twice: expect its modifiers/empty slots
+   first, then the compared character. HP/MP and current gear should be absent.
+2. Press U twice: expect the displayed character's HP/MP and current gear/abilities.
+   Leaving that shop must not repeat its old pane.
+3. In F8 → Miscellaneous, Automatically read extra info is directly below
+   Autodetail and starts Off. With only Autodetail On, moving selection reads
+   modifiers then character. With only extra info On, it reads the visible extra
+   pane. With both On, modifiers/character precede the extra pane. I and U still
+   repeat their respective information in every combination.
+
+Failure symptoms: primary detail contains HP/current gear, extra info speaks
+before modifiers with both options On, a manual key stops repeating, or old/hidden
+comparison data is read. No special save, warp or live capture is needed.
+
+## Mushroom Rock route performance — November1 priority when reachable
+
+The [shared route repair](navigation/mushroom_rock_lag_20261101.md) is guarded-
+deployed.433 map assets/327 floors, original/current comparisons, native gate/
+water/event checks, both reader profiles and installed hashes pass offline.
+At your next natural Mushroom Rock visit, select an exit and press Backslash.
+Expect prompt route speech and responsive walking. Select another exit and
+request its route; another long speech delay or movement hitch is a failure.
+Report whether it begins on arrival or after requesting a route; coordinates
+and a live capture are not needed. Actual frame/queue/audible timing remains
+unconfirmed; no new setting or progression change is required.
+
 ## Launcher language/settings follow-up — October23
 
 The [language repair](distribution/launcher_languages_20261023.md) is offline
@@ -60,12 +126,13 @@ The same controls are available through the controller mod menu.
    second course when available. Failure: count8, no chest, wrong phase prize,
    or an inaccessible/unopenable chest. Early and later phases are separate
    progression-dependent checks; do not advance solely to satisfy this test.
-4. **Blitzball:** enable **Blitzball auto-win** at team setup. Setup, movement,
-   formation and cancelled choices should remain normal. During the live match,
-   confirm any actual **Action Commands** option. Expect the native end-match
-   win and normal results/prizes/standings. Check story and later repeat matches
-   as available. Failure: a setup/cancel choice triggers a win, halftime loops,
-   the opponent wins, or normal story/results/prizes fail to advance.
+4. **Blitzball:** at team setup open F8 → Miscellaneous. **Blitzball auto-win**
+   should be available before starting. Enable it, close F8 and start normally.
+   Expect the native win once live match time starts, including when the opponent
+   gets the ball first. No player Action Commands choice is required. Check
+   normal results/prizes/standings and another match when convenient. Failure:
+   missing setup toggle, possession-dependent completion, a setup-only win,
+   halftime loop or results/prizes that do not advance.
 5. **Manual control:** turn each option Off before another attempt. Expect the
    normal activity. Close/reopen F8 to confirm each choice persists independently;
    cue settings should remain independent. Changing maps, opening menus or

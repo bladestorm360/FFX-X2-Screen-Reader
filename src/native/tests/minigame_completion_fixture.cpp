@@ -195,9 +195,11 @@ void emit(const Case& c,unsigned pc=0,unsigned entry=0,bool scoped=true,bool obs
     if(observer && scoped) listeners.at(0x464180).after(vm);
 }
 void enable(const Case& c) {setSetting(c.setting,1);}
-void success(const Case& c,unsigned course=4,int chosen=1) {
+void success(const Case& c,unsigned course=4,int chosen=1,unsigned foreground=0xffffffffu) {
+    if(foreground!=0xffffffffu) put(controller.data()+0xa,static_cast<uint16_t>(foreground));
     const auto writesBefore=mutations;emit(c,0,0,true,true,chosen);check(pending.size()==1 && mutations==writesBefore,"native observation queues without mutation");
     releasePending();check(mutations>writesBefore && mutations-writesBefore<=8,"bounded original typed writes enter only during invocation");
+    put(controller.data()+0xa,static_cast<uint16_t>(c.local));
     if(c.setting==Setting::ChocoboAssist) {
         check(requestCount==(course==4?2u:1u) && receipts[0].local==109 && receipts[0].entry==2,"all courses enter original player finish");
         if(course==4) check(receipts[1].local==108 && get(c,0x0c0000d3)==1,"Catcher enters original opponent finish with strictly negative raw-time inputs");
@@ -239,8 +241,29 @@ int main() {try {
     std::vector<Case> cases;std::string kind;Case c{};
     while(in>>kind>>c.hash>>c.local>>c.entry>>c.pc>>c.index>>c.initial1>>c.initial2>>std::quoted(c.file)) {c.setting=settingId(kind);cases.push_back(c);}
     check(cases.size()==9,"all catalogued original variants");
+    unsigned setupVariants=0;
+    const std::string blitzFolder="ffx_ps2/ffx/master/jppc/event/obj/bl";
+    for(const auto& folder:std::filesystem::directory_iterator(ffx_fixture::evidenceRoot()/"offline-output/FFX/20261003_audit/files"/blitzFolder))
+        for(const auto& file:std::filesystem::directory_iterator(folder.path())) if(file.path().extension()==".ebp") {
+            Case setup{};setup.setting=Setting::BlitzAssist;
+            setup.file=blitzFolder+"/"+folder.path().filename().string()+"/"+file.path().filename().string();
+            load(setup,false);
+            if(!minigameAssistAvailable(Setting::BlitzAssist)) {UtilityScript s;const bool ok=captureUtilityScript(s);fprintf(stderr,"setup=%s capture=%d name=%s length=%u workers=%u count=%u\n",setup.file.c_str(),ok,s.name.c_str(),s.length,s.workers,activeUtilityScriptCount());}
+            check(minigameAssistAvailable(Setting::BlitzAssist),"every retained Blitz setup/match variant exposes the saved switch without preparation");
+            put(controller.data()+0xa,uint16_t{0xffff});check(minigameAssistAvailable(Setting::BlitzAssist),"setting ignores absent foreground worker");put(controller.data()+0xa,uint16_t{0});
+            enable(setup);releasePending();check(!mutations && !requestCount,"availability never completes a setup resource");
+            battle=true;check(!minigameAssistAvailable(Setting::BlitzAssist),"battle refuses setup availability");battle=false;
+            nativeOwner=false;check(!minigameAssistAvailable(Setting::BlitzAssist),"worker cannot query native setup state");nativeOwner=true;
+            // Release each owned capture before loading the next fixture. A
+            // queue-pressure refusal is distinct from unsupported visibility.
+            nativeOwner=false;drainAtelResourcesForTest();nativeOwner=true;
+            ++setupVariants;
+        }
+    check(setupVariants==24,"all retained setup/match EV variants covered");
+    std::printf("PASS: Blitz setting availability in all%u retained setup/match variants; pending preparation, battle/owner refusal and no setup mutations.\n",setupVariants);
     for(const auto& test:cases) {
         load(test);check(scriptChecksum(script(test))==test.hash,"prepared exact native code identity");setup(test);
+        if(test.setting!=Setting::BlitzAssist) check(!minigameAssistAvailable(Setting::BlitzAssist),"unrelated activity cannot expose Blitz switch");
         check(minigameAssistAvailable(test.setting),"pre-activity switch available");emit(test);releasePending();check(!mutations && !requestCount,"default Off leaves native behavior");enable(test);
         emit(test,test.pc+3);emit(test,0,test.entry+1);emit(test,0,0,false);check(pending.empty(),"adjacent PC, wrong entry and missing interpreter refuse");
         emit(test);setSetting(test.setting,0);setSetting(test.setting,1);releasePending();check(!mutations,"Off/On round trip cancels queued completion");
@@ -270,10 +293,25 @@ int main() {try {
             check(get(test,0x20000a00)==story,"hunt assistance never rewrites story phase");
         }
         if(test.setting==Setting::BlitzAssist) {
+            for(unsigned foreground:{0u,0xffffu}) {
+                load(test);setup(test);enable(test);success(test,4,1,foreground);
+            }
+            load(test);setup(test);enable(test);
+            // A concurrently loaded UI/camera worker need not even have a
+            // readable matching resource. Identify the actual firing member.
+            workers.emplace_back();put(controller.data()+0xc,static_cast<uint16_t>(workers.size()));invalidateNativeWorkerIndex();
+            success(test,4,1,static_cast<unsigned>(workers.size()-1));
+            // No Action Commands choice or player possession is required.
+            // Retain all sentinel/choice values in W36 while W23 advances.
             for(int chosen:{-1,0,1,2,3,255}) {
                 load(test);setup(test);enable(test);
-                if(chosen>=0 && chosen<=2) success(test,4,chosen);
-                else {emit(test,0,0,true,true,chosen);releasePending();check(!mutations,"cancel/invalid action return cannot trigger a win");}
+                set(test,0x0c00128d,chosen);mutations=0;success(test);
+            }
+            load(test);setup(test);enable(test);emit(test,test.initial1,0,true,true,0);releasePending();
+            check(!mutations && pending.empty(),"clock reset never starts a win during setup/halftime");success(test);
+            for(int tick:{-1,0,3001}) {
+                load(test);setup(test);enable(test);emit(test,0,0,true,true,tick);const auto before=mutations;releasePending();
+                check(mutations==before,"invalid/stopped clock refuses all completion writes");
             }
             for(int story:{535,560,575,582,9999}) {
                 load(test);setup(test);set(test,0x20000a00,story);mutations=0;enable(test);success(test);

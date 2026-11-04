@@ -82,6 +82,39 @@ The installer retains the explicit launch-repair preview/confirmation/backup
 workflow. No real registry repair or gameplay probe is part of a release.
 Implementation/offline verification and user gameplay confirmation remain distinct.
 
+## Release1.0.2 — November4
+
+Local package/deployment verification is complete; GitHub draft verification and
+the explicit unresolved-security publication decision remain separate steps.
+This release includes the completed November1–4 navigation, shop details,
+Blitzball setup/possession, equipment overflow and controller puzzle guidance
+fixes, plus the existing October24 installer hardening. PR1 contribution from
+Paul Lemm/Sephiroth101 is adapted with attribution and existing ownership guards.
+No remote PR merge is implied.
+
+Canonical warning-free x86 release build,1.0.2.0 native/setup metadata and startup
+forwarding pass.525 prior feature/test inputs are unchanged; the shared release
+header alone differs from the526-input November4 closure. Source-matched reader,
+utility, geometry, settings and controller evidence is retained. The final
+launcher adapters pass eight startup languages/seven actions/64 settings
+transitions. Both compiled profiles, guarded deployment, all seven scanned/
+staged/installed hashes, read-only PRISM and unchanged INI pass.
+
+Installer807 source assertions,20 scan-gate cases,130 final-EXE dependency
+assertions, actual final-EXE88/306-character install/reinstall,26 embedded
+resources, pinned PRISM/licenses, versions, source documents, all checksums and
+the exact five-file ZIP pass. Defender4.18.26100.4, engine1.1.26100.4,
+definitions1.463.110.0 reports no detection on the exact EXE/ZIP/all six embedded
+DLLs; protection remains enabled. Signing is unavailable. The old reported
+download detection remains unresolved and no universal acceptance is inferred.
+
+ZIP SHA256 `6e43b43beab82f98985d4e05eb9d23d7b1fcfc132056f6fb0632a50e8cc4e015`.
+Installer SHA256 `e28c27b663d984d90f164d37e441ff70ac10f21774d86a0961e39e95e1e80847`.
+Evidence: `install/release-1.0.2-20261104`; prior packages and published1.0.1
+are preserved. Actual gameplay/hardware/audio remains user-side. No game launch,
+Tester Logs/saves, real registry repair, security-setting changes, external
+sample upload or delegation occurred.
+
 ## Release1.0.1 — October23
 
 October24 same-release installer follow-up is locally built and verified at the

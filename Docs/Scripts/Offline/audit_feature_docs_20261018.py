@@ -31,7 +31,7 @@ TOPICS = {
         "controller_bindings physical_gamepad sdl_runtime settings mod_menu prototype_bridge",
     "menus": "field_menus field_details field_targets field_controls aeon_attributes "
         "game_details selection_details system_menus system_menu_capture status_review "
-        "status_grid save_load_menu shops confirmations naming monster_arena messages "
+        "status_grid save_load_menu shops equipment_overflow confirmations naming monster_arena messages "
         "message_text dialogue_voice movie_dialogue blitz_review help esc_capture esc_settings "
         "esc_details intro_cue sphere_grid sphere_data sphere_owned sphere_paths "
         "sphere_sections sphere_expert sphere_orientation sphere_planner sphere_jump sphere_text",

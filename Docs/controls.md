@@ -86,7 +86,7 @@ characters say Unknown character. F7 toggles Autodetail.
 - **Navigation audio:** beacon, wall and arrival sounds, their volumes, wall
   range, race pickup cues, Jecht Shot cues, Lightning warning and sound previews.
 - **Navigation:** Auto walk, Speak auto walk path, Hide unreachable destinations and Partial steps.
-- **Miscellaneous:** Autodetail, voiced dialogue output, combat detail, Menu indexing, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. These four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
+- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
 
 ### Optional minigame completion assistance
 
@@ -95,7 +95,8 @@ Four independent saved options are in **F8 > Miscellaneous**, using the keyboard
 - **Chocobo training auto-success:** On the Calm Lands South preparation map, enable before starting. Completes whichever of the four courses you start, including Catcher with its perfect-time result. Confirm the normal results/reward dialogue.
 - **Remiem race auto-success:** Enable before starting. First completion uses native victory; later completions take the next unearned chest prize tier from one through five. After all tiers are earned, repeat completion uses the native five-chest result.
 - **Butterfly hunt auto-success:** Enable on either Makalania course before starting. Supplies seven pickups for the current course and story phase; the normal timer and cleanup continue. Open the resulting chest yourself.
-- **Blitzball auto-win:** Enable at team setup. During a live match, confirming an actual Action Commands choice triggers the native player win. Setup, movement, formation, forfeit and cancelled choices do not trigger it. The game retains its normal results and prizes.
+- **Blitzball auto-win:** Enable at team setup or during the match. The first qualified live match-clock tick triggers the native player win regardless of who takes possession. No player Action Commands choice is needed. Setup alone never completes a match. The game retains its normal results and prizes.
+- **Equipment capacity exceeded:** The native Keep/Discard lists, selected equipment and warnings are read. Use the game's normal controls to choose what to keep or discard. I reads selected modifiers; Autodetail reads them automatically when enabled.
 
 All four retain native prompts, progression flags and rewards. Implementation and offline verification are complete; fresh gameplay confirmation is pending. See the [implementation and evidence record](features/puzzles/minigame_completion_20261020.md).
 The **Voiced dialogue output** row cycles **Suppress** (default), **Braille only**,
@@ -161,6 +162,7 @@ Controller defaults use Xbox button names:
 | After View/Select, field | X | Current gil |
 | After View/Select, field | Y | Current map name |
 | After View/Select, field | A / B | Previous / next trial step |
+| After View/Select, supported field puzzle | L1 / LB | Read selected puzzle guidance, like F11 |
 | After View/Select, battle | X | Active character or aeon's HP, MP and status |
 | After View/Select, battle | Y / Triangle | Active character or aeon's Overdrive meter |
 | After View/Select | Start | Accessibility settings |
@@ -171,6 +173,9 @@ settings or returning focus. In accessibility settings, D-pad navigates,
 A confirms, B returns, X or right stick Up describes, and LB/RB select first/last.
 F8 > Miscellaneous > Controller bindings supports buttons, triggers and stick gestures;
 occupied bindings swap. This layout replaces the earlier controller defaults.
+L1/LB guidance is a fallback only when that control has no active saved mod
+assignment. It is available in supported Cloister, Via and Gagazet guide contexts.
+Release View/Select before pressing L1/LB; holding L1/LB does not repeat.
 The left stick continues native field movement; D-pad retains native menu and
 battle navigation. Shoulders retain the game's controls, including character
 switching in the Sphere Grid.
@@ -371,6 +376,13 @@ Autodetail On reads the additional details. Earned totals survive the countdown.
 
 **I** — read the available native description for the currently highlighted
 menu entry, item, shop item or equipment. N remains a compatibility shortcut.
+In equipment shops, I reads selected modifiers/empty slots followed by the
+compared character shown in the header. **U** separately reads the visible
+comparison pane: character HP/MP and current equipment/abilities. Both keys work
+with Autodetail On or Off. **F8 → Miscellaneous → Automatically read extra info**
+is directly below Autodetail, defaults Off and controls automatic extra-pane
+reading independently. When both are On, modifiers/character precede the extra
+pane. No calculated comparison deltas are read.
 Autodetail is toggled with F7 or the Autodetail row in F8 settings. Remaining
 description coverage is tracked in `Docs/accessibility_upgrade_20261004.md`.
 

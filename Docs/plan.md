@@ -1,3 +1,179 @@
+## November4 release1.0.2 — scope ledger
+
+Status: **in progress (~80%)**. Estimated45–60 minutes. The user's prepare-release
+request authorizes the complete release procedure; preserve prior packages,
+settings, completed work and source history.
+
+| Field | Fixed scope and acceptance |
+|---|---|
+| Capability | Version1.0.2 containing the completed November1–4 navigation, shop, Blitzball, equipment overflow and controller fixes, plus existing installer hardening. |
+| Milestones | Review source-matched evidence and current changes; update release metadata/player docs; canonical warning-free release build and guarded deployment; installer tests, final package/scans/install fixtures; content audit/commit/tag/draft download verification; publication and final record. |
+| Boundaries | No new geometry bake, unrelated Closed-system changes, game launch/control/probe, Tester Logs/saves, real registry repairs, external scanner sample uploads or delegation. Two shared slots/2GB aggregate per process tree remain enforced. |
+| Known limits | Actual gameplay/controller/audio confirmation remains user-side. No trusted signing identity; prior1.0.1 download detection is unresolved, with no threat/file/hash supplied. Record exact fresh scans without claiming that report resolved. Apply the release procedure's informed-decision requirement before publication if still needed. |
+| Evidence and recovery | Existing HEAD e8c57490211ed3103fd98529a5aef03984470a8f, public v1.0.1 and all prior local packages retained. Current seven-file deployment and source526 record: Analysis/FFX/ControllerPuzzle_20261104/verification.json. New release receipts: install/release-1.0.2-20261104. |
+
+Local release checkpoint:525 of526 prior native/launcher/test inputs are byte-
+identical; only the release version header changes. Existing feature evidence is
+reused by hash. The canonical warning-free x86 release build, startup forwarding,
+actual final launcher adapters (eight languages/seven actions/64 settings
+transitions),807 installer assertions,20 scan-gate cases,130 final-EXE dependency
+assertions, actual final-EXE88/306-character install/reinstall,26 resources and
+independent five-file ZIP/version/checksum checks pass. Both compiled profiles,
+all seven scanned/staged/installed hashes, read-only PRISM and unchanged INI pass.
+Defender4.18.26100.4/engine1.1.26100.4/definitions1.463.110.0 reports no detection
+on the exact ZIP, EXE and all six embedded DLLs. Trusted signing is unavailable;
+the old report remains unresolved. Current text and all1146 local Git blobs have
+no game-source/asset candidate findings; indexed documentation coverage passes.
+
+Preserved failed verification attempts are environment/harness limits, not
+suppressed checks: the first installer fixture could not create a junction;
+the host retry passed807 assertions but inherited incompatible PowerShell7
+modules. The native-module host passes the complete suite. A custom launcher
+wrapper omitted its synthetic FFX header; the existing canonical launcher
+fixture passes against the final adapters. No production changes or extra
+performance claims result. Git source/tag and verified draft remain to finish;
+publication retains the explicit unresolved-security decision boundary.
+
+## November4 controller puzzle guidance — scope ledger
+
+Status: **complete / Closed**. Finite input/control maintenance; original estimate20–30
+minutes including focused checks, canonical build, scan and guarded deployment.
+
+| Field | Fixed scope and acceptance |
+|---|---|
+| Capability | In a supported field puzzle guide, Mod mode then L1/LB reads the same selected guidance as F11. Held input fires once and cannot reach native game controls. Existing mod-menu Home, ordinary native shoulder/Grid controls and eligible saved mod bindings keep priority. |
+| Design and evidence | Default controller bindings have no LB field mod command; LB currently selects Home inside F8. Reuse mod_menu's actual guide availability and queued native-return F11 path with a context recheck. No command/INI ID migration or new guide producer. |
+| Milestones | Connect the fixed fallback chord; verify real SDL bridge, existing saved binding priority, normal/menu/Grid/battle/focus/hold/pressure behavior and current guide availability; build/scan/guarded deploy with unchanged INI and source-matched docs/evidence. |
+| Boundaries | Controller routing, one exported existing availability predicate, affected fixtures/docs. No map baking/refactor, game launch/control/probe, installed asset investigation, Tester Logs/saves, installer/package/publication or delegation. All earlier Closed work is preserved. |
+| Map question | Advisory comparison only. More immutable floor/adjacency/spatial preparation might reduce repeat decode/index work, but no additional source-matched speedup is demonstrated. Prior smoother measurements54–390ms→5–22ms are throttled component samples, not game/audible lag. Existing movement-driven reachability cache invalidation and full pipeline cost remain distinct measured-work candidates, not authorized changes here. |
+| Bounds and closure | One bounded press/context check and one existing64-command FIFO admission; no new hooks, worker pointers, Native waits or physics simulation. Default2GB/two shared slots/one worker/bounded CPU for expensive work. Close after affected checks/current output, warning-free build, exact-payload scan and installed hashes; actual controller/audio remains user-side. |
+| Recovery | Prior accepted DLL9e6efb7b8b02859c0b13a44c2f6cfdb7ffbfa66e2555763398adb48e9dfce884 and Analysis/FFX/SetupOverflow_20261103/verification.json. Preserve all prior dirty changes. Evidence target Analysis/FFX/ControllerPuzzle_20261104. |
+
+The connected shortcut passes real SDL/XInput and both native decoder tests,
+F8 Home, Grid shoulder handback, repeated/held/queue-pressure cases, eligible
+saved-binding priority and delayed guide/menu/Grid/battle cancellation. The
+actual menu predicate passes Cloister/Via/Gagazet/ordinary-field and native-owner
+cases, and existing F11 selected/expected semantics remain covered. SDL-owner
+and input queue/DirectInput regressions pass. The final menu host initially
+lacked the newly required nativeGameThread fake; explicit owner state repairs
+that test-only linker dependency and adds a foreign-owner refusal check.
+controller-final.log's successful controller stage is retained separately from
+that failed following menu link; menu-owner.log is the current successful host.
+The canonical release build is warning-free; scan/deployment/coverage closure
+are complete. No unresolved implementation loop or broader redesign is introduced.
+
+Final closure: the warning-free canonical release-flavor build, real SDL bridge,
+both native decoders, seven SDL-owner cases, current native-owner menu host and
+input/DirectInput checks pass. This changes one bounded button-edge branch and
+reuses the guide producer/64-command FIFO; no new performance or actual hardware/
+audible-response measurement is claimed. Native callbacks still never wait.
+Defender4.18.26100.4/engine1.1.26100.4/definitions1.463.110.0 reports no detection
+on the exact seven-file payload. Both actual compiled profile/signature/operand
+preflights and guarded deployment pass, all seven scanned/staged/installed hashes
+match, INI bytes are unchanged and PRISM was verified read-only. Trusted signing
+remains unavailable; no universal scanner/reputation result is inferred.
+
+Installed DLL SHA25646b0a43f9a6fbb76c3eefe40f9545eaec62a4c10619dbadc06adba5975336be9;
+final source/coverage/budget/test/scan/delivery record:
+Analysis/FFX/ControllerPuzzle_20261104/verification.json. All earlier source work,
+map geometry and Closed systems are preserved. No map bake, game/probe, saves,
+Tester Logs, registry repair, installer/package, remote write or delegation.
+Gameplay/controller/audio confirmation remains user-side under the short
+[procedure](features/verification.md#controller-puzzle-guidance--november4).
+
+## November3 Blitzball setup and equipment overflow — scope ledger
+
+Status: **complete / Closed**. Fixed maintenance scope; original estimate
+60–90 minutes. Prior uncommitted work and Closed subsystems are preserved.
+
+| Field | Fixed scope and acceptance |
+|---|---|
+| Capability | Blitzball auto-win setting is available during team setup as well as active matches, independent of a single setup-script size/variant. User follow-up adds completion when the opponent takes possession first. Overflow equipment screen announces its native prompt, focused keep/discard list, selected equipment and visible detail; native selection/discard/confirmation remains player-controlled. |
+| Evidence and unknowns | User-pasted tester report and requested PR1 inspection only; no Tester Logs authorization. Original availability required bltz0200/113266/seven workers, foreground identity/source bounds could reject completion, and W36 Action Commands required player possession. Retained W23 clock/layout/native result/overflow renderer contracts established; own November2 log contains no matching failure events. PR1 contributor reports both possessions tested, distinct from this session's offline evidence. |
+| Milestones | One active system at a time: (1) setup availability plus unchanged auto-win safeguards and focused check; (2) overflow native contract, connected reader and initial/move/list-change/mark/confirm/exit tests; (3) affected combined checks, canonical release-flavor build, exact-payload security scan, guarded deployment and current docs. |
+| Boundary | Existing settings/assistance semantics and menu/detail services; no unrelated redesign, new automation, game launch/control/probe, installed asset investigation, personal/tester saves, Tester Logs, installer/publication or delegation. |
+| Bounds | Native owner copies bounded ready state/text; no waits, polling, content deduplication or worker-held engine pointers. Existing context/detail cancellation and aggregate25ms rule apply. Enforced two-slot2GB process-tree budgets for expensive work. |
+| Coverage | Reuse complete feature index/audit and prior source-matched coverage. Update both affected feature topics, controls/status/verification and memory; record actual unrelated gaps separately if found. Gameplay and actual audible/frame responsiveness remain user-side. |
+| Recovery | Source baseline e8c57490211ed3103fd98529a5aef03984470a8f plus preserved November1/2 uncommitted changes. Current installed DLL b69d5e192163432fcbb273356bca3c5da5d619d02fcbea1ec486729eb3664c24. Evidence target: Analysis/FFX/SetupOverflow_20261103. |
+
+Milestone review: Blitz setup/foreground/clock production slice passes all24
+retained setup/match variants and all9 original activity matrices. The overflow
+reader passes both173-hook profiles, native phase/list/prompt/record bounds,
+I/Autodetail and repeated-event/exit cases. New profile operands and menu/settings
+checks pass. Native callbacks have no added waits/scan/polling; one opening-menu
+scan is bounded500 workers. A complete production build found one C4456 local
+name-shadow warning; it is corrected and the final warning-free build plus
+final checks/scan/guarded deployment are pending. This is required integration,
+not a redesign or reopened Closed subsystem. No unrelated coverage gaps found;
+reuse the indexed explanatory audit for unchanged features. PR1 is adapted with
+attribution, retaining membership checks and covering setup/possession scope;
+no remote merge or write has been performed.
+
+Final source-to-output closure: both complete173-hook reader profiles pass with
+native window7 equipment-name substitutions,45 changed overflow episodes and1000
+idle callbacks per profile. Native aggregates0.745/1.012ms, maximum0.028/0.042ms;
+controlled capture-to-owned-output aggregates18.024/17.711ms. Idle Native totals
+0.923/2.164ms versus disabled baselines0.287/0.832ms; no speech backlog. Full
+fixture/drain overhead201/253ms is separately reported and is not game lag.
+Blitz live-clock/member/foreground matrices, all24 availability resources/nine
+original activities, shared utility dev/release, profile/menu/settings and the
+warning-free canonical release build pass.144 native units/38 settings map to
+current topics with no broken links; unchanged feature coverage is reused.
+
+The exact seven-file payload passed Defender4.18.26100.4, engine1.1.26100.4,
+definitions1.463.110.0 with no detection. The first sandbox CIM status query was
+denied; the preserved host-access retry passed with protections unchanged.
+Closed-process guarded preflight/deployment/installed preflight pass; all seven
+scanned/staged/installed hashes and unchanged INI are verified. PRISM was checked
+read-only. Installed DLL SHA2569e6efb7b8b02859c0b13a44c2f6cfdb7ffbfa66e2555763398adb48e9dfce884.
+Final source, budget, test, scan, deployment and coverage receipt:
+Analysis/FFX/SetupOverflow_20261103/verification.json. No budget exception,
+delegation, game/probe, saves, Tester Logs, registry repair, installer/package or
+remote write occurred. Actual game/input/results/audio responsiveness remains
+the user's gameplay check. This closes these supported boundaries; further
+refactoring requires a scoped human follow-up. Prior Closed work remains intact.
+
+## November2 shop descriptions and extra information — scope ledger
+
+Status: **complete / Closed**. Implementation, offline verification and guarded
+deployment are complete for the user-expanded description/U/independent-setting
+slice, within the expected60–90-minute checkpoint. Gameplay confirmation remains
+pending. All previous uncommitted work is preserved; the Mushroom Rock private
+smoother remains Closed and unchanged.
+
+| Field | Fixed scope and acceptance |
+|---|---|
+| Capability | Shop Autodetail and I read selected equipment modifiers/empty slots first, then the visible compared character. U reads the visible comparison pane (character HP/MP and currently equipped gear/abilities). A default-Off independent Automatically read extra info setting sits directly below Autodetail and reads that extra pane automatically. I/U always permit manual rereads. No calculated deltas or hidden character/stat data. |
+| Producers/evidence | Latest host own log35166bytes, November2 08:39–08:40 Baroque Sword/Ductile Rod examples; user screenshot shows header character/HP/MP, current gear/abilities and selected modifiers. Retained native8D85F0/8D8A70 renderer facts confirm panel/owner/type/empty-equipment conditions and no stat deltas. Source cause: ready_game_text.cpp::planShopEquipmentDescription combines all panels into the I/Autodetail description. |
+| Milestones | All complete: source/log/screenshot/native-renderer contract; connected selected-description ordering, copied extra context, qualified U and independent persisted setting; all four automatic combinations,32 manual repeats, visibility/owner/close/cancellation/order, stable setting IDs/keys and menu order. Both173-hook reader profiles, input ownership, warning-free native/launcher release build, exact-payload scan and guarded deployment pass. |
+| Boundary | Shops/ready game text/legacy helper, one TextPlan receiver slot, existing qualified input chord API, settings/menu metadata and focused tests/docs. No new native hook, UI polling, game launch/control/probe, Tester Logs, personal saves, installer/publication, comparison calculation, new controller mode or unrelated refactoring. |
+| Bounds | Existing bounded selection events/128-node ready TextPlans, fixed copied metadata and one current worker-owned extra buffer; Native only copies ready facts. No Native waits/formatting/pointer handoff. Retire on selection/context/epoch change; U never dereferences a stored native window. Use enforced two-slot2GB tree budgets, one worker, below-normal priority and bounded CPU for all expensive checks/builds/scans. Cumulative25ms requirement and honest offline/gameplay distinction retained. |
+| Evidence | [Behavior, ownership and verification](features/menus/shop_details_20261102.md). Eight shop events total0.144/0.216ms Native across the two fixture profiles, maximum0.020/0.043ms; capture-to-owned-output totals4.570/5.023ms. Controlled getters/native mutation/queue/sink; real game/PRISM/audible timing unmeasured. Seven scanned/staged/installed hashes and unchanged INI verified; Defender reports no detection, trusted signing unavailable. |
+| Done/closure | Closed for the documented shop description/U/settings boundary. Production selection→Autodetail/I/U/settings is connected; displayed-only/modifier-first order and automatic/manual independence verified,38 settings with previous37 IDs/keys preserved, affected docs current. Actual game/keyboard/audio confirmation remains user-side. Further refactoring requires a human-user-triggered scoped follow-up. |
+| Recovery | Baseline e8c57490211ed3103fd98529a5aef03984470a8f plus preserved Mushroom Rock changes;523 source/test inputs and all exact input/build/test/log/screenshot/scan/deployment records in Analysis/FFX/ShopDetails_20261102/verification.json. Deployed DLL b69d5e192163432fcbb273356bca3c5da5d619d02fcbea1ec486729eb3664c24. Geometry hash3927dc16a121975df300aec9697407131b6947904873ad1ee17c9e6f58fd1b64 unchanged. No rollback/commit/push/installer/publication. |
+
+## November1 Mushroom Rock lag investigation — scope ledger
+
+Status: **complete / Closed** for the user-requested fix/deploy follow-up.
+Implementation, offline verification and guarded deployment are complete;
+gameplay/frame/audible confirmation remains pending. "Fix and deploy" authorized
+the scoped repair, needed collision-asset reads and guarded installation. Baseline
+`e8c57490211ed3103fd98529a5aef03984470a8f`, initially clean master.
+Follow-up estimate was1–2 hours. No required implementation or deployment work
+remains in this checkpoint; further redesign requires a human-user follow-up.
+
+| Field | Fixed scope and acceptance |
+|---|---|
+| Capability | Remove demonstrated full-floor visibility-scan cost from ordinary map routes, preserving exact floor/gate/event/crossing behavior; check Mushroom Rock and the other map collision assets for this common cost, then guarded-deploy the verified current build. |
+| Milestones | All complete:397 EV/catalog audit;433 collision assets/327 nonempty floors; private exact visibility acceleration;20928 original/current visibility comparisons and654 exact short routes; sampled long Mushroom Rock and large-map improvements. Geometry/water/gates/reachability/audio/native actions and both173-hook reader profiles pass; warning-free release-flavor build, exact-payload scan and guarded deployment/read-back pass. |
+| Boundary | Shared private route visibility implementation in nav_geometry.cpp and focused tests/tooling/docs; keep existing Mesh/public route interfaces, native hooks and producer ownership. Read only needed installed map collision/archive and deployment/preflight inputs. No installer/package/publication, game launch/control/probe, Tester Logs, settings/save changes or unrelated subsystem reopening. |
+| Bounds | Shared enforced build/tool slots, 2GB aggregate ceiling per tree, one worker, below-normal priority, bounded CPU and finite audit workload. Evaluate combined repeated work against the cumulative25ms rule; throttled fixture timing is not gameplay responsiveness. |
+| Necessary build dependency | Canonical SDL build refused the runner's GNU MAKEFLAGS=-j1 in NMake (U1065). Minimal local build_sdl3.bat adaptation clears GNU/CMake parallelism requests for inherently serial NMake only; kernel admission/memory/CPU controls remain enforced. Exit check: canonical native/launcher build succeeds under the same2GB runner. |
+| Necessary reader-fixture dependency | Full reader run reached an obsolete hardcoded personal Summon save and stopped because it is absent; Via has the same dependency. Replace only those file reads with their already documented scalar regression states, retaining original EV/native replay matrices and every behavior assertion. No personal/tester save or Tester Logs read. Exit check: both complete173-hook reader profiles pass. |
+| Evidence | [Current diagnosis/implementation/coverage](features/navigation/mushroom_rock_lag_20261101.md). Same20-run Sea/City long-case medians79–301ms→5–14ms; sampled Mushroom Rock cold routes54–390ms→5–22ms; Calm Lands1637ms→22ms. Exact outputs retained. All7 installed/staged/scanned hashes and unchanged INI verified;522 source/test hashes in the final receipt. Actual game impact remains unmeasured. |
+| Done | Same-source original/current real-floor parity, known slow-case improvement, narrow gap/height/crossing/gate/cancellation regressions, all-map coverage/limits, required build/payload/security checks, closed game/launcher and seven deployed hashes. Actual frame/audible impact remains user-side. Preserve settings/saves/packages. |
+| Recovery/closure | Closed at geometry SHA2563927dc16a121975df300aec9697407131b6947904873ad1ee17c9e6f58fd1b64 and deployed DLL952524c81b2c3960efea2424d64457d612162271cb97bcca266578388fa9057a. Exact inputs, baseline copy, successful budget/scan/deployment receipts and remaining limits: `Analysis/FFX/MushroomRockFix_20261101/verification.json`. Original numeric evidence preserved in baseline-verification.json. No rollback/commit/push/installer/publication. Other accepted designs and the recorded reachability-cache limitation remain separate. |
+
 Previous October20 release checkpoint: the user resumed **0.5.9** with existing fixes to
 unblock testers. Warning-free release build, guarded deployment, single EXE/ZIP,
 actual installer/resource/transaction checks and prior-release/settings/save
