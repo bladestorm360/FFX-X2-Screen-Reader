@@ -1,15 +1,16 @@
 # FFX current memory — November4
 
 [Release1.0.2](Docs/release.md#release102--november4) is built, guarded-deployed,
-packaged and locally verified.807 installer/130 final-EXE dependency/20 scan-gate
+packaged and [published Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.2).
+807 installer/130 final-EXE dependency/20 scan-gate
 checks, actual short/long install/reinstall, final launcher/startup,26 resources,
 all7 installed hashes and unchanged INI pass. Exact EXE/ZIP/embedded DLL scans
 report no detection; unsigned status and unresolved old download report remain
-explicit. Source7387db8/tagv1.0.2 are pushed; draft433845958 and its downloaded
-ZIP match the local SHA2566e43b43b…e015. Only the required informed publication
-decision remains pending; user asked after final draft verification. Public/
-latest remains1.0.1. [Single ledger](Docs/plan.md#november4-release102--scope-ledger);
-receipts install/release-1.0.2-20261104. Prior packages/Closed work are preserved.
+explicit. Source7387db8/tagv1.0.2 are pushed; draft and anonymous public downloads
+match local SHA2566e43b43b…e015. User explicitly approved publication with the
+documented limitations. [Single ledger](Docs/plan.md#november4-release102--scope-ledger)
+is complete / Closed; receipts install/release-1.0.2-20261104, especially
+publication-verification.json. Prior packages/releases/Closed work are preserved.
 
 [November4 controller puzzle guidance](Docs/features/runtime/index.md#input-and-settings)
 is complete / Closed, offline verified and guarded-deployed. View/Select, release,
@@ -71,15 +72,16 @@ Original/rebuilt EXE/ZIP/all6 embedded DLLs report no detection;807 source,
 All26 resources/424 native inputs match deployed1.0.1; no game deployment/launch.
 The reported Edge download detection remains unresolved; no threat/file name
 was supplied, Edge is unavailable and trusted signing is not configured.
-User requests replacement within1.0.1; informed publication/vendor-submission
-decisions are pending under the updated security contract. Original preserved;
+The1.0.1 replacement candidate stayed local; the user later explicitly approved
+the hardening's distribution in1.0.2 with the report unresolved. No external
+vendor-submission authorization is inferred. Original1.0.1 preserved;
 candidate ZIP SHA25689efe9c345b5845803fd517c8e0015b1bbee064ced2ef26d3e62830d088336f0.
 Evidence/review request: `install/defender-20261024`. No protections changed,
-Tester Logs, sample uploads or publication; no delegation. Existing published
-October23 receipt below remains historical/current remote until replacement.
+Tester Logs, sample uploads or publication occurred in that October24 task;
+no delegation. The October23 receipt below is historical; its asset is unchanged.
 
 [Release1.0.1](Docs/release.md#release101--october23) is built, guarded-deployed
-and [published Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.1).
+and [published](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.1).
 Source5dc8cf6/tagv1.0.1; final installer/ZIP, draft and anonymous public downloads
 match SHA256d38fdcd355f52f0de1891f765c66f24a51353aedc3b5e69d023ba54201218f52.
 It includes destruction-sphere flag retention and all-eight-language launcher

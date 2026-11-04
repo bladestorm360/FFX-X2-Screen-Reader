@@ -84,8 +84,10 @@ Implementation/offline verification and user gameplay confirmation remain distin
 
 ## Release1.0.2 — November4
 
-Local package/deployment and GitHub draft verification are complete. Publication
-awaits the explicit informed decision about the unresolved older security report.
+Local package/deployment, GitHub draft and anonymous public download verification
+are complete. The user explicitly approved publication with the unsigned status
+and unresolved historical download report documented. [Release1.0.2 is published
+as Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.2).
 This release includes the completed November1–4 navigation, shop details,
 Blitzball setup/possession, equipment overflow and controller puzzle guidance
 fixes, plus the existing October24 installer hardening. PR1 contribution from
@@ -117,25 +119,29 @@ sample upload or delegation occurred.
 
 Reviewed source `7387db8d8c4ce4ef0cae5f9835598ffc819af88f` and annotated `v1.0.2`
 tag object `12f743cc4924388401f28a214bf24aa816133684` are pushed and remotely
-verified. [Verified draft](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/untagged-fe70713af131f594ad8b)
-is release433845958 with one2,606,259-byte ZIP asset709300423. GitHub's SHA256
+verified. Release433845958 contains one2,606,259-byte ZIP asset709300423. GitHub's SHA256
 digest and the authenticated draft download both match the local ZIP above.
 `draft-verification.json` records the source, tag, size, server digest and
-downloaded hash. Public/latest release state remains1.0.1; no existing release
-asset or tag was replaced. The user was asked for the required informed decision
-after all concrete artifact and draft checks finished.
+downloaded hash. After the explicit reply “Publish1.0.2,” that exact draft was
+published as Latest at2026-11-04T13:20:44Z. Anonymous public metadata and ZIP
+download match the approved tag/source/asset/size/SHA256; release is non-draft
+and non-prerelease. `publication-approval.json` and
+`publication-verification.json` retain the decision and final evidence. Previous
+releases/assets/tags and all packaged bytes are unchanged. Only these final
+publication records are committed after the verified tag.
 
 ## Release1.0.1 — October23
 
-October24 same-release installer follow-up is locally built and verified at the
-user's request; publication awaits the informed decision required by the newly
-updated security guidance because the original Edge/Defender report remains
-unreproduced. [Security record and exact hashes](features/distribution/security_20261024.md).
+October24 same-release installer follow-up was built and verified locally at the
+user's request; that1.0.1 replacement was not published. Its hardening is included
+in1.0.2, whose publication the user explicitly approved with the original
+Edge/Defender report still unresolved.
+[Security record and exact hashes](features/distribution/security_20261024.md).
 The candidate changes setup DLL-search security/publisher metadata and adds a
 mandatory packaging scan gate. All26 resources/424 prior native inputs match
 the deployed1.0.1 payload. All local checks and exact-artifact Defender scans
 pass; this does not close the download report. The published asset/tag below
-remain unchanged until a verified replacement is uploaded. Original local ZIP
+remain unchanged. Original local ZIP
 and package are preserved under `install/release-backups/1.0.1--20261024-031739-bc92d295`.
 Candidate ZIP SHA256 is
 `89efe9c345b5845803fd517c8e0015b1bbee064ced2ef26d3e62830d088336f0`.

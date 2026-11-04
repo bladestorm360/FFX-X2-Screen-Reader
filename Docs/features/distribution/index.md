@@ -3,14 +3,16 @@
 [October24 installer/distribution security](security_20261024.md) covers the
 reported Defender download block, exact-artifact scan gate, process-local DLL
 search hardening, publisher metadata, unsigned-build gap and unresolved Edge
-verification. The user requests a replacement installer within existing1.0.1;
-the original asset is preserved and no tag/history rewrite is authorized.
+verification. The original1.0.1 asset is preserved; this hardening is included in
+1.0.2, published after the user's informed approval with the report unresolved.
 
-Current1.0.1 release: [release record](../../release.md) covers the verified
-sphere-flag and launcher language repairs, guarded deployment and actual final
-installer/ZIP checks. Native/setup metadata is1.0.1.0. This release excludes the
+Current1.0.2 release: [release record](../../release.md#release102--november4)
+covers the November1–4 feature fixes, retained sphere-flag/launcher repairs,
+guarded deployment and actual final installer/ZIP checks. Native/setup metadata
+is1.0.2.0. Anonymous public ZIP/download hashes match the verified draft; this
+release is published as Latest. It excludes the
 developer console and supersedes the earlier console delivery/launcher hold.
-Settings and the published1.0 package are preserved. Besaid sphere collection
+Settings and previous published packages are preserved. Besaid sphere collection
 is gameplay-confirmed; remote Baaj unlock without warps and real launcher
 confirmation remain pending. Historical delivery checkpoints follow.
 
@@ -81,8 +83,8 @@ is explicitly authorized. See the current release record for delivery status.
 removes the English-only input gate. Current native language and rebuilt menu
 rectangles supply each label/activation; native settings keep their own input
 and accessibility. All eight startup locales/seven actions and64 settings
-transitions pass the actual-adapter fixture and the warning-free1.0.1 release
-is guarded-deployed/packaged. Actual launcher confirmation remains pending;
+transitions pass the actual-adapter fixture and the warning-free1.0.2 release
+is guarded-deployed/published. Actual launcher confirmation remains pending;
 settings and prior release packages are unchanged.
 
 `src/launcher` retains the original launcher with a C++/CLI event adapter and

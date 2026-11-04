@@ -1,6 +1,6 @@
 ## November4 release1.0.2 — scope ledger
 
-Status: **awaiting informed publication decision (~95%)**. Estimated45–60 minutes. The user's prepare-release
+Status: **complete / Closed**. Original estimate45–60 minutes. The user's prepare-release
 request authorizes the complete release procedure; preserve prior packages,
 settings, completed work and source history.
 
@@ -9,7 +9,7 @@ settings, completed work and source history.
 | Capability | Version1.0.2 containing the completed November1–4 navigation, shop, Blitzball, equipment overflow and controller fixes, plus existing installer hardening. |
 | Milestones | Review source-matched evidence and current changes; update release metadata/player docs; canonical warning-free release build and guarded deployment; installer tests, final package/scans/install fixtures; content audit/commit/tag/draft download verification; publication and final record. |
 | Boundaries | No new geometry bake, unrelated Closed-system changes, game launch/control/probe, Tester Logs/saves, real registry repairs, external scanner sample uploads or delegation. Two shared slots/2GB aggregate per process tree remain enforced. |
-| Known limits | Actual gameplay/controller/audio confirmation remains user-side. No trusted signing identity; prior1.0.1 download detection is unresolved, with no threat/file/hash supplied. Record exact fresh scans without claiming that report resolved. Apply the release procedure's informed-decision requirement before publication if still needed. |
+| Known limits | Actual gameplay/controller/audio confirmation remains user-side. No trusted signing identity; prior1.0.1 download detection is unresolved, with no threat/file/hash supplied. Exact fresh scans are recorded without claiming that report resolved. The user explicitly approved publication with these limitations documented. |
 | Evidence and recovery | Existing HEAD e8c57490211ed3103fd98529a5aef03984470a8f, public v1.0.1 and all prior local packages retained. Current seven-file deployment and source526 record: Analysis/FFX/ControllerPuzzle_20261104/verification.json. New release receipts: install/release-1.0.2-20261104. |
 
 Local release checkpoint:525 of526 prior native/launcher/test inputs are byte-
@@ -31,16 +31,20 @@ the host retry passed807 assertions but inherited incompatible PowerShell7
 modules. The native-module host passes the complete suite. A custom launcher
 wrapper omitted its synthetic FFX header; the existing canonical launcher
 fixture passes against the final adapters. No production changes or extra
-performance claims result. Git source/tag and verified draft remain to finish;
-publication retains the explicit unresolved-security decision boundary.
+performance claims result. Git source/tag, verified draft and publication are
+complete; the user explicitly satisfied the informed-decision boundary.
 
 Reviewed source7387db8d8c4ce4ef0cae5f9835598ffc819af88f and annotated tagv1.0.2
 (object12f743cc4924388401f28a214bf24aa816133684) are pushed and remotely verified.
 GitHub draft433845958 contains one2,606,259-byte ZIP; asset709300423 server digest
 and downloaded SHA256 match the local archive6e43b43beab82f98985d4e05eb9d23d7b1fcfc132056f6fb0632a50e8cc4e015.
-Draft receipt: install/release-1.0.2-20261104/draft-verification.json. Public/latest
-release state is unchanged. The user has been asked for the required informed
-publication decision; do not publish merely because the draft passes local scans.
+Draft receipt: install/release-1.0.2-20261104/draft-verification.json. After the
+explicit user reply “Publish1.0.2,” the same release/asset was published as Latest.
+Anonymous public metadata and ZIP download match the tag, source, size and SHA256;
+no artifact was rebuilt or replaced. Publication receipt:
+install/release-1.0.2-20261104/publication-verification.json. Prior releases and
+packages remain intact. No remaining release step or delegation; actual gameplay
+confirmation and the historical download report remain separately documented.
 
 ## November4 controller puzzle guidance — scope ledger
 
