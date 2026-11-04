@@ -84,8 +84,8 @@ Implementation/offline verification and user gameplay confirmation remain distin
 
 ## Release1.0.2 — November4
 
-Local package/deployment verification is complete; GitHub draft verification and
-the explicit unresolved-security publication decision remain separate steps.
+Local package/deployment and GitHub draft verification are complete. Publication
+awaits the explicit informed decision about the unresolved older security report.
 This release includes the completed November1–4 navigation, shop details,
 Blitzball setup/possession, equipment overflow and controller puzzle guidance
 fixes, plus the existing October24 installer hardening. PR1 contribution from
@@ -114,6 +114,16 @@ Evidence: `install/release-1.0.2-20261104`; prior packages and published1.0.1
 are preserved. Actual gameplay/hardware/audio remains user-side. No game launch,
 Tester Logs/saves, real registry repair, security-setting changes, external
 sample upload or delegation occurred.
+
+Reviewed source `7387db8d8c4ce4ef0cae5f9835598ffc819af88f` and annotated `v1.0.2`
+tag object `12f743cc4924388401f28a214bf24aa816133684` are pushed and remotely
+verified. [Verified draft](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/untagged-fe70713af131f594ad8b)
+is release433845958 with one2,606,259-byte ZIP asset709300423. GitHub's SHA256
+digest and the authenticated draft download both match the local ZIP above.
+`draft-verification.json` records the source, tag, size, server digest and
+downloaded hash. Public/latest release state remains1.0.1; no existing release
+asset or tag was replaced. The user was asked for the required informed decision
+after all concrete artifact and draft checks finished.
 
 ## Release1.0.1 — October23
 

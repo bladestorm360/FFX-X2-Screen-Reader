@@ -5,8 +5,10 @@ packaged and locally verified.807 installer/130 final-EXE dependency/20 scan-gat
 checks, actual short/long install/reinstall, final launcher/startup,26 resources,
 all7 installed hashes and unchanged INI pass. Exact EXE/ZIP/embedded DLL scans
 report no detection; unsigned status and unresolved old download report remain
-explicit. Source/tag/draft verification and informed publication decision are
-pending. [Single ledger](Docs/plan.md#november4-release102--scope-ledger);
+explicit. Source7387db8/tagv1.0.2 are pushed; draft433845958 and its downloaded
+ZIP match the local SHA2566e43b43b…e015. Only the required informed publication
+decision remains pending; user asked after final draft verification. Public/
+latest remains1.0.1. [Single ledger](Docs/plan.md#november4-release102--scope-ledger);
 receipts install/release-1.0.2-20261104. Prior packages/Closed work are preserved.
 
 [November4 controller puzzle guidance](Docs/features/runtime/index.md#input-and-settings)

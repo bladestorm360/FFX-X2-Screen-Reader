@@ -1,6 +1,6 @@
 ## November4 release1.0.2 — scope ledger
 
-Status: **in progress (~80%)**. Estimated45–60 minutes. The user's prepare-release
+Status: **awaiting informed publication decision (~95%)**. Estimated45–60 minutes. The user's prepare-release
 request authorizes the complete release procedure; preserve prior packages,
 settings, completed work and source history.
 
@@ -33,6 +33,14 @@ wrapper omitted its synthetic FFX header; the existing canonical launcher
 fixture passes against the final adapters. No production changes or extra
 performance claims result. Git source/tag and verified draft remain to finish;
 publication retains the explicit unresolved-security decision boundary.
+
+Reviewed source7387db8d8c4ce4ef0cae5f9835598ffc819af88f and annotated tagv1.0.2
+(object12f743cc4924388401f28a214bf24aa816133684) are pushed and remotely verified.
+GitHub draft433845958 contains one2,606,259-byte ZIP; asset709300423 server digest
+and downloaded SHA256 match the local archive6e43b43beab82f98985d4e05eb9d23d7b1fcfc132056f6fb0632a50e8cc4e015.
+Draft receipt: install/release-1.0.2-20261104/draft-verification.json. Public/latest
+release state is unchanged. The user has been asked for the required informed
+publication decision; do not publish merely because the draft passes local scans.
 
 ## November4 controller puzzle guidance — scope ledger
 
