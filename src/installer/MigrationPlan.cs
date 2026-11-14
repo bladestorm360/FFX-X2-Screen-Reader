@@ -81,7 +81,8 @@ namespace FfxScreenReader.Setup
                         name.Equals("FFX_SR_LAA_Backups", StringComparison.OrdinalIgnoreCase) ||
                         name.Equals("PrismRuntime", StringComparison.OrdinalIgnoreCase) ||
                         name.StartsWith(".PrismRuntime.backup.", StringComparison.OrdinalIgnoreCase) ||
-                        name.StartsWith(".PrismRuntime.stage.", StringComparison.OrdinalIgnoreCase)) continue;
+                        name.StartsWith(".PrismRuntime.stage.", StringComparison.OrdinalIgnoreCase) ||
+                        name.StartsWith(InstallerEngine.StagePrefix, StringComparison.OrdinalIgnoreCase)) continue;
                     if (++entries > 200000) throw new IOException("Too many files to inspect safely. No files were changed.");
                     FileAttributes attributes = File.GetAttributes(path);
                     if ((attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("Setup cannot inspect a linked file or subfolder: " + name + ". No files were changed.");

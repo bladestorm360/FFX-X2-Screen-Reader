@@ -37,6 +37,7 @@ internal static class InstallerSafetyTests
             { "schema", 1 }, { "package_id", "synthetic-prism" }, { "version", "0.0.0" }, { "source_commit", "synthetic" },
             { "platform", "windows" }, { "architecture", "x86" }, { "files", files } }));
         OtherModsStay();
+        PayloadFailureRollsBack();
 
     }
 
@@ -147,6 +148,28 @@ internal static class InstallerSafetyTests
             if (text == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "frida-gadget.dll"), "legacy file restored by another tool");
         }); }, "appeared during setup", "Legacy file reappearing during setup");
         Unchanged(game, before, "Legacy reappearance rollback");
+    }
+
+    private static void PayloadFailureRollsBack()
+    {
+        string game = Game("Payload failure");
+        File.WriteAllText(Path.Combine(game, "Tolk.dll"), "legacy Tolk");
+        var before = Snapshot(game);
+        Reject(delegate { Engine().Install(game, delegate(string text) {
+            if (text == "Installing SDL3.dll") throw new IOException("Synthetic write failure");
+        }); }, "Previous files were restored", "Payload failure");
+        Unchanged(game, before, "Payload failure rollback");
+        File.WriteAllText(Path.Combine(game, "PrismRuntime"), "a file where the PRISM folder belongs");
+        before = Snapshot(game);
+        Reject(delegate { Engine().Install(game, delegate { }); }, "Installation failed", "PRISM failure");
+        File.Delete(Path.Combine(game, "PrismRuntime"));
+        before.Remove("PrismRuntime");
+        foreach (string folder in Directory.GetDirectories(game))
+            if (Path.GetFileName(folder).StartsWith(".PrismRuntime.stage.", StringComparison.OrdinalIgnoreCase))
+                foreach (string file in Directory.GetFiles(folder)) before.Add(file.Substring(game.Length + 1), InstallerEngine.Hash(File.ReadAllBytes(file)));
+        foreach (string folder in Directory.GetDirectories(game))
+            if (Path.GetFileName(folder).StartsWith(".PrismRuntime.stage.", StringComparison.OrdinalIgnoreCase)) before.Add(Path.GetFileName(folder) + "\\", "folder");
+        Unchanged(game, before, "PRISM failure leaves mod files unchanged");
     }
 
 }

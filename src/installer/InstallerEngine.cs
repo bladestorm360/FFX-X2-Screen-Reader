@@ -19,6 +19,8 @@ namespace FfxScreenReader.Setup
         private const string ConfigName = "FFX&X-2_LAUNCHER.exe.config";
         private const string AssemblyName = "FFXLauncherReader, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
         private const string ManagerType = "FfxLauncher.ReaderDomainManager";
+        // Payload files are written here first, then renamed into the game folder.
+        internal const string StagePrefix = ".FFX_SR_Install.stage.";
         private readonly Func<string, byte[]> readPayload;
         private readonly IDictionary<string, string> hashes;
         private readonly Func<string, Action<string>, MigrationPlan> planFactory;
@@ -132,10 +134,7 @@ namespace FfxScreenReader.Setup
                 (File.GetAttributes(backupRoot) & FileAttributes.ReparsePoint) != 0))
                 throw new IOException("The install backup folder is a file or link. No files were changed.");
             string backup = Path.Combine(backupRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N"));
-            // Main installer preflight is complete; install a missing dependency
-            // without replacing any existing SDK. Stock/mod files are untouched here.
-            prism.Install(game, status);
-            // Complete every backup before changing installed mod files, including nested added modules.
+            // Complete every backup before changing any file, including PRISM and nested files.
             Directory.CreateDirectory(backup);
             foreach (string name in affected)
             {
@@ -149,18 +148,30 @@ namespace FfxScreenReader.Setup
             plan.WriteReport(game, backup);
             if (LeftInPlace.Count != 0) status("Left in place: " + String.Join(", ", LeftInPlace.ToArray()));
             closedProcesses();
+            bool prismInstalled = false;
+            string stage = Path.Combine(game, StagePrefix + Guid.NewGuid().ToString("N"));
             try
             {
+                // Installs a missing PRISM runtime without replacing an existing one.
+                prismInstalled = prism.Install(game, status).StartsWith("Installed ", StringComparison.Ordinal);
                 foreach (string name in removed) {
                     status("Removing old mod file: " + name);
                     InstallerPaths.CheckOrdinaryFile(game, name);
                     File.Delete(InstallerPaths.InGame(game, name));
                 }
+                Directory.CreateDirectory(stage);
+                foreach (string name in PayloadNames)
+                {
+                    string staged = Path.Combine(stage, name);
+                    File.WriteAllBytes(staged, payload[name]);
+                    if (!String.Equals(Hash(File.ReadAllBytes(staged)), hashes[name], StringComparison.OrdinalIgnoreCase))
+                        throw new IOException("Staged file checksum failed: " + name);
+                }
                 foreach (string name in PayloadNames)
                 {
                     status("Installing " + name);
                     InstallerPaths.CheckOrdinaryFile(game, name);
-                    File.WriteAllBytes(Path.Combine(game, name), payload[name]);
+                    File.Move(Path.Combine(stage, name), Path.Combine(game, name));
                 }
                 status("Configuring launcher speech");
                 string pending = config + ".ffx_sr_pending";
@@ -197,11 +208,28 @@ namespace FfxScreenReader.Setup
                     }
                     catch (Exception restore) { restoreFailures.Add(name + ": " + restore.Message); }
                 }
+                if (prismInstalled)
+                {
+                    try { prism.Remove(game); }
+                    catch (Exception restore) { restoreFailures.Add("PrismRuntime: " + restore.Message); }
+                }
                 string result = restoreFailures.Count == 0 ? "Previous files were restored." :
                     "Some files could not be restored: " + String.Join("; ", restoreFailures.ToArray());
                 throw new IOException("Installation failed. " + result + " Backup: " + backup + ". " + failure.Message, failure);
             }
+            finally { RemoveStage(stage, status); }
             return backup;
+        }
+
+        private static void RemoveStage(string stage, Action<string> status)
+        {
+            try
+            {
+                if (!Directory.Exists(stage)) return;
+                foreach (string file in Directory.GetFiles(stage)) File.Delete(file);
+                Directory.Delete(stage);
+            }
+            catch (Exception ex) { status("Could not remove the temporary folder " + stage + ": " + ex.Message); }
         }
     }
 }
