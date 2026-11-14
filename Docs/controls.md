@@ -709,7 +709,9 @@ are consumed only on the Sphere Grid.
   enabled with F7 or in F8. Activation feedback announces the actual character/node.
   Ability nodes resolve the ability's own description, including all text lines.
   Activation feedback includes actual before/after stat values when they change.
-* Movement reads the native confirmation prompt and Yes/No choices. Confirming
+* Movement reads the native confirmation prompt and Yes/No choices. The prompt
+  adds the move's Sphere Level cost and what remains, for example "Move to this
+  location? Costs 2 Sphere Levels, 6 left." Confirming
   a move announces the character and destination node, plus changed Sphere Levels.
   Native preview start says "Preparing to move" before the delayed confirmation.
 

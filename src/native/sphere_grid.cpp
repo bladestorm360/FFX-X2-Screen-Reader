@@ -68,6 +68,17 @@ Key selected() {
     k[3] = slot == 8 ? read<uint16_t>(entry + 8) : read<uintptr_t>(entry);
     return k;
 }
+TextRef movementCost(TextPlan& p) {
+    // A44F35 stores the previewed route cost at +1161C; 656160 Yes spends it.
+    const auto engine=read<uintptr_t>(address(0x1f05834));if(!engine) return 0;
+    const unsigned character=read<uint8_t>(engine+0x115bc,255);const int cost=read<int32_t>(engine+0x1161c,-1);
+    using Saved=uintptr_t(__cdecl*)(unsigned);
+    const auto saved=character<7?reinterpret_cast<Saved>(address(0x3853f0))(character):0;
+    if(!saved || cost<0 || cost>read<uint8_t>(saved+0x3b)) return 0;
+    auto text=planConcat(p,planLiteral(p,L" Costs "),planInteger(p,cost));
+    text=planConcat(p,text,planLiteral(p,cost==1?L" Sphere Level, ":L" Sphere Levels, "));
+    return planConcat(p,text,planConcat(p,planInteger(p,read<uint8_t>(saved+0x3b)-cost),planLiteral(p,L" left.")));
+}
 void selectionBefore(Event& e) { e.before = selected(); if (e.rva == 0x6583e0) ++inputDepth; }
 void selectionAfter(Event& e) {
     if (e.rva == 0x6583e0) --inputDepth;
@@ -81,7 +92,8 @@ void selectionAfter(Event& e) {
     TextPlan p;prepareTextPlan(p,confirmation && opening?"sphere-confirmation-prompt":"sphere-list",!(confirmation && opening));
     const auto name=k[1]==8?planRecordName(p,0x390a40,static_cast<unsigned>(k[3])):planEncoded(p,k[3]);
     const auto line=k[1]==8?planCountedName(p,name,quantity(static_cast<unsigned>(k[3]))):name;
-    if(confirmation && opening) {p.interrupt=true;p.headline=planEncoded(p,read<uintptr_t>(k[0]+k[4]*0x340+0x40));addTextPlanOutput(p,line,"sphere-list",false);}
+    if(confirmation && opening) {p.interrupt=true;p.headline=planEncoded(p,read<uintptr_t>(k[0]+k[4]*0x340+0x40));
+        if(k[4]==9) p.headline=planConcat(p,p.headline,movementCost(p));addTextPlanOutput(p,line,"sphere-list",false);}
     else p.headline=line;
     if(k[1]==8) {
         const auto entry=k[0]+k[1]*0x340+0x40+k[2]*12;
