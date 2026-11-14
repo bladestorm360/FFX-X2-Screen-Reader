@@ -31,7 +31,8 @@ void announceNode() {
     if(character<7 && (node.activated&(1u<<character))) line=planConcat(p,line,planConcat(p,planLiteral(p,L", activated for "),planPlayerName(p,character)));
     else if(node.sphere) {const auto name=planRecordName(p,0x390a40,node.sphere);line=planConcat(p,line,planPair(p,TextPlanOp::IfText,name,planConcat(p,planLiteral(p,L", requires 1 "),name)));}
     p.headline=planConcat(p,line,planConcat(p,planLiteral(p,L", node "),planInteger(p,index+1)));
-    planSelectionDetail(p,node.description,setting(Setting::AutoDetail)!=0);previousNode=index;commitTextPlan(p);
+    // Some native nodes use the same text for name and description; do not speak it twice.
+    planSelectionDetail(p,planPair(p,TextPlanOp::Distinct,node.description,node.name),setting(Setting::AutoDetail)!=0);previousNode=index;commitTextPlan(p);
 }
 void openingBefore(Event& e) { e.before[0] = opened(); }
 void openingAfter(Event& e) {

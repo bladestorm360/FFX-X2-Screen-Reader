@@ -4,7 +4,7 @@
 namespace ffx {
 using TextRef=unsigned;
 constexpr unsigned TextPlanNodeLimit=128,TextPlanByteLimit=98304+16384;
-enum class TextPlanOp : unsigned {Literal,Integer,First,Lines,Description,Concat,Join,SpaceJoin,Periods,IfText,Or,Hp,Mp,EquipmentName,MessagePrompt,MessageRows,BattleTarget,SettingValue,NativeButtonMask,PrimaryDodgeName,LineBreaks,OrderedRows};
+enum class TextPlanOp : unsigned {Literal,Integer,First,Lines,Description,Concat,Join,SpaceJoin,Periods,IfText,Or,Hp,Mp,EquipmentName,MessagePrompt,MessageRows,BattleTarget,SettingValue,NativeButtonMask,PrimaryDodgeName,LineBreaks,OrderedRows,Distinct};
 struct TextPlanNode {
     TextPlanOp op=TextPlanOp::Literal;
     unsigned left=0,right=0,offset=0,length=0;
