@@ -9,11 +9,12 @@ const PuzzleRoute& guideRoute(const char* script) {
     for(const auto& route:puzzleRoutes) if(!std::strcmp(route.script,script)) return route;
     check(false,"guide route exists");std::abort();
 }
-void loadGuideRoute(const char* script) {
+void loadGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
     const auto trial=std::find_if(std::begin(trialUtilities),std::end(trialUtilities),[&](const TrialUtility& t){return !std::strcmp(t.script,script);});
     check(trial!=std::end(trialUtilities),"guide trial exists");
     load(*trial,trial->collect);resetOwnedPuzzleGuide();
     for(const auto& step:guideRoute(script).steps) if(step.check) declaration(step.done.low,step.done.high);
+    for(const auto& stage:stages) for(const auto& write:stage.writes) declaration(write.low,1);
     put(chunk,0x402,static_cast<uint16_t>(declarations.size()));
     utility_fixture_resources::prepareUtilityResources(ptr(chunk),chunk.data(),chunk.size());
 }
@@ -25,7 +26,7 @@ void expectGuide(const char* script,const char* action,int expected) {
     check(ok,"guide expected step follows native trial state");
 }
 void walkGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
-    loadGuideRoute(script);
+    loadGuideRoute(script,stages);
     for(const auto& stage:stages) {
         for(const auto& write:stage.writes) setValue(write.low,1,write.value);
         expectGuide(script,stage.action,stage.expected);
@@ -81,7 +82,46 @@ void djoseGuideRouteFixture() {
         {"take a door sphere back",{{0x0c000097,0},{0x0c000094,1}},6},
     });
 }
+void kilikaGuideRouteFixture() {
+    // klyt1000: 0x5b carried sphere (1-3 Kilika, 4 Glyph, 6 Destruction);
+    // 0x59/0x5a/0x5c/0x5d/0x5e/0x5f/0x61/0x62 recess sockets; 0x5d becomes 5
+    // when the wall glyph is exposed and 0 when it is touched; 0x64 pedestal
+    // on the floor depression; 0x63 reaches 3 when the antechamber door
+    // sphere is removed.
+    walkGuideRoute("klyt1000",{
+        {"entry",{{0x0c000058,1},{0x0c00005a,4},{0x0c00005f,2},{0x0c000060,6},{0x0c000061,3}},1},
+        {"take entry sphere",{{0x0c00005b,1},{0x0c000058,0}},2},
+        {"insert entry door recess",{{0x0c000059,1},{0x0c00005b,0}},3},
+        {"remove entry door sphere",{{0x0c00005b,1},{0x0c000059,0},{0x0c000063,1}},4},
+        {"insert wall glyph recess",{{0x0c00005d,1},{0x0c00005b,0}},5},
+        {"remove wall glyph sphere",{{0x0c00005b,1},{0x0c00005d,5}},6},
+        {"store in storage recess 2",{{0x0c00005e,1},{0x0c00005b,0}},7},
+        {"touch exposed glyph",{{0x0c00005d,0}},8},
+        {"take Glyph Sphere",{{0x0c00005b,4},{0x0c00005a,0}},9},
+        {"store Glyph in storage recess 1",{{0x0c00005c,4},{0x0c00005b,0}},10},
+        {"take fire chamber sphere",{{0x0c00005b,2},{0x0c00005f,0}},11},
+        {"insert pedestal",{{0x0c00005a,2},{0x0c00005b,0}},12},
+        {"retrieve Glyph Sphere",{{0x0c00005b,4},{0x0c00005c,0}},13},
+        {"insert Glyph in fire chamber recess",{{0x0c00005f,4},{0x0c00005b,0}},0},
+        {"push pedestal onto depression",{{0x0c000064,1}},16},
+        {"take lower recess sphere",{{0x0c00005b,3},{0x0c000061,0}},17},
+        {"insert antechamber door recess",{{0x0c000062,3},{0x0c00005b,0}},18},
+        {"take Destruction Sphere",{{0x0c00005b,6},{0x0c000060,0}},19},
+        {"insert Destruction in lower recess",{{0x0c000061,6},{0x0c00005b,0}},20},
+        {"open Destruction treasure",{{0x01000a70,2}},21},
+        {"remove antechamber door sphere",{{0x0c000062,0},{0x0c00005b,3},{0x0c000063,3}},22},
+    });
+    walkGuideRoute("klyt1000",{{"late start on depression",{{0x0c000064,1}},16}});
+    walkGuideRoute("klyt1000",{{"late start after treasure",{{0x0c000064,1},{0x01000a70,2},{0x0c000063,3}},22}});
+    // Taking a sphere back out of its socket never moves the guide backward.
+    walkGuideRoute("klyt1000",{
+        {"take and insert entry sphere",{{0x0c00005b,1}},2},
+        {"insert entry door recess",{{0x0c000059,1},{0x0c00005b,0}},3},
+        {"remove entry door sphere",{{0x0c000059,0},{0x0c00005b,1}},4},
+    });
+}
 }
 void puzzleGuideRouteFixtures() {
     djoseGuideRouteFixture();
+    kilikaGuideRouteFixture();
 }
