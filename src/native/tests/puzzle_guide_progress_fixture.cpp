@@ -7,7 +7,7 @@ using namespace ffx;
 namespace {
 int failures=0;
 void check(bool valid,const char* reason) {if(!valid) {std::fprintf(stderr,"FAIL: %s\n",reason);++failures;}}
-constexpr unsigned carry=0x100,door=0x101,hidden=0x102,touch=0x103,pedestal=0x104,treasure=0x105,recess=0x106,door2=0x107;
+constexpr unsigned carry=0x100,door=0x101,hidden=0x102,touch=0x103,pedestal=0x104,treasure=0x105,recess=0x106,door2=0x107,rail=0x108;
 PuzzleStep step(unsigned low,int value,bool checkpoint,unsigned worker) {return PuzzleStep{L"",worker,{},{low,1,value,0},true,false,checkpoint};}
 // Same shape as the Besaid route: a sphere is carried, put in the door, taken
 // back out, put in a hidden recess, then a second sphere goes in a pedestal.
@@ -58,10 +58,20 @@ const PuzzleRoute djose{"synthetic djose",{
     step(recess,1,false,52),    // 5 insert it into a charging recess
     PuzzleStep{L"",0,{},{0,1,0,0},false,true,false},
 }};
+// The Bevelle opening: the rail pedestal node reads 1 once pushed onto the
+// entrance track and 19 once ridden. Riding moves it on; nothing is taken back.
+const PuzzleRoute bevelle{"synthetic bevelle",{
+    step(rail,1,false,13),      // 0 push the rail pedestal onto the track
+    step(carry,2,false,22),     // 1 take the upper sphere
+    step(recess,1,false,23),    // 2 insert it into the power recess
+    step(carry,3,false,24),     // 3 take the lower sphere
+    PuzzleStep{L"",0,{},{0,1,0,0},false,true,false},
+}};
 std::map<unsigned,int> flags;
 unsigned expected(PuzzleProgress& progress,const PuzzleRoute& r=route) {
     advancePuzzleProgress(r,0,static_cast<unsigned>(r.steps.size()),progress,
-        [](const PuzzleStep& s) {return s.check && flags[s.done.low]==s.done.value;});
+        [](const PuzzleStep& s) {return s.check && flags[s.done.low]==s.done.value;},
+        [](const PuzzleStep& s) {return flags[s.done.low]==0;});
     return progress.expected;
 }
 }
@@ -126,6 +136,20 @@ int main() {
         flags[carry]=0; flags[door]=1; check(expected(d,djose)==2,"djose: reinserting it expects the second entry sphere");
         flags[carry]=1; check(expected(d,djose)==3,"djose: carrying the second sphere expects door recess 2");
         flags[carry]=0; flags[door2]=1; check(expected(d,djose)==4,"djose: door recess 2 expects the pedestal sphere");
+    }
+    {
+        // Bevelle: a placement binding that moves to another nonzero value
+        // keeps progress. Only an emptied binding moves the guide back.
+        PuzzleProgress b; flags={};
+        check(expected(b,bevelle)==0,"bevelle: entry expects the rail pedestal");
+        flags[rail]=1; check(expected(b,bevelle)==1,"bevelle: pedestal on the track expects the upper sphere");
+        flags[rail]=19;
+        const auto ridden=expected(b,bevelle);
+        if(ridden!=1) std::fprintf(stderr,"bevelle: expected step index %u after riding the rail, want 1\n",ridden);
+        check(ridden==1,"bevelle: riding the rail does not move the guide back to the pedestal");
+        flags[carry]=2; check(expected(b,bevelle)==2,"bevelle: carrying the upper sphere expects the power recess");
+        flags[carry]=0; flags[recess]=1; check(expected(b,bevelle)==3,"bevelle: power recess expects the lower sphere");
+        flags[recess]=0; flags[carry]=2; check(expected(b,bevelle)==2,"bevelle: emptying the power recess still moves the guide back");
     }
     if(failures) return 1;
     std::puts("PASS: puzzle guide expected step follows placements taken back out, keeps route removals.");
