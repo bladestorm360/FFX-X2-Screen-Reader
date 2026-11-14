@@ -714,6 +714,8 @@ are consumed only on the Sphere Grid.
   location? Costs 2 Sphere Levels, 6 left." Confirming
   a move announces the character and destination node, plus changed Sphere Levels.
   Native preview start says "Preparing to move" before the delayed confirmation.
+* The Use list reads each sphere with its quantity. A sphere the game greys out
+  says "unavailable" in the same line, for example "Mana Sphere, 0, unavailable".
 
 **F6** — at a stationary grid cursor in Browse, Move or Use, open **Node number**.
 Type the spoken node number and press Enter to select that cursor position;
