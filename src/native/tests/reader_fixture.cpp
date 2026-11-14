@@ -779,6 +779,15 @@ int main(int argc, char** argv) {
     protectSpeech(false);
     set<uint16_t>(0xf3c91c,0x2002);
     event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);set<uint16_t>(0x2120606,8);set<uint8_t>(0x212060a,2);set<uint8_t>(0x2120613,3);});
+    expect(L"Tidus: MP 17/30, poison, darkness","target names visible ailments but not buffs");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);set<uint16_t>(0x2120616,0x4000);set<uint8_t>(0x21205c8,3);});
+    expect(L"Tidus: MP 17/30, poison, darkness, doom, 3 turns","target doom counter");
+    set<uint16_t>(0x2120606,0);set<uint8_t>(0x212060a,0);set<uint8_t>(0x2120613,0);set<uint16_t>(0x2120616,0);set<uint8_t>(0x21205c8,0);
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","target without ailments has no status suffix");
     check(said.back().second,"target movement interrupts after deliberate input, including held menu navigation");
     battleTargetPreviewFixtures();
     {

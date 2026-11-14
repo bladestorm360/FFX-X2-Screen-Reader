@@ -285,6 +285,12 @@ an HP bar; they do not display numeric maximum HP or status-effect labels.
 When selecting a party target in battle, a command such as Potion reads the
 target's HP, and a command such as Ether reads the target's MP. The preview
 follows the active target window's action on each turn.
+When you choose a battle target, any current ailment is read after the target's
+HP or MP, for example **Kimahri: HP 340/340, poison, darkness**. Ailments are KO, zombie,
+petrify, poison, the four breaks, confuse, berserk, provoke, threaten, sleep,
+silence, darkness, slow, curse and doom with its turn count. Positive effects
+such as Protect, Haste or Auto-Life are not added to targets; H still reads the
+turn owner's full status.
 
 When the game reveals **Sensor** information for a highlighted enemy, its
 exact current and maximum HP are read directly. **Ctrl+Left** selects the first
