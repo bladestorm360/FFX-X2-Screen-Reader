@@ -56,14 +56,18 @@ void highlighted(uintptr_t win) {
     const int id=read<uint16_t>(list+row*2);
     if (row == previousRow && id == previousCommand) return;
     previousRow = row; previousCommand = id;
-    lastCommand=id;
     const auto type=read<uint16_t>(win+6);
+    // Only command, ability and item rows are 0x39a4c0 records (see commandName).
+    // Equipment, Switch and aeon rows hold other IDs, so they must not reach the
+    // record getter that chooses the target MP preview.
+    const bool record=type!=7 && type!=15 && type!=10 && (type!=5 || id==0x30ff);
+    lastCommand=record?id:0;
     TextPlan p;prepareTextPlan(p,"battle-command");TextRef detail=0;
     if(type==7 || type==15) {
         using Gear=uintptr_t(__cdecl*)(unsigned,uintptr_t*);
-        detail=planEquipmentDetails(p,reinterpret_cast<Gear>(address(0x3abbf0))(lastCommand,nullptr));
-    } else if(type==10) detail=planBattleSelectionVitals(p,lastCommand);
-    else if(type==5) detail=summonDetail(p,lastCommand);
+        detail=planEquipmentDetails(p,reinterpret_cast<Gear>(address(0x3abbf0))(id,nullptr));
+    } else if(type==10) detail=planBattleSelectionVitals(p,id);
+    else if(type==5) detail=summonDetail(p,id);
     else {
         const auto description=planRecordDescription(p,0x39a4c0,lastCommand);
         detail=planPair(p,TextPlanOp::Or,description,planEncoded(p,address(0xf3f4f8),128,TextPlanOp::Lines));
@@ -88,6 +92,8 @@ void opened(Event&) {
     if (!win) return;
     previousRow = previousCommand = -1;
     if(read<uint16_t>(win+6)==0) {
+        // A new turn has no chosen command yet; drop the previous turn's row.
+        lastCommand=0;
         resetSelectionDetail();TextPlan p;prepareTextPlan(p,"battle-turn",false);
         p.headline=planBattleName(p,read<uint8_t>(win+8));commitTextPlan(p);
     }

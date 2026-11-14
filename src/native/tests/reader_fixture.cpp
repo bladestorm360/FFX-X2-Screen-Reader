@@ -708,6 +708,14 @@ int main(int argc, char** argv) {
     protectSpeech(false);
     event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");
     check(said.back().second,"target movement interrupts after deliberate input, including held menu navigation");
+    // Only command, ability and item rows are 0x39a4c0 records. A Switch row is a
+    // character ID and must not choose the MP preview through the record getter.
+    resetBattle(); set<uint16_t>(0xf3c916,10); event(0x49c870,address(0xf3c910));
+    event(0x49d300,address(0xf3c910)); check(said.back().first.find(L"Tidus: HP ")==0,"Switch highlight cannot feed the command record MP preview");
+    // A new turn starts without a command. The previous turn's row is stale.
+    resetBattle(); set<uint16_t>(0xf3c916,0); event(0x49c870,address(0xf3c910)); event(0x4a0d70,0);
+    event(0x49d300,address(0xf3c910)); check(said.back().first.find(L"Tidus: HP ")==0,"new turn clears the previous command preview");
+    resetBattle();
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,8);}); expect(L"Tidus: poison","first application status");
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,0);}); expect(L"Tidus: poison cured","status cured");
     event(0x38f0b0,0,[]{set<uint8_t>(0x212060d,5);set<uint8_t>(0x2120613,5);}); expect(L"Tidus: reflect, haste","temporal statuses");
