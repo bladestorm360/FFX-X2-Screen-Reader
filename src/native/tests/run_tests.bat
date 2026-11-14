@@ -1,14 +1,23 @@
 @echo off
 setlocal
+rem The suite starts the executables it just built by bare name from the working
+rem directory. Hardened shells set this variable, which stops that lookup.
+set "NoDefaultCurrentDirectoryInExePath="
 set "TEST_SRC=%~dp0"
 set "REPO_ROOT=%~dp0..\..\.."
+call "%REPO_ROOT%\tools\env.bat"
+if errorlevel 1 exit /b 1
 call "%REPO_ROOT%\Docs\Scripts\evidence_root.bat"
 if errorlevel 1 exit /b 1
 if /I "%~1"=="--sdl-owner" goto sdlowner
-call "%REPO_ROOT%\..\..\..\dev_env.bat"
 if not defined VCVARSALL exit /b 1
 call "%VCVARSALL%" x86 >nul
 if not "%errorlevel%"=="0" exit /b 1
+if not exist "%REPO_ROOT%\install\sdl3-x86\SDL3.lib" call "%TEST_SRC%..\build_sdl3.bat"
+if not exist "%REPO_ROOT%\install\sdl3-x86\SDL3.lib" (
+    echo ERROR: SDL3 build failed; see the output above.
+    exit /b 1
+)
 set "TEST_BUILD=%FFX_EVIDENCE_ROOT%\test-build"
 if not exist "%TEST_BUILD%" mkdir "%TEST_BUILD%"
 pushd "%TEST_BUILD%"
@@ -111,12 +120,22 @@ hook_native_actions_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--native-actions" goto success
 :jecht
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files" goto jecht_have
+echo SKIP: jecht needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files"
+if "%~1"=="" goto lightning
+goto success
+:jecht_have
 cl /nologo /W4 /WX /O2 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:jecht_fixture.exe "%TEST_SRC%jecht_fixture.cpp" "%TEST_SRC%..\jecht.cpp" "%TEST_SRC%..\jecht_voice.cpp" "%TEST_SRC%..\lightning.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\navigation_targets.cpp" /link user32.lib /STACK:2097152
 if not "%errorlevel%"=="0" goto failed
 jecht_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--jecht" goto success
 :lightning
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files" goto lightning_have
+echo SKIP: lightning needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files"
+if "%~1"=="" goto console
+goto success
+:lightning_have
 cl /nologo /W4 /WX /O2 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:lightning_fixture.exe "%TEST_SRC%lightning_fixture.cpp" "%TEST_SRC%..\lightning.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\navigation_targets.cpp" /link user32.lib
 if not "%errorlevel%"=="0" goto failed
 lightning_fixture.exe
@@ -179,6 +198,11 @@ nav_cues_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--navigation-audio" goto success
 :butterflies
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files" goto butterflies_have
+echo SKIP: butterflies needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files"
+if "%~1"=="" goto minigames
+goto success
+:butterflies_have
 cl /nologo /W4 /WX /O2 /EHa /DFFX_READER_TEST /std:c++17 /MT /Fe:butterfly_fixture.exe "%TEST_SRC%butterfly_fixture.cpp" "%TEST_SRC%..\butterfly.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\butterfly_processing.cpp" /link user32.lib
 if not "%errorlevel%"=="0" goto failed
 butterfly_fixture.exe
@@ -190,6 +214,11 @@ if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--butterflies" goto success
 
 :minigames
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files" goto minigames_have
+echo SKIP: minigames needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files"
+if "%~1"=="" goto readers
+goto success
+:minigames_have
 cl /nologo /W4 /WX /O2 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:minigame_fixture.exe "%TEST_SRC%minigame_fixture.cpp" "%TEST_SRC%..\minigames.cpp" "%TEST_SRC%..\minigame_memory.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\navigation_targets.cpp" /link user32.lib
 if not "%errorlevel%"=="0" goto failed
 minigame_fixture.exe
@@ -198,6 +227,11 @@ minigame_fixture.exe --installed-profile
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--minigames" goto success
 :readers
+if exist "%FFX_EVIDENCE_ROOT%\native\hudTextureClipBody.bin" goto readers_have
+echo SKIP: readers needs "%FFX_EVIDENCE_ROOT%\native\hudTextureClipBody.bin"
+if "%~1"=="" goto reachability
+goto success
+:readers_have
 cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:reader_fixture.exe "%TEST_SRC%reader_fixture.cpp" "%TEST_SRC%..\text.cpp" "%TEST_SRC%..\game_text.cpp" "%TEST_SRC%..\field_menus.cpp" "%TEST_SRC%..\save_load_menu.cpp" "%TEST_SRC%..\field_details.cpp" "%TEST_SRC%..\field_targets.cpp" "%TEST_SRC%..\naming.cpp" "%TEST_SRC%..\aeon_attributes.cpp" "%TEST_SRC%..\navigation.cpp" "%TEST_SRC%..\puzzle_guide_owned.cpp" "%TEST_SRC%..\puzzle_guide_targets.cpp" "%TEST_SRC%..\navigation_scene.cpp" "%TEST_SRC%..\navigation_observations.cpp" "%TEST_SRC%..\navigation_intents.cpp" "%TEST_SRC%..\utility_memory.cpp" "%TEST_SRC%..\pedestal_rules.cpp" "%TEST_SRC%..\reachability_capture.cpp" "%TEST_SRC%..\reachability_worker.cpp" "%TEST_SRC%..\nav_memory.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp" "%TEST_SRC%..\nav_exits.cpp" "%TEST_SRC%..\exit_labels.cpp" "%TEST_SRC%..\swimming_navigation.cpp" "%TEST_SRC%..\navigation_labels.cpp" "%TEST_SRC%..\nav_interactions.cpp" "%TEST_SRC%..\nav_facing.cpp" "%TEST_SRC%..\navigation_targets.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\atel_memory.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\messages.cpp" "%TEST_SRC%..\message_text.cpp" "%TEST_SRC%..\button_glyphs.cpp" "%TEST_SRC%..\field_controls.cpp" "%TEST_SRC%..\dialogue_voice.cpp" "%TEST_SRC%..\movie_dialogue.cpp" "%TEST_SRC%..\help.cpp" "%TEST_SRC%..\monster_arena.cpp" "%TEST_SRC%..\copied_text.cpp" "%TEST_SRC%..\copied_controls.cpp" "%TEST_SRC%..\intro_cue.cpp" "%TEST_SRC%..\airship_search.cpp" "%TEST_SRC%..\airship_destinations.cpp" "%TEST_SRC%..\game_binding_input.cpp" "%TEST_SRC%..\system_menus.cpp" "%TEST_SRC%..\system_menu_capture.cpp" "%TEST_SRC%..\ready_text.cpp" "%TEST_SRC%..\status_review.cpp" "%TEST_SRC%..\status_grid.cpp" "%TEST_SRC%..\shops.cpp" "%TEST_SRC%..\confirmations.cpp" "%TEST_SRC%..\esc_settings.cpp" "%TEST_SRC%..\sphere_grid.cpp" "%TEST_SRC%..\sphere_jump.cpp" "%TEST_SRC%..\sphere_data.cpp" "%TEST_SRC%..\sphere_paths.cpp" "%TEST_SRC%..\sphere_sections.cpp" "%TEST_SRC%..\sphere_expert.cpp" "%TEST_SRC%..\sphere_orientation.cpp" "%TEST_SRC%..\sphere_planner.cpp" "%TEST_SRC%..\sphere_owned.cpp" "%TEST_SRC%..\sphere_text.cpp" "%TEST_SRC%..\battle.cpp" "%TEST_SRC%..\battle_hud.cpp" "%TEST_SRC%..\battle_graphics.cpp" "%TEST_SRC%..\battle_sensor.cpp" "%TEST_SRC%..\battle_announcements.cpp" "%TEST_SRC%..\battle_results.cpp" "%TEST_SRC%..\equipment_overflow.cpp" "%TEST_SRC%..\battle_status.cpp" "%TEST_SRC%..\status_animation.cpp" "%TEST_SRC%..\overdrive.cpp" "%TEST_SRC%..\game_details.cpp" "%TEST_SRC%..\selection_details.cpp" "%TEST_SRC%..\esc_details.cpp" "%TEST_SRC%..\esc_capture.cpp" "%TEST_SRC%..\text_plan.cpp" "%TEST_SRC%..\ready_game_text.cpp" "%TEST_SRC%..\settings.cpp" "%TEST_SRC%..\butterfly_navigation.cpp" "%TEST_SRC%..\swimming_route.cpp" "%TEST_SRC%..\butterfly_paths.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\utility_text.cpp" "%TEST_SRC%..\utility_text_plans.cpp" /link user32.lib gdi32.lib
 if not "%errorlevel%"=="0" goto failed
 reader_fixture.exe
@@ -206,6 +240,11 @@ reader_fixture.exe --installed-profile
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--readers" goto success
 :reachability
+if exist "%FFX_EVIDENCE_ROOT%\native\collisionReplayBody.bin" goto reachability_have
+echo SKIP: reachability needs "%FFX_EVIDENCE_ROOT%\native\collisionReplayBody.bin"
+if "%~1"=="" goto sinroutes
+goto success
+:reachability_have
 cl /nologo /W4 /WX /EHsc /std:c++17 /MT /c /DdestinationUnreachable=fixtureDestination /Fo:reachability_zones.obj "%TEST_SRC%..\nav_zones.cpp"
 if not "%errorlevel%"=="0" goto failed
 cl /nologo /W4 /WX /EHsc /std:c++17 /MT /DFFX_READER_TEST /Fe:reachability_fixture.exe "%TEST_SRC%reachability_fixture.cpp" "%TEST_SRC%..\reachability_capture.cpp" "%TEST_SRC%..\reachability_worker.cpp" "%TEST_SRC%..\nav_geometry.cpp" reachability_zones.obj
@@ -219,12 +258,20 @@ if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--reachability" goto success
 :sinroutes
 if /I not "%~1"=="--sin-routes" goto navigationgeometry
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\sin_routes_20261020\triangles.bin" goto sinroutes_have
+echo SKIP: sinroutes needs "%FFX_EVIDENCE_ROOT%\offline-output\sin_routes_20261020\triangles.bin"
+goto success
+:sinroutes_have
 cl /nologo /W4 /WX /O2 /EHsc /std:c++17 /MT /Fe:sin_route_fixture.exe "%TEST_SRC%sin_route_fixture.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp"
 if not "%errorlevel%"=="0" goto failed
 sin_route_fixture.exe > sin-production-routes.json
 if not "%errorlevel%"=="0" goto failed
 goto success
 :sinlatermaps
+if exist "%FFX_EVIDENCE_ROOT%\native\collisionReplayBody.bin" goto sinlatermaps_have
+echo SKIP: sinlatermaps needs "%FFX_EVIDENCE_ROOT%\native\collisionReplayBody.bin"
+goto success
+:sinlatermaps_have
 cl /nologo /W4 /WX /O2 /EHsc /std:c++17 /MT /Fe:sin_later_maps_fixture.exe "%TEST_SRC%sin_later_maps_fixture.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp"
 if not "%errorlevel%"=="0" goto failed
 sin_later_maps_fixture.exe > sin-later-production-routes.json
@@ -232,6 +279,10 @@ if not "%errorlevel%"=="0" goto failed
 goto success
 :minigamecompletion
 if /I not "%~1"=="--minigame-completion" goto sincollection
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\minigames_20261007_104142\manifest.json" goto minigamecompletion_have
+echo SKIP: minigamecompletion needs "%FFX_EVIDENCE_ROOT%\offline-output\minigames_20261007_104142\manifest.json"
+goto success
+:minigamecompletion_have
 python "%TEST_SRC%prepare_minigame_completion.py"
 if not "%errorlevel%"=="0" goto failed
 cl /nologo /W4 /WX /O2 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:minigame_completion_fixture.exe "%TEST_SRC%minigame_completion_fixture.cpp" "%TEST_SRC%..\minigame_completion.cpp" "%TEST_SRC%..\utility_memory.cpp" "%TEST_SRC%..\utility_text.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\navigation_targets.cpp" /link user32.lib
@@ -241,6 +292,10 @@ if not "%errorlevel%"=="0" goto failed
 goto success
 :sincollection
 if /I not "%~1"=="--sin-collection" goto navigationgeometry
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\sin_collection_20261020\floatGet-table.bin" goto sincollection_have
+echo SKIP: sincollection needs "%FFX_EVIDENCE_ROOT%\offline-output\sin_collection_20261020\floatGet-table.bin"
+goto success
+:sincollection_have
 cl /nologo /W4 /WX /O2 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:sin_collection_fixture.exe "%TEST_SRC%sin_collection_fixture.cpp" "%TEST_SRC%..\sin_collection.cpp" "%TEST_SRC%..\utility_memory.cpp" "%TEST_SRC%..\utility_text.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\navigation_targets.cpp" /link user32.lib
 if not "%errorlevel%"=="0" goto failed
 sin_collection_fixture.exe
@@ -253,6 +308,11 @@ sin_collection_hook_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 goto success
 :navigationgeometry
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\gagazet_cross_water_20261016" goto navigationgeometry_have
+echo SKIP: navigationgeometry needs "%FFX_EVIDENCE_ROOT%\offline-output\gagazet_cross_water_20261016"
+if "%~1"=="" goto pedestal
+goto success
+:navigationgeometry_have
 cl /nologo /W4 /WX /O2 /EHsc /std:c++17 /MT /Fe:cross_water_fixture.exe "%TEST_SRC%cross_water_fixture.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp"
 if not "%errorlevel%"=="0" goto failed
 cross_water_fixture.exe
@@ -300,6 +360,10 @@ direct_input_adapter_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--input-adapter" goto success
 if /I "%~1"=="--input" goto success
+if exist "%REPO_ROOT%\install\native\dinput8.dll" goto proxy_have
+echo SKIP: proxy-forwarding needs "%REPO_ROOT%\install\native\dinput8.dll" (run src\proxy\build_dinput8.bat)
+goto utilities
+:proxy_have
 cl /nologo /W4 /EHsc /MT /Fe:proxy_forwarding.exe "%TEST_SRC%proxy_forwarding.cpp" /link dxguid.lib
 if not "%errorlevel%"=="0" goto failed
 copy /Y "%REPO_ROOT%\install\native\dinput8.dll" dinput8.dll >nul
@@ -309,6 +373,10 @@ if not "%errorlevel%"=="0" goto failed
 proxy_forwarding.exe
 if not "%errorlevel%"=="0" goto failed
 :utilities
+if exist "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\maps_v3.json" goto utilities_have
+echo SKIP: utilities needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\maps_v3.json"
+goto success
+:utilities_have
 python "%TEST_SRC%prepare_utilities.py"
 if not "%errorlevel%"=="0" goto failed
 cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_READER_TEST /DFFX_DEV_UTILITIES /Fe:utility_fixture.exe "%TEST_SRC%utility_fixture.cpp" "%TEST_SRC%..\utilities.cpp" "%TEST_SRC%..\utility_context.cpp" "%TEST_SRC%..\utility_memory.cpp" "%TEST_SRC%..\utility_scripts.cpp" "%TEST_SRC%..\gagazet.cpp" "%TEST_SRC%..\utility_trials.cpp" "%TEST_SRC%..\utility_warps.cpp" "%TEST_SRC%..\navigation_targets.cpp" "%TEST_SRC%..\puzzle_solver.cpp" "%TEST_SRC%..\zanarkand_patterns.cpp" "%TEST_SRC%..\via_purifico.cpp" "%TEST_SRC%..\puzzle_completion.cpp" "%TEST_SRC%..\puzzle_guide.cpp" "%TEST_SRC%..\puzzle_guide_owned.cpp" "%TEST_SRC%..\puzzle_tiles.cpp" "%TEST_SRC%..\nav_interactions.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp" "%TEST_SRC%..\pedestal_state.cpp" "%TEST_SRC%..\pedestal_rules.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\utility_text.cpp" /link user32.lib

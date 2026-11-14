@@ -1,6 +1,9 @@
 @echo off
 setlocal
 set "SOURCE=%~dp0"
+set "REPO_ROOT=%~dp0..\.."
+call "%REPO_ROOT%\tools\env.bat"
+if errorlevel 1 exit /b 1
 set "OUTPUT=%~dp0..\..\install\native"
 if not exist "%OUTPUT%" mkdir "%OUTPUT%"
 pushd "%OUTPUT%"

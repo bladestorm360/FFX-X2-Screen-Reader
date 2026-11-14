@@ -1,0 +1,33 @@
+name: Build and test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fetch dependencies
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\fetch_deps.ps1
+
+      - name: Build native DLL
+        shell: cmd
+        run: call src\proxy\build_dinput8.bat
+
+      - name: Native tests
+        shell: cmd
+        run: call src\native\tests\run_tests.bat
+
+      - name: Installer tests
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File src\installer\tests\run_tests.ps1
