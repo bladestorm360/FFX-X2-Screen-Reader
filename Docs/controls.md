@@ -478,7 +478,9 @@ Save Sphere → Treasure Chest → Shop → NPC → Object).
 
 **Backslash** — route into the selected entity's actual interaction zone,
 including the reachable side of a counter. Routes use live native collision
-and retain short final movements. Once in range,
+and retain short final movements. Route directions speak each turn once:
+consecutive legs within 15 degrees of the same heading are read as one distance.
+Once in range,
 Backslash says which way to face, such as **Face west**.
 North means ahead relative to the camera. With Auto walk off, turn and confirm
 manually. Inactive trial controls are identified as inactive. Repeated inactive
