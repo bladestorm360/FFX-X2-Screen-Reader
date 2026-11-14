@@ -86,7 +86,7 @@ characters say Unknown character. F7 toggles Autodetail.
 - **Navigation audio:** beacon, wall and arrival sounds, their volumes, wall
   range, race pickup cues, Jecht Shot cues, Lightning warning and sound previews.
 - **Navigation:** Auto walk, Speak auto walk path, Hide unreachable destinations and Partial steps.
-- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
+- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Sphere Grid node numbers, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
 
 ### Optional minigame completion assistance
 
@@ -653,15 +653,23 @@ are consumed only on the Sphere Grid.
 * Native node names are announced as you move, including activation for the
   focused character. Unactivated nodes announce the required sphere and quantity,
   including the matching key sphere for a locked node. **I** reads the native description; autodetail can be
-  enabled with F7 or in F8. Activation feedback announces the actual character/node.
+  enabled with F7 or in F8. Autodetail skips the description of empty nodes;
+  **I** still reads it. Activation feedback announces the actual character/node.
   Ability nodes resolve the ability's own description, including all text lines.
   Activation feedback includes actual before/after stat values when they change.
-* Movement reads the native confirmation prompt and Yes/No choices. Confirming
+* Movement reads the native confirmation prompt and Yes/No choices. The prompt
+  adds the move's Sphere Level cost and what remains, for example "Move to this
+  location? Costs 2 Sphere Levels, 6 left." Confirming
   a move announces the character and destination node, plus changed Sphere Levels.
   Native preview start says "Preparing to move" before the delayed confirmation.
+* The Use list reads each sphere with its quantity. A sphere the game greys out
+  says "unavailable" in the same line, for example "Mana Sphere, 0, unavailable".
 
 **F6** — at a stationary grid cursor in Browse, Move or Use, open **Node number**.
 Type the spoken node number and press Enter to select that cursor position;
+node-number entry works even when **F8 > Miscellaneous > Sphere Grid node numbers**
+is Off. That setting (default On) controls whether node names and route guidance
+end with ", node N".
 Escape cancels. Close any grid action menu before using it. Move and Use retain
 the game's available-node restrictions and normal confirmations; this changes
 the cursor only. Some crowded branches have no direct arrow combination, so

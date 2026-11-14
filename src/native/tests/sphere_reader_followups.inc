@@ -42,27 +42,29 @@ void sphereReaderFixtures() {
     }
     set<uint8_t>(inventory+0x50,1); set<int16_t>(inventory+0x18,1);
     auto before=said.size(); event(0x6583e0,0);
-    check(said.size()==before+2 && said[before].first==L"Mana Sphere, 0" && said.back().first==L"Unavailable",
-        "native disabled entry announces unavailability after its name and quantity");
-    check(!said.back().second,"unavailability queues after the selected sphere");
+    check(said.size()==before+1 && said.back().first==L"Mana Sphere, 0, unavailable",
+        "native disabled entry says unavailable inline after its name and quantity");
     constexpr unsigned grid=0x2320000;
     std::memset(reinterpret_cast<void*>(address(grid)),0,0x12000);
     set<uintptr_t>(0x1f05834,address(grid)); set<uintptr_t>(0x16860e0,address(0x2310400));
     set<uintptr_t>(0x16860e4,address(0x2310b00)); set<int16_t>(grid+2,12);
     set<int16_t>(pool+0x2700,-1); set<uint8_t>(0x1685f70,1);
     const char* names[]={"Strength Node","HP Node","Magic Node","Agility Node","Cheer","Luck Node",
-        "Lock 1","Lock 2","Lock 3","Lock 4","Empty","Strength Node"};
+        "Lock 1","Lock 2","Lock 3","Lock 4","Empty Node","Strength Node"};
     const unsigned flags[]={4,1,2,8,0x400,0x10,0x8000,0x8000,0x8000,0x8000,0,4};
     const unsigned types[]={2,2,2,2,2,2,0x12,0x11,0,0x10,1,2};
     const unsigned expected[]={0,0,1,2,3,4,5,6,7,8};
     resetSphereGrid(); setSetting(Setting::AutoDetail,0);
     for(int key:{VK_F2,VK_F3,VK_F4,VK_F5,static_cast<int>('O'),static_cast<int>('S')}) check(!contexts.at(key)(),"grid shortcuts have no closed-grid context");
     for(unsigned row=0;row<12;++row) {
-        encoded(0x2345000+row*0x80,names[row]);
-        set<uint16_t>(0x2344000+row*0x20+0x10,static_cast<uint16_t>(flags[row]));
-        set<uint8_t>(0x2344000+row*0x20+0x16,static_cast<uint8_t>(types[row]));
-        set<int16_t>(grid+0x80e+row*0x28,static_cast<int16_t>(row));
+        // Native node type 1 is the empty node, so row 10 and row 1 swap definitions.
+        const unsigned type=row==1?10:row==10?1:row;
+        encoded(0x2345000+type*0x80,names[row]);
+        set<uint16_t>(0x2344000+type*0x20+0x10,static_cast<uint16_t>(flags[row]));
+        set<uint8_t>(0x2344000+type*0x20+0x16,static_cast<uint8_t>(types[row]));
+        set<int16_t>(grid+0x80e+row*0x28,static_cast<int16_t>(type));
     }
+    encoded(0x2345000+1*0x80+0x40,"This node is empty."); set<uint16_t>(0x2344000+1*0x20+8,0x40);
     GridSnapshot snapshot; check(sphereSnapshot(snapshot,true),"snapshot with native sphere catalog");
     for(unsigned row=0;row<10;++row) {
         set<int16_t>(grid+0x112fc,static_cast<int16_t>(row)); event(0x648d70,0);
@@ -74,11 +76,20 @@ void sphereReaderFixtures() {
         check(sphereNode(static_cast<int>(row),true).sphere==snapshot.nodes[row].sphere,
             "node announcements and planner share material resolution");
     }
-    set<int16_t>(grid+0x112fc,10); event(0x648d70,0); expect(L"Empty, node 11","empty nodes have no activation material");
+    setSetting(Setting::AutoDetail,1); auto beforeEmpty=said.size();
+    set<int16_t>(grid+0x112fc,10); event(0x648d70,0); expect(L"Empty Node, node 11","empty nodes have no activation material");
+    check(said.size()==beforeEmpty+1,"Autodetail does not speak the empty node description");
+    keys['I'](false); expect(L"This node is empty.","I still reads the empty node description");
+    setSetting(Setting::AutoDetail,0);
     set<uint8_t>(grid+0x829+11*0x28,1); set<int16_t>(grid+0x112fc,11); event(0x648d70,0);
     expect(L"Strength Node, activated for Tidus, node 12","activated node does not request another sphere");
     event(0x4a9810,0,[=]{set<uint8_t>(grid+0x115bc,1);});
     expect(L"Strength Node, requires 1 Power Sphere, node 12","material requirement follows active character activation bits");
+    setSetting(Setting::SphereNodeNumbers,0); set<int16_t>(grid+0x112fc,10); event(0x648d70,0);
+    expect(L"Empty Node","node numbers setting Off leaves only the node name");
+    check(sphereNodeLabel(snapshot,0)==L"Strength Node","route labels follow the node numbers setting");
+    setSetting(Setting::SphereNodeNumbers,1);
+    check(sphereNodeLabel(snapshot,0)==L"Strength Node, node 1","route labels keep node numbers by default");
     for(int key:{VK_F2,VK_F3,VK_F4,VK_F5,static_cast<int>('O'),static_cast<int>('S')}) check(contexts.at(key)(),"native grid selection establishes all grid shortcut contexts");
     const int assist=setting(Setting::OverdriveAssist); keys['O'](false);
     check(setting(Setting::OverdriveAssist)==assist,"O orientation cannot toggle Overdrive auto-success");
