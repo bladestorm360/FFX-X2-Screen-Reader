@@ -480,6 +480,8 @@ Save Sphere → Treasure Chest → Shop → NPC → Object).
 including the reachable side of a counter. Routes use live native collision
 and retain short final movements. Route directions speak each turn once:
 consecutive legs within 15 degrees of the same heading are read as one distance.
+When two turns in a row share a compass word but bend, the bend is named between
+them, such as **7 north, bear left, 4 north**.
 Once in range,
 Backslash says which way to face, such as **Face west**.
 North means ahead relative to the camera. With Auto walk off, turn and confirm

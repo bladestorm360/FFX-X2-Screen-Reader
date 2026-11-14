@@ -20,7 +20,12 @@ void check(bool value,const char* message) {
 int main() {
     using namespace ffx;
     const auto bent=routeDirectionsText({{0,0,0},{10,0,10},{15,0,20}},1,true);
-    check(bent==L"14.1 northwest, 11.2 northwest","an 18 degree bend in one octant keeps its own segment");
+    // Turns that round to the same word say which way the path bends between them.
+    check(bent==L"14.1 northwest, bear left, 11.2 northwest","an 18 degree bend in one octant keeps its own segment and says bear left");
+    const auto right=routeDirectionsText({{0,0,0},{10,0,-10},{15,0,-20}},1,true);
+    check(right==L"14.1 northeast, bear right, 11.2 northeast","a bend to the right in one octant says bear right");
+    const auto twoNorth=routeDirectionsText({{0,0,0},{7,0,-1.2},{11,0,0.3}},1,false);
+    check(twoNorth==L"7 north, bear left, 4 north","two north legs with a real bend between them say the bend");
     const auto straight=routeDirectionsText({{0,0,0},{10,0,10},{20,0,20}},1,true);
     check(straight==L"28.3 northwest","collinear subdivisions keep one combined distance");
     // Merged route turns: legs within 15 degrees of the run's overall heading are one turn.

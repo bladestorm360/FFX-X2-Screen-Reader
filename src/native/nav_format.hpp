@@ -16,7 +16,7 @@ inline std::wstring routeSegmentText(double steps,const std::wstring& direction,
 }
 inline std::wstring routeDirectionsText(const std::vector<Point>& points,double units,bool partial) {
     // A run is one spoken turn: its walked length, labelled by its overall heading.
-    struct Run {Point start,end;double count;};
+    struct Run {Point start,end,first;double count;};
     std::vector<Run> runs;
     // cos(15 degrees): well under half an octant, and below the 18 degree bends a
     // listener should still hear as a separate turn.
@@ -35,10 +35,22 @@ inline std::wstring routeDirectionsText(const std::vector<Point>& points,double 
             const double dot=vector.x*chord.x+vector.z*chord.z,size=std::hypot(vector.x,vector.z)*std::hypot(chord.x,chord.z);
             if(size>0 && dot>=size*mergeCosine) {run.end=points[i];run.count+=count;continue;}
         }
-        runs.push_back({points[i-1],points[i],count});
+        runs.push_back({points[i-1],points[i],vector,count});
     }
-    std::vector<std::wstring> parts;
-    for(const auto& run:runs) parts.push_back(routeSegmentText(run.count,direction({run.end.x-run.start.x,0,run.end.z-run.start.z}),partial));
+    std::vector<std::wstring> parts;std::wstring previous;Point chord{};
+    for(const auto& run:runs) {
+        const Point next{run.end.x-run.start.x,0,run.end.z-run.start.z};
+        auto label=direction(next);
+        // Two turns that round to the same word would sound like one straight
+        // line said twice. Name the bend between them instead. The run's first
+        // leg is the one that broke the previous run, so its side is reliable.
+        // Positive cross products turn toward camera-left (see cameraDirectionLabel).
+        if(!parts.empty() && label==previous) {
+            const double cross=chord.x*run.first.z-chord.z*run.first.x;
+            parts.push_back(cross>0?L"bear left":L"bear right");
+        }
+        parts.push_back(routeSegmentText(run.count,label,partial));previous=std::move(label);chord=next;
+    }
     return join(parts);
 }
 }
