@@ -211,10 +211,56 @@ void bevelleGuideRouteFixture() {
         {"take it back",{{0x0c000025,0},bevelleSphere(2,1,1)},4},
     });
 }
+void zanarkandGuideRouteFixture() {
+    // dome0700: 0x5c000004 pattern stage (0 floor, 1-4 pedestals, 5 return);
+    // 0x22 floor pattern counter (6 = complete); 0x20 completed patterns and
+    // correct sphere placements; 0x29 return floor counter (8 = complete);
+    // 0x5c000008 carried sphere (1 Kilika, 2 Besaid, 3 Destruction);
+    // sockets 0x5c000010 Besaid source, 0x5c00000c Kilika source,
+    // 0x5c000018 Besaid recess, 0x5c00001c Kilika recess.
+    const std::vector<GuideWrite> firstVisit={{0x20000a00,2768},{0x5c000004,0},{0x0c000020,0},{0x0c000021,0},{0x0c000022,0},{0x0c000023,0},
+        {0x0c000024,0},{0x0c000025,0},{0x0c000027,0},{0x0c000029,0},{0x5c000008,0},{0x5c000010,2},{0x5c00000c,1},{0x5c000018,0},{0x5c00001c,0}};
+    walkGuideRoute("dome0700",{
+        {"entry",firstVisit,0},
+        {"step on activation tile",{{0x0c000022,0},{0x0c000023,0}},0},
+        {"partial floor pattern",{{0x0c000022,3}},0},
+        {"complete floor pattern",{{0x0c000022,6},{0x0c000023,0}},3},
+        {"activate pedestal 1",{{0x5c000004,1},{0x0c000021,1}},3},
+        {"complete pedestal 1 pattern",{{0x0c000024,9},{0x0c000020,1}},4},
+        {"reset floor counter by stepping a pattern-0 panel twice",{{0x0c000022,0}},4},
+        {"complete pedestal 2 pattern",{{0x5c000004,2},{0x0c000021,2},{0x0c000024,6},{0x0c000020,2}},5},
+        {"complete pedestal 3 pattern",{{0x5c000004,3},{0x0c000021,3},{0x0c000024,7},{0x0c000020,3}},6},
+        {"complete pedestal 4 pattern",{{0x5c000004,4},{0x0c000021,4},{0x0c000024,7},{0x0c000020,4}},7},
+        {"take Kilika Sphere out of order",{{0x5c00000c,0},{0x5c000008,1}},7},
+        {"return Kilika Sphere",{{0x5c00000c,1},{0x5c000008,0}},7},
+        {"take Besaid Sphere",{{0x5c000010,0},{0x5c000008,2}},8},
+        {"insert Besaid recess",{{0x5c000008,0},{0x5c000018,2},{0x0c000020,5}},9},
+        {"take Kilika Sphere",{{0x5c00000c,0},{0x5c000008,1}},10},
+        {"insert Kilika recess",{{0x5c000008,0},{0x5c00001c,1},{0x0c000020,6}},11},
+        {"gate opens",{{0x0c000020,7}},11},
+    });
+    auto lateStart=firstVisit;lateStart.push_back({0x0c000020,3});
+    walkGuideRoute("dome0700",{{"late start after three pedestals",lateStart,6}});
+    lateStart=firstVisit;lateStart.insert(lateStart.end(),{{0x0c000020,5},{0x5c000010,0},{0x5c000018,2}});
+    walkGuideRoute("dome0700",{{"late start after Besaid recess",lateStart,9}});
+    const std::vector<GuideWrite> returnVisit={{0x20000a00,2875},{0x5c000004,5},{0x0c000020,7},{0x0c000022,0},{0x0c000023,0},{0x0c000024,0},
+        {0x0c000025,0},{0x0c000027,0},{0x0c000029,0},{0x5c000008,0},{0x5c000014,3},{0x5c00000c,0},{0x5c000018,0},{0x5c00001c,0}};
+    walkGuideRoute("dome0700",{
+        {"return entry",returnVisit,1},
+        {"partial return floor pattern",{{0x0c000029,4}},1},
+        {"complete return floor pattern",{{0x0c000029,8}},2},
+        {"take Destruction Sphere",{{0x5c000014,0},{0x5c000008,3}},3},
+        {"insert Destruction Sphere in Kilika source recess",{{0x5c000008,0},{0x5c00000c,3}},4},
+        {"open Destruction treasure",{{0x01000a70,32}},4},
+    });
+    auto returnLate=returnVisit;returnLate.insert(returnLate.end(),{{0x5c000014,0},{0x5c00000c,3}});
+    walkGuideRoute("dome0700",{{"late return start after Destruction placed",returnLate,4}});
+}
 }
 void puzzleGuideRouteFixtures() {
     djoseGuideRouteFixture();
     kilikaGuideRouteFixture();
     macalaniaGuideRouteFixture();
     bevelleGuideRouteFixture();
+    zanarkandGuideRouteFixture();
 }
