@@ -35,50 +35,58 @@ void walkGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
 }
 void djoseGuideRouteFixture() {
     // djyt0600: 0x94 carried sphere (1 Djose, 3 charged, 10 Destruction);
-    // 0x95/0x97/0x99/0x9a/0x9b/0x9c recess sockets; 0x28e door opened;
-    // 0xa1 charger (2 = pedestal sphere charged); 0xd9 pedestal in gap;
-    // 0xda gap switch; 0xdb lift circuit; 0xe5 hidden glyph (2 touched);
-    // 0xde-0xe1 upper pedestals; 0xe3 all five pushed (1) then sphere set (2).
+    // 0x95/0x96 entry, 0x97/0x98 door, 0x99/0x9a charging, 0x9b charged
+    // door (worker 54) and 0x9c left circuit (worker 55) recess sockets;
+    // 0x9d/0x9e pedestal sockets (east face toward the charging wall, west
+    // face toward the reset tile); 0x9f Destruction Sphere recess (worker 62);
+    // 0x28e door opened; 0xa1 charger (1 powered, 2 sticky once the pedestal
+    // sphere is charged); 0xd9 pedestal in gap, cleared by reset tile 67 only
+    // while 0x9b is not 3; 0xda gap switch; 0xdb lift circuit; 0xe5 hidden
+    // glyph (1 revealed, 2 touched); 0xde-0xe1 upper pedestals; 0xe3 all five
+    // pushed (1) then sphere set (2). The entry state is the script's own
+    // initial values, and every stage writes only what the original action
+    // writes: no stage fakes a flag to reach the next step.
     walkGuideRoute("djyt0600",{
-        {"entry",{{0x0c000095,1},{0x0c00009b,1},{0x0c00009c,1}},1},
+        {"entry",{{0x0c000095,1},{0x0c000096,1},{0x0c00009b,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10}},1},
         {"take entry sphere 1",{{0x0c000094,1},{0x0c000095,0}},2},
         {"insert door recess 1",{{0x0c000097,1},{0x0c000094,0}},3},
-        {"take entry sphere 2",{{0x0c000094,1}},4},
-        {"insert door recess 2 opens door",{{0x0c000094,0},{0x0000028e,1}},5},
-        {"take pedestal sphere",{{0x0c000094,1}},6},
+        {"take entry sphere 2",{{0x0c000094,1},{0x0c000096,0}},4},
+        {"insert door recess 2 opens door",{{0x0c000098,1},{0x0c000094,0},{0x0000028e,1}},5},
+        {"take charged-door recess sphere",{{0x0c000094,1},{0x0c00009b,0}},6},
         {"insert charging recess 1",{{0x0c000099,1},{0x0c000094,0}},7},
-        {"take charged-door recess sphere",{{0x0c000094,1},{0x0c00009b,0}},8},
-        {"insert charging recess 2 powers charger",{{0x0c00009a,1},{0x0c000094,0},{0x0c0000a1,1}},0},
-        {"take left circuit sphere",{{0x0c000094,1},{0x0c00009c,0}},0},
-        {"insert pedestal under charger",{{0x0c000094,0},{0x0c0000a1,2}},12},
-        {"take charged sphere",{{0x0c000094,3}},13},
+        {"take left circuit sphere",{{0x0c000094,1},{0x0c00009c,0}},8},
+        {"insert charging recess 2 powers charger",{{0x0c00009a,1},{0x0c000094,0},{0x0c0000a1,1}},9},
+        {"push loaded pedestal under charger",{{0x0c00009d,3},{0x0c0000a1,2}},0},
+        {"reset tile returns pedestal",{},0},
+        {"take charged sphere from east face",{{0x0c000094,3},{0x0c00009d,0}},0},
         {"insert charged door recess",{{0x0c00009b,3},{0x0c000094,0}},0},
         {"take charging recess 1",{{0x0c000094,1},{0x0c000099,0}},0},
-        {"insert pedestal socket",{{0x0c000094,0}},0},
+        {"insert west pedestal socket",{{0x0c00009e,1},{0x0c000094,0}},0},
         {"take charging recess 2",{{0x0c000094,1},{0x0c00009a,0}},0},
-        {"insert other pedestal socket",{{0x0c000094,0}},0},
-        {"push pedestal into gap",{{0x0c0000d9,1}},20},
-        {"press gap switch",{{0x0c0000da,1}},21},
-        {"reset glyph returns pedestal",{{0x0c0000d9,0}},22},
-        {"take charged door sphere",{{0x0c000094,3},{0x0c00009b,0}},23},
-        {"insert left circuit",{{0x0c00009c,3},{0x0c000094,0}},24},
-        {"take pedestal sphere",{{0x0c000094,1}},25},
-        {"insert entry recess 1",{{0x0c000095,1},{0x0c000094,0}},26},
-        {"take remaining pedestal sphere",{{0x0c000094,1}},27},
-        {"insert entry recess 2 completes lift circuit",{{0x0c000094,0},{0x0c0000db,1},{0x0c0000e5,1}},28},
-        {"touch hidden glyph",{{0x0c0000e5,2}},29},
-        {"take Destruction Sphere",{{0x0c000094,10}},0},
+        {"insert east pedestal socket",{{0x0c00009d,1},{0x0c000094,0}},0},
+        {"push pedestal into gap",{{0x0c0000d9,1}},18},
+        {"press gap switch",{{0x0c0000da,1}},19},
+        {"take charged door sphere",{{0x0c000094,3},{0x0c00009b,0}},20},
+        {"insert left circuit",{{0x0c00009c,3},{0x0c000094,0}},21},
+        {"reset tile clears gap once door recess is empty",{{0x0c0000d9,0}},22},
+        {"take east pedestal sphere",{{0x0c000094,1},{0x0c00009d,0}},23},
+        {"insert entry recess 1",{{0x0c000095,1},{0x0c000094,0}},24},
+        {"take west pedestal sphere",{{0x0c000094,1},{0x0c00009e,0}},25},
+        {"insert entry recess 2 completes lift circuit",{{0x0c000096,1},{0x0c000094,0},{0x0c0000db,1},{0x0c0000e5,1}},26},
+        {"touch hidden glyph",{{0x0c0000e5,2}},27},
+        {"take Destruction Sphere",{{0x0c000094,10},{0x0c00009f,0}},0},
         {"push upper pedestals 1 to 4",{{0x0c0000de,1},{0x0c0000df,1},{0x0c0000e0,1},{0x0c0000e1,1}},0},
-        {"push upper pedestal 5",{{0x0c0000e3,1}},36},
-        {"insert Destruction Sphere",{{0x0c000094,0},{0x0c0000e3,2}},37},
-        {"open Destruction treasure",{{0x01000a70,4}},38},
+        {"push upper pedestal 5",{{0x0c0000e3,1}},34},
+        {"insert Destruction Sphere",{{0x0c000094,0},{0x0c0000e3,2}},35},
+        {"open Destruction treasure",{{0x01000a70,4}},36},
     });
     // Durable checkpoints recover the route when the guide starts late.
-    walkGuideRoute("djyt0600",{{"late start after hidden glyph",{{0x0000028e,1},{0x0c0000a1,2},{0x0c0000da,1},{0x0c0000db,1},{0x0c0000e5,2}},29}});
-    walkGuideRoute("djyt0600",{{"late start after door",{{0x0000028e,1},{0x0c000094,1}},6}});
+    walkGuideRoute("djyt0600",{{"late start after hidden glyph",{{0x0000028e,1},{0x0c000095,1},{0x0c000096,1},{0x0c00009c,3},{0x0c00009f,10},
+        {0x0c0000a1,2},{0x0c0000da,1},{0x0c0000db,1},{0x0c0000e5,2}},27}});
+    walkGuideRoute("djyt0600",{{"late start after door",{{0x0000028e,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10},{0x0c000094,1}},6}});
     // Removing a sphere from a checked socket never moves the guide backward.
     walkGuideRoute("djyt0600",{
-        {"insert door recesses",{{0x0c000097,1},{0x0000028e,1}},5},
+        {"insert door recesses",{{0x0c000097,1},{0x0c000098,1},{0x0000028e,1}},5},
         {"take a door sphere back",{{0x0c000097,0},{0x0c000094,1}},6},
     });
 }
