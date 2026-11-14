@@ -1,6 +1,7 @@
 #include "customize_replay_bytes.inc"
 namespace {
 void customizeNativeReplayFixture() {
+    const auto oldMenuIndex=setting(Setting::MenuIndex);setSetting(Setting::MenuIndex,0);
     const auto lookup=replayCode(0x3abbf0,customizeLookupBody,customizeLookupFixups);
     const auto list=replayCode(0x25da000,customizeListBody,customizeListFixups);
     const auto visible=replayCode(0x25da200,customizeVisibleBody,customizeVisibleFixups);
@@ -29,6 +30,7 @@ void customizeNativeReplayFixture() {
     event(0x4b4460,address(win),[&]{write<uint8_t>(inventory+66+3,2);});expect(L"Empty","production visibility agrees with original hidden-weapon predicate");
     check(!reinterpret_cast<Visible>(visible)(0x5003,1),"original native hidden predicate rejects flagged weapon");
     stub(0x3abbf0,gearRecord);stub(0x3abe10,slotName);scene=0;
+    setSetting(Setting::MenuIndex,oldMenuIndex);
     puts("PASS: original135-byte equipment getter,176-byte native list and76-byte Customize visibility predicate; sold weapon/armor tombstones, unchanged row/handle, rebuilt table and hidden flags. Native controller/text backend simulated.");
 }
 }

@@ -44,6 +44,13 @@ if /I "%~1"=="--profile" goto profile
 if /I "%~1"=="--startup" goto startup
 if /I "%~1"=="--accessibility" goto accessibility
 if /I "%~1"=="--speech" goto speech
+if /I "%~1"=="--menu-speech" goto menuspeech
+:menuspeech
+cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:menu_speech_fixture.exe "%TEST_SRC%menu_speech_fixture.cpp" "%TEST_SRC%..\field_menus.cpp" "%TEST_SRC%..\system_menus.cpp" "%TEST_SRC%..\text_plan.cpp" "%TEST_SRC%..\ready_game_text.cpp" "%TEST_SRC%..\system_menu_capture.cpp" "%TEST_SRC%..\selection_details.cpp" "%TEST_SRC%..\ready_text.cpp" "%TEST_SRC%..\text.cpp" "%TEST_SRC%..\game_text.cpp" "%TEST_SRC%..\settings.cpp" "%TEST_SRC%..\owned_retirement.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+menu_speech_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--menu-speech" goto success
 cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:log_history_fixture.exe "%TEST_SRC%log_history_fixture.cpp" "%TEST_SRC%..\log_history.cpp"
 if not "%errorlevel%"=="0" goto failed
 log_history_fixture.exe

@@ -25,6 +25,12 @@ from a remembered row number. `selection_details.cpp` captures a context/detail
 token so late description assembly cannot replace the newly focused screen.
 `TextPlan` carries the ready data to worker formatting and the shared speech
 adapter. Autodetail and a manual I request use the same selected context.
+Items cells with zero quantity or beyond the item count announce `Empty` and
+retire the previous description. Cursor positions outside the native row count
+remain silent. The existing English fixed label is shared with Key Items.
+Menu indexing uses the copied cell/count (`+0x94`) or generic row/count (`+0x30`)
+and calls `menuIndex` on the text-plan worker. Trailing blank cells do not receive
+an invalid position. Battle indexing is outside this change.
 The field hook compares pre/post selection keys and captures a prepared text plan
 at the native return point; record names/descriptions are resolved through the
 screen's native getter family. Manual I dispatches in context priority order
@@ -39,6 +45,10 @@ review rows on preparation; native callbacks provide rows, identity, roles and
 ordering facts. Reset/close invalidates the context even if a queued packet was
 discarded. Keep descriptions, manual review, buffer arrows and Autodetail tied
 to their screen rather than installing a global competing reader.
+Both system popup callbacks reset remembered slot and Yes/No focus, so reopening
+with the same selection produces speech. The synthetic `menu_speech_fixture.cpp`
+runs these production hooks and workers in the default native suite without
+private game fixtures. Actual gameplay and audio still need an in-game check.
 
 Detailed evidence: [field targeting and Customize](../../field_target_customization_20261008.md),
 [menu follow-ups](../../menu_followups_20261014.md),

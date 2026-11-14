@@ -30,11 +30,12 @@ void slotFocus(Event& e) {
     commitSystemMenuPacket(packet);
 }
 void popup(Event& e) {
+    previousSlot=previousYesNo=-1;
     const auto offset=e.rva==0x302fe0?0x8eb690:0x8eb250;
     SystemMenuPacket packet;prepareSystemMenuPacket(packet,SystemMenuKind::Popup);
     copySystemAscii(address(offset),packet.text[0],256);packet.detail=beginSelectionDetail();
     commitSystemMenuPacket(packet);
-    if(e.rva==0x302fe0) {queueCursor=true;previousYesNo=-1;}
+    if(e.rva==0x302fe0) queueCursor=true;
 }
 void saveHelp(Event&) {
     SystemMenuPacket packet;prepareSystemMenuPacket(packet,SystemMenuKind::SaveHelp);
