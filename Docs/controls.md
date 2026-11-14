@@ -443,6 +443,10 @@ distance and direction.
 
 **[** — cycle to the previous entity.
 
+While an entity is selected, walking keeps the list order stable. New entities
+append after the existing entries; disappearing entities drop out. Backtick
+rescans and sorts by current distance again.
+
 **Shift + ]** — switch to the next category (All → Exit → Event →
 Save Sphere → Treasure Chest → Shop → NPC → Object).
 
@@ -456,6 +460,8 @@ and retain short final movements. Once in range,
 Backslash says which way to face, such as **Face west**.
 North means ahead relative to the camera. With Auto walk off, turn and confirm
 manually. Inactive trial controls are identified as inactive.
+During an active route, a camera cut of more than 45 degrees re-announces the
+next leg using the new camera direction. Slow camera pans do not repeat guidance.
 
 **Auto walk** in **F8 → Navigation** defaults **Off**. Turn it **On**, select a
 destination, then press **Backslash** to walk its current collision route.
@@ -464,6 +470,8 @@ scenes, menus, battle, lost focus and a map change stop it; press Backslash
 again to start a new walk. On arrival, Auto walk faces an interactible; confirm
 the interaction yourself.
 Blocked routes get bounded recovery attempts and stop if progress stalls.
+Automatic stops and lost routes announce a short reason once. Explicit stop
+commands stay silent; map transitions use the map announcement instead.
 The nonblocking swimming controls overlay leaves Auto walk active; actual
 dialogue and cutscenes still cancel it.
 
@@ -527,7 +535,8 @@ distances to whole numbers, with a minimum of **1**. Turn it **On** for
 The setting changes spoken distances; routes and audio keep their exact geometry.
 
 Beacon guidance follows the selected reachable route immediately when enabled.
-Wall tones also begin on the current map when enabled; no map reload is needed.
+Wall tones also begin on the current map when enabled, even without a selected
+route. They pause outside the focused field; no map reload is needed.
 
 **G** — read current gil.
 

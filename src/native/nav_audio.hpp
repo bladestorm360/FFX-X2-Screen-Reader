@@ -13,6 +13,9 @@ inline unsigned navAudioContextSerial() noexcept {return navAudioContextRevision
 // old route cannot become current again when a gate closes and reopens.
 inline std::atomic<unsigned> navCollisionRevision{1};
 inline unsigned navCollisionSerial() noexcept {return navCollisionRevision.load(std::memory_order_acquire);}
+// Native route failures and their later worker retirement share one announcement.
+inline std::atomic<bool> navRouteStopReported{false};
+inline bool claimNavRouteStopSpeech() noexcept {return !navRouteStopReported.exchange(true,std::memory_order_acq_rel);}
 struct NavAudioState {unsigned contextSerial=navAudioContextSerial(); float pan=0,front=1,steps=0; unsigned walls=0; bool beacon=false,active=false; };
 struct NavLeg { Point start,goal,final; NativeRouteTarget target; unsigned epoch=0; bool arrived=false;
     unsigned collisionSerial=navCollisionSerial();bool pendingCollision=false; };
@@ -38,6 +41,8 @@ void routeNavAudio(const std::vector<Point>&,const Entity&);
 void updateNavAudio(Point,bool moving);
 void resetNavAudio();
 void clearNavRoute();
+void loseNavRoute(const wchar_t* reason);
+void captureNavCamera();
 void refreshNavCollision();
 bool navRouteKnown();
 void refreshSelectedBeacon();

@@ -128,6 +128,8 @@ void installBlitzReview() {}
 void resetBlitzReview() { testBlitzMirror=false; }
 void refreshNavCollision() {}
 bool navRouteKnown() { return false; }
+void loseNavRoute(const wchar_t*) {fixtureRoute=false;}
+void captureNavCamera() {}
 unsigned navUpdates=0,targetUpdates=0,workerReads=0;
 void updateOwnedNavAudio(const nav::Scene&,const Mesh&,const std::vector<Entity>&,const speechq::Header&,const std::wstring&) {++navUpdates;}
 void updateNavAudio(Point,bool) { ++navUpdates; }

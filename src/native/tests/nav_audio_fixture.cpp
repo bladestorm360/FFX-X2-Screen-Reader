@@ -13,15 +13,18 @@
 #include <vector>
 namespace ffx {
 bool testForeground=true;
+bool battle=false,nativeOwner=true;
 bool audioReady=false;
 extern void(*navAudioAfterDrainForTest)();
 std::atomic<int> scene{0};
-bool nativeGameThread() {return true;}
+bool nativeGameThread() {return nativeOwner;}
+bool inBattle() {if(!nativeOwner) std::abort();return battle;}
 bool modMenuActive() { return false; }
 unsigned epoch=1;
 unsigned generation() { return epoch; }
-unsigned copiedWallCues() { return 0; }
-void cancelWallCues() {}
+unsigned wallMask=0;
+unsigned copiedWallCues() { return wallMask; }
+void cancelWallCues() { wallMask=0; }
 bool output(const std::wstring&,bool,const char*) { return true; }
 void log(const char* message,...) { if(strstr(message,"audio ready")) audioReady=true; }
 }
@@ -74,6 +77,17 @@ int main() {
     sdl::SDL_PutAudioStreamData=captureSamples;
     setSetting(Setting::Beacon,1); setSetting(Setting::Walls,0); setSetting(Setting::Arrival,1);
     startNavAudio(); check(audioReady && productionCallback && testStream,"real dummy stream opens with production callback");
+    setSetting(Setting::Walls,1);wallMask=1;mix();
+    check(!silent(),"copied wall tones play before any route or state publication");
+    pauseNavRouteAudio();mix();check(!silent(),"clearing a route preserves independent wall tones");
+    battle=true;setFieldAudioAllowed(true);wallMask=1;nativeOwner=false;mix();nativeOwner=true;
+    check(silent(),"native battle permission silences stale copied walls without mixer game reads");
+    battle=false;setFieldAudioAllowed(true);wallMask=1;mix();check(!silent(),"fresh field walls recover after battle");
+    testForeground=false;mix();mix();check(silent(),"unfocused free exploration silences walls");testForeground=true;
+    scene=1;mix();mix();check(silent(),"menu context silences walls without a route");scene=0;
+    setFieldAudioAllowed(false);wallMask=1;mix();check(silent(),"search permission suppresses copied walls without a route");
+    setFieldAudioAllowed(true);wallMask=1;mix();check(!silent(),"fresh copied walls resume after field return");
+    setSetting(Setting::Walls,0);mix();mix();check(silent(),"Walls off silences independent tones");wallMask=0;
     // Cancellation after a command was accepted must still retire it before
     // synthesis, even when a new event counter would otherwise start a tone.
     navAudioLightningWarning(epoch);navAudioAfterDrainForTest=[] { navAudioCancelLightningWarning(); };
