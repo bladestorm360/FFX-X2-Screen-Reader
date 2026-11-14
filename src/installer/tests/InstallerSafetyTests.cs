@@ -68,7 +68,8 @@ internal static class InstallerSafetyTests
         return new InstallerEngine(delegate(string name) {
             byte[] bytes;
             return resources.TryGetValue(name, out bytes) || resources.TryGetValue("Payload " + name, out bytes) ? bytes : null;
-        }, hashes, delegate(string game, Action<string> status) { return MigrationPlan.FromCatalog(game, catalog, status); });
+        }, hashes, delegate(string game, Action<string> status) { return MigrationPlan.FromCatalog(game, catalog, status); },
+            delegate { }); // No process check: these cases must pass while the game is open.
     }
 
     private static string Game(string name)
@@ -161,17 +162,30 @@ internal static class InstallerSafetyTests
             if (text == "Installing SDL3.dll") throw new IOException("Synthetic write failure");
         }); }, "Previous files were restored", "Payload failure");
         Unchanged(game, before, "Payload failure rollback");
-        File.WriteAllText(Path.Combine(game, "PrismRuntime"), "a file where the PRISM folder belongs");
+
+        // Fail after PRISM, old-file removal and every payload move: rollback must undo all of it.
+        foreach (string name in new[] { "SDL3.dll", "MinHook.x86.dll", "frida-gadget.dll", "ffx_sr.js" })
+            File.WriteAllText(Path.Combine(game, name), "older file " + name);
         before = Snapshot(game);
-        Reject(delegate { Engine().Install(game, delegate { }); }, "Installation failed", "PRISM failure");
-        File.Delete(Path.Combine(game, "PrismRuntime"));
-        before.Remove("PrismRuntime");
-        foreach (string folder in Directory.GetDirectories(game))
-            if (Path.GetFileName(folder).StartsWith(".PrismRuntime.stage.", StringComparison.OrdinalIgnoreCase))
-                foreach (string file in Directory.GetFiles(folder)) before.Add(file.Substring(game.Length + 1), InstallerEngine.Hash(File.ReadAllBytes(file)));
-        foreach (string folder in Directory.GetDirectories(game))
-            if (Path.GetFileName(folder).StartsWith(".PrismRuntime.stage.", StringComparison.OrdinalIgnoreCase)) before.Add(Path.GetFileName(folder) + "\\", "folder");
-        Unchanged(game, before, "PRISM failure leaves mod files unchanged");
+        bool prismWritten = false, payloadWritten = false;
+        Reject(delegate { Engine().Install(game, delegate(string text) {
+            if (text != "Configuring launcher speech") return;
+            prismWritten = Directory.Exists(Path.Combine(game, "PrismRuntime"));
+            payloadWritten = File.ReadAllText(Path.Combine(game, "SDL3.dll")) == "Safety payload SDL3.dll" &&
+                !File.Exists(Path.Combine(game, "frida-gadget.dll"));
+            throw new IOException("Synthetic failure after payload");
+        }); }, "Previous files were restored", "Late failure");
+        assert(prismWritten && payloadWritten, "Late failure happens after PRISM and payload were written");
+        Unchanged(game, before, "Late failure rollback restores every file and removes PRISM");
+
+        // A staged file that fails its checksum stops setup before any live file is replaced.
+        byte[] sdl = resources["Payload SDL3.dll"];
+        before = Snapshot(game);
+        Reject(delegate { Engine().Install(game, delegate(string text) {
+            if (text.StartsWith("Removing old mod file: ", StringComparison.Ordinal)) sdl[0] = (byte)'X';
+        }); }, "Staged file checksum failed: SDL3.dll", "Staged write failure");
+        sdl[0] = (byte)'S';
+        Unchanged(game, before, "Staged write failure leaves live files and no stage folder");
     }
 
 
