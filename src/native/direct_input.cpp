@@ -61,7 +61,9 @@ void deviceData(Event& e) {
         const bool shift=((nextHeld[DIK_LSHIFT] | nextHeld[DIK_RSHIFT]) & 0x80) != 0;
         const bool control=((nextHeld[DIK_LCONTROL] | nextHeld[DIK_RCONTROL]) & 0x80) != 0;
         if (down && !wasDown) nextSwallowed[scan]=peek?capturesKey(virtualKey(scan),shift,control):consumeKey(virtualKey(scan),shift,control);
-        if(inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive())) nextSwallowed[scan]=true;
+        // A modal owns new presses only. A release is suppressed only when its
+        // press was; one the game saw pressed must reach it or the key sticks.
+        if(down && (inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive()))) nextSwallowed[scan]=true;
         const bool suppress=nextSwallowed[scan];
         if(!down) nextSwallowed[scan]=false;
         if(!suppress) {
