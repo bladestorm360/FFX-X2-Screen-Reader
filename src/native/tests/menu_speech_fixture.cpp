@@ -6,6 +6,7 @@
 #include "../selection_details.hpp"
 #include "../copied_controls.hpp"
 #include "ready_speech_adapter.hpp"
+#include "battle_call_sites.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +24,7 @@ unsigned generation() {return 1;}
 bool nativeGameThread() {return owner;}
 bool nativeResourceLoading() noexcept {return false;}
 bool hook(unsigned id,Handler enter,Handler leave) {listeners[id]={enter,leave};return true;}
+bool hookAddress(uintptr_t,unsigned id,Handler enter,Handler leave) {return hook(id,enter,leave);}
 void hotkey(unsigned,void(*)(bool)) {}
 bool output(const std::wstring& text,bool interrupt,const char*) {
     if(owner) {std::fprintf(stderr,"FAIL: speech ran on native owner\n");std::exit(1);}
@@ -73,8 +75,8 @@ void check(bool ok,const char* why) {++checks;if(!ok) {std::fprintf(stderr,"FAIL
 template<class T> void set(unsigned off,T value) {check(write<T>(address(off),value),"synthetic write");}
 void drain() {owner=false;drainSpeechDomainsForTest();owner=true;}
 void expect(const wchar_t* expected,const char* why) {check(!said.empty() && said.back().first==expected,why);}
-void event(unsigned id,uintptr_t arg,const std::function<void()>& change={}) {
-    auto listener=listeners.at(id);Event e;e.rva=id;e.args[0]=arg;e.epoch=generation();
+void event(unsigned id,uintptr_t arg,const std::function<void()>& change={},unsigned parent=0) {
+    auto listener=listeners.at(id);Event e;e.rva=id;e.args[0]=arg;e.epoch=generation();e.parentRva=parent;
     if(listener.enter) listener.enter(e);if(change) change();if(listener.leave) listener.leave(e);drain();
 }
 void encoded(unsigned off,const wchar_t* text) {
@@ -93,6 +95,8 @@ void stub(unsigned off,void* function) {
     FlushInstructionCache(GetCurrentProcess(),code,7);
 }
 unsigned __cdecl language() {return 0;}
+int canUseResult=0,canUseActor=-1;
+int __cdecl canUse(int actor,int) {canUseActor=actor;return canUseResult;}
 uintptr_t __cdecl record(unsigned,uintptr_t* base) {if(base)*base=address(0x2100000);return address(0x2101000);}
 uintptr_t __cdecl gear(unsigned) {return address(0x2100000);}
 uintptr_t __cdecl equipment(unsigned,uintptr_t*) {return 0;}
@@ -101,7 +105,7 @@ void items(unsigned count=3,unsigned kind=0) {
     scene=kind==2?2:3;set<int>(win+0x28,1);set<uint16_t>(win+0x30,static_cast<uint16_t>((count+1)/2));
     set<int8_t>(win+0x45,0);set<uint8_t>(win+0x42,1);set<uint8_t>(win+0x43,static_cast<uint8_t>(kind));
     set<int>(win+0x94,count);
-    for(unsigned i=0;i<4;++i) {set<uint16_t>(0x1197730+i*4,0x2001);set<uint8_t>(0x1197732+i*4,3);}
+    for(unsigned i=0;i<4;++i) {set<uint16_t>(0x1197730+i*4,0x2001);set<uint8_t>(0x1197732+i*4,3);set<uint8_t>(0x1197733+i*4,1);}
     event(0x4c6da0,address(win),[]{set<int>(win+0x28,2);});
 }
 void emptyItems() {
@@ -118,6 +122,39 @@ void emptyItems() {
     n=said.size();items(0);check(said.size()==n,"zero-row list stays silent");
     event(0x4c6da0,address(win),[]{set<uint16_t>(win+0x30,1);});expect(L"Empty","native blank row with zero items speaks");
     items(1,2);event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197732,0);});expect(L"Empty","blank Abilities entry speaks");
+}
+void unavailable() {
+    setSetting(Setting::AutoDetail,0);setSetting(Setting::MenuIndex,1);items();
+    event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197737,0);set<int>(win+0x58,1);});
+    expect(L"Potion, 3, unavailable, 2 of 3","greyed Items row is marked unavailable");
+    event(0x4c6da0,address(win),[]{set<int>(win+0x58,0);});expect(L"Potion, 3, 1 of 3","usable Items row is unmarked");
+    // Ability MP cost is not spoken: the raw record byte ignores One/Half MP Cost.
+    set<uint8_t>(0x2101025,4);items(2,2);expect(L"Potion, 1 of 2","usable ability row is unmarked and has no MP cost");
+    event(0x4c6da0,address(win),[]{set<uint16_t>(0x1197734,0x3001);set<uint8_t>(0x1197737,0);set<int>(win+0x58,1);});
+    expect(L"Potion, unavailable, 2 of 2","greyed ability row is marked unavailable");
+    set<uint8_t>(0x2101025,0);
+    scene=2;event(0x486de0,0x80000003);expect(L"Unavailable","field buzzer in a menu says Unavailable");
+    check(said.back().second,"buzzer cue interrupts");
+    auto n=said.size();event(0x486de0,0x80000001);check(said.size()==n,"confirm sound stays silent");
+    scene=0;event(0x486de0,0x80000003);check(said.size()==n,"buzzer outside menus stays silent");
+    scene=2;setSetting(Setting::UnavailableCue,0);event(0x486de0,0x80000003);check(said.size()==n,"buzzer cue Off stays silent");
+    setSetting(Setting::UnavailableCue,1);event(0x486de0,3);check(said.size()==n,"bare sound 3 without the menu flag stays silent");
+    event(0x486de0,0x80000003,{},0x464180);check(said.size()==n,"event-script buzzer stays silent");
+    // Battle buzzer: same cue, only while a battle is active (0xD2A8E0).
+    n=said.size();event(0x486b00,3);check(said.size()==n,"battle buzzer outside battle stays silent");
+    set<uint8_t>(0xd2a8e0,1);event(0x486b00,3);expect(L"Unavailable","battle buzzer says Unavailable");set<uint8_t>(0xd2a8e0,0);
+    // Battle rows mirror the native drawers through the resolved canUse.
+    set<int16_t>(win+8,2);canUseResult=-2;
+    check(battleRowUsable(address(win),0x3001,1)==-2 && canUseActor==2,"battle row asks canUse for the window owner");
+    canUseActor=-1;check(battleRowUsable(address(win),0x3001,10)==0 && canUseActor==-1,"character windows never ask canUse");
+    check(battleRowUsable(address(win),0x3001,7)==0 && battleRowUsable(address(win),0x3001,15)==0 && canUseActor==-1,"gear windows never ask canUse");
+    check(battleRowUsable(address(win),2,5)==0 && canUseActor==-1,"aeon windows never ask canUse for an aeon index");
+    check(battleRowUsable(address(win),0x30ff,5)==-2 && canUseActor==2,"aeon window command 0x30FF asks canUse");
+    canUseActor=-1;
+    check(battleRowUsable(address(win),0x3001,0x15)==0 && battleRowUsable(address(win),0x3001,0x16)==0,"amount windows never ask canUse");
+    check(battleRowUsable(address(win),0xff,1)==0 && canUseActor==-1,"blank row id 0xFF never asks canUse");
+    canUseResult=-4;check(battleRowUsable(address(win),0x3001,0)==-4,"drawer-skipped rows report -4");
+    canUseResult=0;set<int16_t>(win+8,0);
 }
 void slots() {
     setSetting(Setting::AutoDetail,0);
@@ -161,12 +198,14 @@ int main(int argc,char** argv) {
     encoded(0x2100000,L"Potion");encoded(0x2100040,L"Restores HP");set<uint16_t>(0x2101008,0x40);
     strcpy_s(reinterpret_cast<char*>(address(0x8eb690)),256,"Save");strcpy_s(reinterpret_cast<char*>(address(0x8eb250)),256,"Load");
     strcpy_s(reinterpret_cast<char*>(address(0x8eb890)),64,"Yes");strcpy_s(reinterpret_cast<char*>(address(0x8eba90)),64,"No");
-    installFieldMenus();installSystemMenus();
+    battleCallSites(address(0x2300000),canUse);
+    installFieldMenus();installUnavailable();installSystemMenus();
     const std::string mode=argc>1?argv[1]:"all";
     if(mode=="all" || mode=="empty") emptyItems();
     if(mode=="all" || mode=="slots") slots();
     if(mode=="all" || mode=="yes-no") yesNo();
     if(mode=="all" || mode=="index") indexing();
+    if(mode=="all" || mode=="unavailable") unavailable();
     std::printf("PASS: menu speech (%s), %u checks; synthetic fixtures only\n",mode.c_str(),checks);
     VirtualFree(reinterpret_cast<void*>(testBase),0,MEM_RELEASE);return 0;
 }

@@ -52,6 +52,9 @@ public:
     explicit operator bool() const noexcept { return owned_; }
 };
 void installFieldMenus();
+// field_menus.cpp: error buzzer cue and greyed battle rows.
+void installUnavailable();
+int battleRowUsable(uintptr_t win,int id,int type);
 void installMessages();
 void installSystemMenus();
 void installSphereGrid();

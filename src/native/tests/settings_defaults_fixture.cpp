@@ -23,7 +23,8 @@ int main() {
         loadSettings();
         check(!setting(Setting::AutoExtraInfo) && settingInfo(Setting::AutoExtraInfo).initial==0,"fresh extra information defaults Off");
         check(static_cast<unsigned>(Setting::AutoDetail)==2 && static_cast<unsigned>(Setting::BlitzAssist)==36 &&
-            static_cast<unsigned>(Setting::AutoExtraInfo)==37,"new extra setting preserves all previous setting IDs");
+            static_cast<unsigned>(Setting::AutoExtraInfo)==37 && static_cast<unsigned>(Setting::UnavailableCue)==38,"new extra setting preserves all previous setting IDs");
+        check(setting(Setting::UnavailableCue)==1 && settingInfo(Setting::UnavailableCue).initial==1,"fresh unavailable cue defaults On");
         for(const auto id:assists)check(settingInfo(id).initial==0 && setting(id)==0,"fresh auto-success must default Off");
         for(const auto id:cues)check(settingInfo(id).initial==1 && setting(id)==1,"fresh puzzle cues must default On");
         check(GetFileAttributesW(path.c_str())==INVALID_FILE_ATTRIBUTES,"loading fresh defaults must not create a settings file");
@@ -34,6 +35,7 @@ int main() {
             loadSettings();
             for(const auto id:assists)check(setting(id)==0,"missing assistance key must default Off");
             check(!setting(Setting::AutoExtraInfo),"legacy INI with no extra-info key inherits Off without rewriting");
+            check(setting(Setting::UnavailableCue)==1,"legacy INI with no unavailable-cue key inherits On");
             check(contents(path)==ini,"missing-key loading must preserve exact file bytes");
         }
         for(unsigned mask=0;mask<1024;++mask) {
