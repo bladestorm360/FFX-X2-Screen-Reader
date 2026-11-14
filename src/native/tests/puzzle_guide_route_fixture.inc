@@ -120,8 +120,65 @@ void kilikaGuideRouteFixture() {
         {"remove entry door sphere",{{0x0c000059,0},{0x0c00005b,1}},4},
     });
 }
+void macalaniaGuideRouteFixture() {
+    // mcyt0500: 0x94 carried sphere (4 Macalania, 10 Destruction, 11 Glyph);
+    // sockets 0x95 upper, 0x96 ramp, 0x97 pedestal, 0x98 central, 0x99 lower
+    // treasure, 0x9a lower reveal, 0x9b revealed sphere, 0x9c lower bridge
+    // support, 0x9d hidden storage swapped with 0x97 by the walkway ramp;
+    // 0xa3 pedestal place (0 main floor, 1 ice mound, 3 lower floor, 4 bridge
+    // support, 5 walkway, 6 down walkway ramp); one-shot 0xc8 reveal, 0xca
+    // bridge restored, 0xcd Destruction in treasure recess.
+    walkGuideRoute("mcyt0500",{
+        {"entry",{{0x0c000095,4},{0x0c000096,4},{0x0c000098,11},{0x0c00009b,4},{0x0c00009d,10}},1},
+        {"push into first ice mound",{{0x0c0000a3,1}},2},
+        {"push down opened ramp",{{0x0c0000a3,3}},3},
+        {"take central Glyph Sphere",{{0x0c000094,11},{0x0c000098,0}},4},
+        {"insert lower reveal recess",{{0x0c00009a,11},{0x0c000094,0},{0x0c0000c8,1}},5},
+        {"take revealed sphere",{{0x0c000094,4},{0x0c00009b,0}},6},
+        {"insert pedestal",{{0x0c000097,4},{0x0c000094,0}},7},
+        {"push onto lower bridge support",{{0x0c0000a3,4}},8},
+        {"take upper sphere",{{0x0c000094,4},{0x0c000095,0}},9},
+        {"insert lower bridge support",{{0x0c00009c,4},{0x0c000094,0}},10},
+        {"take ramp sphere",{{0x0c000094,4},{0x0c000096,0}},11},
+        {"insert central restores bridge",{{0x0c000098,4},{0x0c000094,0},{0x0c0000ca,1}},12},
+        {"upper walkway reset tile",{{0x0c0000a3,5}},13},
+        {"push down walkway ramp",{{0x0c0000a3,6},{0x0c000097,10},{0x0c00009d,4}},14},
+        {"main floor reset tile",{{0x0c0000a3,0}},15},
+        {"take central sphere",{{0x0c000094,4},{0x0c000098,0}},16},
+        {"insert upper recess",{{0x0c000095,4},{0x0c000094,0}},17},
+        {"push into restored ice mound",{{0x0c0000a3,1}},18},
+        {"take upper sphere back",{{0x0c000094,4},{0x0c000095,0}},19},
+        {"insert ramp recess",{{0x0c000096,4},{0x0c000094,0}},20},
+        {"push down restored ramp",{{0x0c0000a3,3}},21},
+        {"take Destruction Sphere",{{0x0c000094,10},{0x0c000097,0}},22},
+        {"insert lower treasure recess",{{0x0c000099,10},{0x0c000094,0},{0x0c0000cd,1}},23},
+        {"open Destruction treasure",{{0x01000a70,8}},24},
+        {"take Destruction back",{{0x0c000094,10},{0x0c000099,0}},25},
+        {"put Destruction in pedestal",{{0x0c000097,10},{0x0c000094,0}},26},
+        {"upper walkway reset tile again",{{0x0c0000a3,5}},27},
+        {"push down walkway ramp again",{{0x0c0000a3,6},{0x0c000097,4},{0x0c00009d,10}},28},
+        {"main floor reset tile again",{{0x0c0000a3,0}},29},
+        {"take converted sphere",{{0x0c000094,4},{0x0c000097,0}},30},
+        {"insert upper recess again",{{0x0c000095,4},{0x0c000094,0}},31},
+        {"push empty pedestal into mound",{{0x0c0000a3,1}},32},
+        {"push empty pedestal down ramp",{{0x0c0000a3,3}},33},
+        {"take upper sphere back again",{{0x0c000094,4},{0x0c000095,0}},34},
+        {"insert pedestal again",{{0x0c000097,4},{0x0c000094,0}},35},
+        {"push onto bridge support again",{{0x0c0000a3,4}},36},
+        {"take ramp sphere again",{{0x0c000094,4},{0x0c000096,0}},37},
+        {"insert central final bridge",{{0x0c000098,4},{0x0c000094,0}},38},
+    });
+    walkGuideRoute("mcyt0500",{{"late start after bridge",{{0x0c0000c8,1},{0x0c0000ca,1}},12}});
+    walkGuideRoute("mcyt0500",{{"late start after treasure",{{0x0c0000c8,1},{0x0c0000ca,1},{0x0c0000cd,1},{0x01000a70,8}},24}});
+    // Taking the bridge sphere back keeps the durable bridge checkpoint.
+    walkGuideRoute("mcyt0500",{
+        {"bridge restored",{{0x0c0000c8,1},{0x0c0000ca,1},{0x0c000098,4}},12},
+        {"take central sphere back",{{0x0c000098,0},{0x0c000094,4}},12},
+    });
+}
 }
 void puzzleGuideRouteFixtures() {
     djoseGuideRouteFixture();
     kilikaGuideRouteFixture();
+    macalaniaGuideRouteFixture();
 }
