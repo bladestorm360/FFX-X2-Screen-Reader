@@ -8,9 +8,24 @@ namespace FfxScreenReader.Setup
 {
     internal sealed class MigrationPlan
     {
+        // Files from older releases of this mod. Setup backs them up and removes
+        // them from the game folder; every other added DLL or ASI stays in place.
+        // Tolk.dll: 1.0 speech library (src/proxy/release_launcher_setup.ps1 at
+        // 625af61; CHANGELOG 1.0.2 "Tolk.dll is backed up and removed").
+        // frida-gadget.*, ffx_sr.js: Frida builds before 1.0 (the $legacy list in
+        // release_launcher_setup.ps1; Docs/session51_current.md 0.1.3 payload).
+        public static readonly string[] LegacyNames = {
+            "Tolk.dll", "frida-gadget.dll", "frida-gadget.config", "frida-gadget.config.dll", "ffx_sr.js"
+        };
+        // The 1.0 Tolk helpers also shipped with this mod, but other speech
+        // tools use the same names, so setup neither removes nor reports them.
+        private static readonly string[] KeptNames = { "nvdaControllerClient32.dll", "SAAPI32.dll", "dolapi32.dll" };
         public readonly BaseGameCatalog Catalog;
         public readonly List<string> Remove;
-        private MigrationPlan(BaseGameCatalog catalog, List<string> remove) { Catalog = catalog; Remove = remove; }
+        public readonly List<string> LeftInPlace;
+        private MigrationPlan(BaseGameCatalog catalog, List<string> remove, List<string> leftInPlace) {
+            Catalog = catalog; Remove = remove; LeftInPlace = leftInPlace;
+        }
         public static MigrationPlan Build(string game, Action<string> status) {
             LaunchRedirects.RequireNone(game);
             var catalogs = BaseGameCatalog.Load();
@@ -32,7 +47,15 @@ namespace FfxScreenReader.Setup
         // Tests supply small synthetic catalogs; the production entry point always uses pinned inventories.
         public static MigrationPlan FromCatalog(string game, BaseGameCatalog catalog, Action<string> status) {
             ValidateStock(game, catalog, status);
-            return new MigrationPlan(catalog, AddedModules(game, catalog));
+            return new MigrationPlan(catalog, PresentLegacy(game), AddedModules(game, catalog));
+        }
+        private static List<string> PresentLegacy(string game) {
+            var result = new List<string>();
+            foreach (string name in LegacyNames) {
+                InstallerPaths.CheckOrdinaryFile(game, name);
+                if (File.Exists(InstallerPaths.InGame(game, name))) result.Add(name);
+            }
+            return result;
         }
         private static void ValidateStock(string game, BaseGameCatalog catalog, Action<string> status) {
             int checkedFiles = 0;
@@ -45,9 +68,8 @@ namespace FfxScreenReader.Setup
         private static List<string> AddedModules(string game, BaseGameCatalog catalog) {
             var result = new List<string>();
             var ours = new HashSet<string>(InstallerEngine.PayloadNames, StringComparer.OrdinalIgnoreCase);
-            // Tolk removal is explicitly requested for the PRISM migration.
-            // Its old helper libraries remain separately owned.
-            ours.UnionWith(new[] { "nvdaControllerClient32.dll", "SAAPI32.dll", "dolapi32.dll" });
+            ours.UnionWith(LegacyNames);
+            ours.UnionWith(KeptNames);
             var folders = new Queue<string>();
             folders.Enqueue(InstallerPaths.Full(game));
             string root = InstallerPaths.Full(game).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
@@ -72,14 +94,17 @@ namespace FfxScreenReader.Setup
             result.Sort(StringComparer.OrdinalIgnoreCase);
             return result;
         }
+        // Only a file setup removes can make the result wrong; other mods may change freely.
         public void Verify(string game, Action<string> status) {
             ValidateStock(game, Catalog, status);
-            var remaining = AddedModules(game, Catalog);
-            if (remaining.Count != 0) throw new IOException("Another added DLL or ASI appeared during setup: " + remaining[0] + ". Close the mod manager and try again.");
+            var remaining = PresentLegacy(game);
+            if (remaining.Count != 0) throw new IOException("An old screen reader file appeared during setup: " + remaining[0] + ". Close the mod manager and try again.");
         }
         public void WriteReport(string game, string backup) {
-            var lines = new List<string> { "Steam depot: 359871", "Verified manifest: " + Catalog.Manifest, "Added DLL/ASI files removed (backups preserve their relative paths):" };
+            var lines = new List<string> { "Steam depot: 359871", "Verified manifest: " + Catalog.Manifest, "Old screen reader files removed (backups preserve their relative paths):" };
             foreach (string name in Remove) lines.Add(name + "  SHA256 " + InstallerEngine.Hash(File.ReadAllBytes(InstallerPaths.InGame(game, name))));
+            lines.Add("Left in place: other added DLL/ASI files, not changed by setup:");
+            foreach (string name in LeftInPlace) lines.Add(name);
             File.WriteAllLines(Path.Combine(backup, "INSTALL_REPORT.txt"), lines.ToArray());
         }
     }

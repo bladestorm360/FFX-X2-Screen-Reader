@@ -1,0 +1,152 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Web.Script.Serialization;
+using File = FfxScreenReader.Setup.InstallerFiles;
+using Directory = FfxScreenReader.Setup.InstallerDirectories;
+using FfxScreenReader.Setup;
+
+// Install safety cases that run without the real PRISM package: a synthetic
+// 15-file PRISM lock lets setup stage, install and roll back PrismRuntime itself.
+internal static class InstallerSafetyTests
+{
+    private static Action<bool, string> assert;
+    private static string root;
+    private static readonly Dictionary<string, byte[]> resources = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    public static void Run(string fixture, Action<bool, string> check)
+    {
+        assert = check;
+        root = Path.Combine(fixture, "Safety");
+        Directory.CreateDirectory(root);
+        foreach (string name in InstallerEngine.PayloadNames) {
+            resources["Payload " + name] = Encoding.UTF8.GetBytes("Safety payload " + name);
+            hashes[name] = InstallerEngine.Hash(resources["Payload " + name]);
+        }
+        var files = new Dictionary<string, object>();
+        for (int i = 0; i < 15; i++) {
+            string name = i == 0 ? "prism.dll" : "prism-file-" + i + ".txt";
+            byte[] bytes = i == 0 ? Pe() : Encoding.UTF8.GetBytes("Synthetic PRISM file " + i);
+            resources["PrismRuntime." + name] = bytes;
+            files[name] = new Dictionary<string, object> { { "source", name }, { "sha256", InstallerEngine.Hash(bytes) } };
+        }
+        resources["prism.lock.json"] = Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(new Dictionary<string, object> {
+            { "schema", 1 }, { "package_id", "synthetic-prism" }, { "version", "0.0.0" }, { "source_commit", "synthetic" },
+            { "platform", "windows" }, { "architecture", "x86" }, { "files", files } }));
+        OtherModsStay();
+
+    }
+
+    private static byte[] Pe()
+    {
+        var bytes = new byte[128];
+        bytes[0] = 0x4d; bytes[1] = 0x5a;
+        BitConverter.GetBytes(64).CopyTo(bytes, 60);
+        BitConverter.GetBytes(0x4550u).CopyTo(bytes, 64);
+        BitConverter.GetBytes((ushort)0x14c).CopyTo(bytes, 68);
+        return bytes;
+    }
+
+    private static StockFile Stock(string name, string content)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(content);
+        using (var sha = SHA1.Create()) return new StockFile(name, BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", ""), bytes.Length);
+    }
+
+    private static InstallerEngine Engine()
+    {
+        var catalog = new BaseGameCatalog("synthetic", new[] {
+            Stock("FFX.exe", "Synthetic fixture; not a game executable."),
+            Stock("FFX&X-2_LAUNCHER.exe", "Synthetic fixture; not a launcher executable.")
+        });
+        return new InstallerEngine(delegate(string name) {
+            byte[] bytes;
+            return resources.TryGetValue(name, out bytes) || resources.TryGetValue("Payload " + name, out bytes) ? bytes : null;
+        }, hashes, delegate(string game, Action<string> status) { return MigrationPlan.FromCatalog(game, catalog, status); });
+    }
+
+    private static string Game(string name)
+    {
+        string game = Path.Combine(root, name);
+        Directory.CreateDirectory(game);
+        File.WriteAllText(Path.Combine(game, "FFX.exe"), "Synthetic fixture; not a game executable.");
+        File.WriteAllText(Path.Combine(game, "FFX&X-2_LAUNCHER.exe"), "Synthetic fixture; not a launcher executable.");
+        File.WriteAllText(Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config"), "<configuration><appSettings><add key=\"Kept\" value=\"yes\"/></appSettings></configuration>");
+        File.WriteAllText(Path.Combine(game, "dinput8.dll"), "older reader dinput8");
+        File.WriteAllText(Path.Combine(game, "FFXAccessibility.ini"), "[Accessibility]\r\njecht_assist=0\r\n");
+        return game;
+    }
+
+    // Every file and folder outside FFX_SR_Install_Backups, with file hashes.
+    private static Dictionary<string, string> Snapshot(string game)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in Directory.GetFileSystemEntries(game)) {
+            string name = Path.GetFileName(path);
+            if (name.Equals("FFX_SR_Install_Backups", StringComparison.OrdinalIgnoreCase)) continue;
+            if (Directory.Exists(path)) {
+                result.Add(name + "\\", "folder");
+                foreach (string file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+                    result.Add(file.Substring(game.Length + 1), InstallerEngine.Hash(File.ReadAllBytes(file)));
+                foreach (string folder in System.IO.Directory.GetDirectories(path, "*", SearchOption.AllDirectories))
+                    result.Add(folder.Substring(game.Length + 1) + "\\", "folder");
+            }
+            else result.Add(name, InstallerEngine.Hash(File.ReadAllBytes(path)));
+        }
+        return result;
+    }
+
+    private static void Unchanged(string game, Dictionary<string, string> before, string label)
+    {
+        var after = Snapshot(game);
+        foreach (var entry in before) {
+            string hash;
+            assert(after.TryGetValue(entry.Key, out hash) && hash == entry.Value, label + ": changed or missing " + entry.Key);
+        }
+        foreach (string name in after.Keys) assert(before.ContainsKey(name), label + ": unexpected " + name);
+    }
+
+    private static void Reject(Action action, string message, string label)
+    {
+        string error = null;
+        try { action(); }
+        catch (Exception ex) { error = ex.Message; }
+        assert(error != null && error.IndexOf(message, StringComparison.OrdinalIgnoreCase) >= 0,
+            label + ": expected refusal containing '" + message + "', got: " + (error ?? "success"));
+    }
+
+    private static void OtherModsStay()
+    {
+        string game = Game("Other mods stay");
+        Directory.CreateDirectory(Path.Combine(game, "mods", "loader"));
+        var others = new[] { "dxgi.dll", "foo.asi", "mods\\loader\\plugin.asi" };
+        foreach (string name in others) File.WriteAllText(Path.Combine(game, name), "other mod " + name);
+        foreach (string name in new[] { "Tolk.dll", "frida-gadget.dll", "ffx_sr.js" }) File.WriteAllText(Path.Combine(game, name), "legacy " + name);
+        var messages = new List<string>();
+        InstallerEngine engine = Engine();
+        string backup = engine.Install(game, delegate(string text) {
+            messages.Add(text);
+            if (text == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "late.dll"), "unrelated module added during setup");
+        });
+        foreach (string name in others)
+            assert(File.ReadAllText(Path.Combine(game, name)) == "other mod " + name && !File.Exists(Path.Combine(backup, name)), "Other mod left untouched: " + name);
+        assert(File.Exists(Path.Combine(game, "late.dll")), "Unrelated module added during setup is not an error");
+        foreach (string name in new[] { "Tolk.dll", "frida-gadget.dll", "ffx_sr.js" })
+            assert(!File.Exists(Path.Combine(game, name)) && File.ReadAllText(Path.Combine(backup, name)) == "legacy " + name, "Legacy file backed up and removed: " + name);
+        string report = File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt"));
+        foreach (string name in others) assert(report.Contains(name), "Report lists other mod: " + name);
+        assert(report.Contains("Left in place"), "Report names left-in-place mods");
+        assert(engine.LeftInPlace.Count == 3 && engine.LeftInPlace.Contains("dxgi.dll") && engine.LeftInPlace.Contains("foo.asi") &&
+            engine.LeftInPlace.Contains("mods\\loader\\plugin.asi"), "Final status lists left-in-place mods");
+        assert(messages.Exists(delegate(string text) { return text.StartsWith("Left in place: ") && text.Contains("dxgi.dll"); }), "Status reports left-in-place mods");
+        var before = Snapshot(game);
+        Reject(delegate { Engine().Install(game, delegate(string text) {
+            if (text == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "frida-gadget.dll"), "legacy file restored by another tool");
+        }); }, "appeared during setup", "Legacy file reappearing during setup");
+        Unchanged(game, before, "Legacy reappearance rollback");
+    }
+
+}

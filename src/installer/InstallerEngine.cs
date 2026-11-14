@@ -19,13 +19,12 @@ namespace FfxScreenReader.Setup
         private const string ConfigName = "FFX&X-2_LAUNCHER.exe.config";
         private const string AssemblyName = "FFXLauncherReader, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
         private const string ManagerType = "FfxLauncher.ReaderDomainManager";
-        private static readonly string[] LegacyNames = {
-            "frida-gadget.dll", "frida-gadget.config", "frida-gadget.config.dll", "ffx_sr.js", "Tolk.dll"
-        };
         private readonly Func<string, byte[]> readPayload;
         private readonly IDictionary<string, string> hashes;
         private readonly Func<string, Action<string>, MigrationPlan> planFactory;
         private readonly Action closedProcesses;
+        // Other added DLL/ASI files that the last Install left untouched.
+        public List<string> LeftInPlace { get; private set; }
 
         public InstallerEngine(Func<string, byte[]> readPayload, IDictionary<string, string> hashes)
             : this(readPayload, hashes, MigrationPlan.Build) { }
@@ -43,6 +42,7 @@ namespace FfxScreenReader.Setup
             this.hashes = hashes;
             this.planFactory = planFactory;
             this.closedProcesses = closedProcesses;
+            LeftInPlace = new List<string>();
         }
 
         public static string Hash(byte[] bytes)
@@ -117,8 +117,9 @@ namespace FfxScreenReader.Setup
                 payload.Add(name, bytes);
             }
             MigrationPlan plan = planFactory(game, status);
+            LeftInPlace = new List<string>(plan.LeftInPlace);
             var removed = new HashSet<string>(plan.Remove, StringComparer.OrdinalIgnoreCase);
-            removed.UnionWith(LegacyNames);
+            removed.UnionWith(MigrationPlan.LegacyNames);
             var affected = new List<string>(PayloadNames);
             affected.AddRange(new[] { ConfigName, ConfigName + ".ffx_sr_original", ConfigName + ".ffx_sr_pending" });
             affected.AddRange(removed);
@@ -146,6 +147,7 @@ namespace FfxScreenReader.Setup
                 }
             }
             plan.WriteReport(game, backup);
+            if (LeftInPlace.Count != 0) status("Left in place: " + String.Join(", ", LeftInPlace.ToArray()));
             closedProcesses();
             try
             {
