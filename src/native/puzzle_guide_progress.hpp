@@ -12,10 +12,13 @@ inline bool puzzleStepPlaced(const PuzzleRoute& route,unsigned index) {
     return true;
 }
 // expected: the step the guide expects next. placed: the latest placement the
-// guide has passed. removed: a placement the route itself took back out.
+// guide has passed. removed: a placement the route itself took back out, or
+// one whose binding moved on to another nonzero value.
 struct PuzzleProgress {unsigned expected=0;int placed=-1,removed=-1;};
 // Done(step) reports whether a checked step currently reads as done.
-template<class Done> void advancePuzzleProgress(const PuzzleRoute& route,unsigned begin,unsigned end,PuzzleProgress& progress,Done&& done) {
+// Cleared(step) reports whether its done binding reads empty (0), as a recess
+// or pedestal does once its sphere is taken back out.
+template<class Done,class Cleared> void advancePuzzleProgress(const PuzzleRoute& route,unsigned begin,unsigned end,PuzzleProgress& progress,Done&& done,Cleared&& cleared) {
     const auto& steps=route.steps;
     const auto passed=[&](unsigned i) {return static_cast<int>(i)==progress.removed || done(steps[i]);};
     const auto latestPlaced=[&]() {int latest=-1;for(unsigned i=begin;i<progress.expected && i<end;++i) if(puzzleStepPlaced(route,i) && passed(i)) latest=static_cast<int>(i);return latest;};
@@ -32,14 +35,18 @@ template<class Done> void advancePuzzleProgress(const PuzzleRoute& route,unsigne
     // the placement is a checkpoint and the next step carries the same sphere
     // as the step before the placement (Besaid). A pickup of another sphere
     // with the same carried value (the second Djose door sphere) is not a
-    // removal, so the guide moves back to the placement.
+    // removal, so the guide moves back to the placement. A binding that moved
+    // to another nonzero value was not emptied: the Bevelle rail pedestal
+    // reads 1 on the entrance track and 19 once ridden. That placement stays
+    // passed too.
     if(latestPlaced()<progress.placed) {
         const auto placed=static_cast<unsigned>(progress.placed),next=placed+1;
         const auto sameBinding=[](const UtilityBinding& a,const UtilityBinding& b) {
             return a.low==b.low && a.high==b.high && a.value==b.value && a.element==b.element;};
         const bool takesBack=steps[next].worker==steps[placed].worker ||
             (steps[placed].checkpoint && placed>begin && steps[placed-1].check && sameBinding(steps[placed-1].done,steps[next].done));
-        if(next+1<end && steps[next].check && !puzzleStepPlaced(route,next) && done(steps[next]) && takesBack) progress.removed=progress.placed;
+        if(!cleared(steps[placed])) progress.removed=progress.placed;
+        else if(next+1<end && steps[next].check && !puzzleStepPlaced(route,next) && done(steps[next]) && takesBack) progress.removed=progress.placed;
         else progress.expected=static_cast<unsigned>(progress.placed);
     }
     // Checkpoints are durable native flags, so the guide may jump forward to

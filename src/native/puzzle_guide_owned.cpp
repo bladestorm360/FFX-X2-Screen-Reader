@@ -34,7 +34,9 @@ int value(const nav::Scene& observation,const State& state,unsigned low,unsigned
 bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
 void advance(const nav::Scene& observation,State& state) {
     PuzzleProgress progress{state.expected,state.placed,state.removed};
-    advancePuzzleProgress(*state.route,state.begin,state.end,progress,[&](const PuzzleStep& step) {return done(observation,state,step);});
+    advancePuzzleProgress(*state.route,state.begin,state.end,progress,[&](const PuzzleStep& step) {return done(observation,state,step);},
+        [&](const PuzzleStep& step) {const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
+            return step.done.low==0x01000a70?(current&step.done.value)==0:current==0;});
     state.expected=progress.expected;state.placed=progress.placed;state.removed=progress.removed;
 }
 bool context(const nav::Scene& observation,State& state) {
