@@ -339,7 +339,7 @@ const wchar_t* contextHelpText() {
     if(guideKeysAvailable()) return L"Trial keys: F9 and F10 previous and next step, Shift F10 selected step, F11 current step, Shift F11 inferred step, Backslash route, F8 Cloister submenu.";
     return L"Field keys: backtick rescans, right and left bracket next and previous destination, Shift brackets change category, P repeats destination, Backslash routes, U unreachable filter, G gil, M map name, T repeats dialogue, F6 beacon, F7 Autodetail, F8 mod menu.";
 }
-void contextHelpKey(bool) { emitReady(contextHelpText(),"context-help"); }
+void contextHelpKey(bool) { emitReady(contextHelpText(),"mod-context-help"); }
 void readPuzzleKey(bool shift) {
     if(readEnteredName()) return;
     if(gagazetActive()) { guideKey(shift?L"expected":L"step"); return; }

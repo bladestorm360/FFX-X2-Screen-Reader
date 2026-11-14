@@ -57,7 +57,6 @@ void hotkey(unsigned vk,void(*handler)(bool)) { keys[vk]=handler; }
 void hotkeyWhen(unsigned vk,void(*handler)(bool),bool(*available)()) {keys[vk]=handler;contexts[vk]=available;}
 // Shifted chords are stored above the 8-bit virtual-key range.
 void hotkeyChordWhen(unsigned vk,bool shift,void(*handler)(bool),bool(*available)(),bool) {if(shift) {keys[vk|0x100]=handler;contexts[vk|0x100]=available;}}
-void captureSpeech(bool value) { captured=value; }
 bool namingContext=false; unsigned nameReads=0;
 bool namingReadbackAvailable() {return namingContext;}
 bool readEnteredName() { if(!namingContext) return false; ++nameReads; return true; }
@@ -130,6 +129,7 @@ void resetWakka() { fixtureWakka=false; ++wakkaResets; }
 void spherePlannerKey(unsigned,bool) {}
 }
 #include "test_speech_domains.hpp"
+namespace ffx { void captureSpeech(bool value) { captured=value; speechq::fixture::modal=value; } }
 using namespace ffx;
 void menuKeyForTest(unsigned key,bool shift=false) {ffx::modMenuKey(key,shift);drainSpeechDomainsForTest();}
 void openMenuForTest(const ModMenuState& state) {ffx::openModMenu(state);drainSpeechDomainsForTest();}
