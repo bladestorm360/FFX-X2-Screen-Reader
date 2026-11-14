@@ -81,7 +81,7 @@ Release 1.0.1 verifies each temple’s Baaj prerequisite flag after its destruct
 - Settings design draws on the user's FF12 mod.
 - Paul Lemm (Sephiroth101), for the Blitzball worker-discovery and foreground-context fixes in [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1).
 
-See [dependency notices](src/native/DEPENDENCIES.md).
+The project is under the [MIT License](LICENSE). Third-party components keep their own licenses; see [dependency notices](src/native/DEPENDENCIES.md).
 
 Source: [GitHub](https://github.com/bladestorm360/FFX-X2-Screen-Reader).
 
