@@ -384,7 +384,7 @@ Off. H retains its active-turn behavior. Sol's investigation/source review appro
 both reader profiles/all 34 native summaries, warning-free tester build, final
 staged proxy and guarded deployment/both compiled profiles/launcher/13 hashes pass; actual
 map/save and battle UI acceptance remains user-side. Existing0.5.1 ZIP unchanged.
-[Evidence and delegation tracking](debug.md#restricted-tester-review-exit-refresh-and-change-vitals--2026-10-08).
+[Evidence and delegation tracking](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#restricted-tester-review-exit-refresh-and-change-vitals--2026-10-08).
 
 Current exit-visibility repair is implemented, offline-verified and deployed:
 34 native PASS summaries, warning-free tester build, final proxy checks and
@@ -396,7 +396,7 @@ candidate retries and removed arbitrary coordinate/zone ceilings cover likely
 causes. Sol's investigation/reviews were integrated by the primary; exact tester
 map/save acceptance remains user-side tomorrow. Existing 0.5.1 tester ZIP retains
 its previous payload; this maintenance repair is in the local installed/staged DLL.
-[Evidence](debug.md#exits-disappearing-while-walking--2026-10-07).
+[Evidence](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#exits-disappearing-while-walking--2026-10-07).
 
 Current0.5.1 installer migration/launch repair refresh is packaged and offline
 verified:508 synthetic assertions, actual final EXE13 hashes/repeat fixture install,
@@ -428,7 +428,7 @@ checked before installation. Startup/validation/proxy exceptions are contained;
 exact16-bit input access preserves adjacent memory. Full suite34 PASS summaries,
 focused real-resolver/forwarding/canary checks, clean x86 build and both compiled
 profiles/dependencies/launcher/13 hashes pass. User recovery confirmation pending:
-[debug evidence](debug.md#vc-runtime-termination-after-pedestal-build--2026-10-07).
+[debug evidence](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#vc-runtime-termination-after-pedestal-build--2026-10-07).
 
 The earlier implementation gave all six trial pedestal mechanics direction/count
 or distance guidance and held-Confirm assistance; the correction above supersedes

@@ -6,11 +6,8 @@ releases/
 Docs/Scripts/**/output/
 Docs/Scripts/**/__pycache__/
 
-# frida-compile build output + devDependencies
+# Native build output and staging
 install/
-src/build/node_modules/
-src/build/package-lock.json
-src/package-lock.json
 
 # Runtime logs
 FFX_SR_Latest.log

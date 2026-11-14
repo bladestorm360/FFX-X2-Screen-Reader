@@ -134,7 +134,7 @@ Verified delivery: ZIP 2,561,001 bytes, SHA256
 install/reinstall,26 embedded resources,7 installed payloads and5 archive files
 pass. Saved settings and0.5.6 remain unchanged. Prior local0.5.7 package preserved
 under `install/release-backups/0.5.7--20261016-143125-7b2fcdae`.
-[Current engineering record](debug.md#october16-release057). No publication.
+[Current engineering record](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#october16-release057). No publication.
 
 The October14/15 notes below describe historical deliveries and holds.
 The Help page buffer issue in0.5.6 is fixed and gameplay-confirmed for0.5.7.

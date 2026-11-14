@@ -1,4 +1,5 @@
-// Generated from navigation/roomAreas.js; same verified ATEL evidence.
+// Generated from the former Frida navigation/roomAreas.js (in git history);
+// same verified ATEL evidence.
 // Names come from the native getter; ambiguous rooms remain omitted.
 #pragma once
 namespace ffx {
