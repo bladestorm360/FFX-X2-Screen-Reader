@@ -80,6 +80,7 @@ std::wstring render(TextRef root) {
         }
         if(n.op==TextPlanOp::IfText) {if(!left.empty()) out=right;continue;}
         if(n.op==TextPlanOp::Or) {out=left.empty()?right:left;continue;}
+        if(n.op==TextPlanOp::Distinct) {if(left!=right) out=left;continue;}
         if(n.op==TextPlanOp::Hp || n.op==TextPlanOp::Mp) {
             out=(n.op==TextPlanOp::Mp?L"MP ":L"HP ")+std::to_wstring(n.value);
             const auto maximum=static_cast<int>(n.offset);

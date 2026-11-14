@@ -73,7 +73,10 @@ void sphereReaderFixtures() {
         check(sphereNode(static_cast<int>(row),true).sphere==snapshot.nodes[row].sphere,
             "node announcements and planner share material resolution");
     }
+    setSetting(Setting::AutoDetail,1); auto beforeEmpty=said.size();
     set<int16_t>(grid+0x112fc,10); event(0x648d70,0); expect(L"Empty, node 11","empty nodes have no activation material");
+    check(said.size()==beforeEmpty+1,"Autodetail does not repeat a description equal to the node name");
+    setSetting(Setting::AutoDetail,0);
     set<uint8_t>(grid+0x829+11*0x28,1); set<int16_t>(grid+0x112fc,11); event(0x648d70,0);
     expect(L"Strength Node, activated for Tidus, node 12","activated node does not request another sphere");
     event(0x4a9810,0,[=]{set<uint8_t>(grid+0x115bc,1);});

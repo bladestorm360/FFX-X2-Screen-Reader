@@ -706,7 +706,8 @@ are consumed only on the Sphere Grid.
 * Native node names are announced as you move, including activation for the
   focused character. Unactivated nodes announce the required sphere and quantity,
   including the matching key sphere for a locked node. **I** reads the native description; autodetail can be
-  enabled with F7 or in F8. Activation feedback announces the actual character/node.
+  enabled with F7 or in F8; a description identical to the node name, as on
+  empty nodes, is not repeated. Activation feedback announces the actual character/node.
   Ability nodes resolve the ability's own description, including all text lines.
   Activation feedback includes actual before/after stat values when they change.
 * Movement reads the native confirmation prompt and Yes/No choices. The prompt
