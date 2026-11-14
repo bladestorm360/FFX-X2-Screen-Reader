@@ -23,6 +23,7 @@
 #include "minigame_completion.hpp"
 #include "text_plan.hpp"
 #include "esc_details.hpp"
+#include "game_bindings.hpp"
 #include <atomic>
 #include <stdexcept>
 #include <cstring>
@@ -341,6 +342,11 @@ void readPuzzleKey(bool shift) {
     UtilityScript script;trial=!inBattle() && captureUtilityScript(script) && captureCurrentTrial(script)!=nullptr;
     if(trial || viaPurificoActive()) guideKey(shift?L"expected":L"step"); else repeatSpeech(shift);
 }
+bool repeatKeyAvailable() {
+    // L repeats in every context, including the ordinary field where F11 is
+    // handed back. A player who binds L to a game action keeps it for the game.
+    return !gameKeyboardUsesScan(MapVirtualKeyW('L',MAPVK_VK_TO_VSC));
+}
 void beaconKey(bool) {
     adjustSetting(Setting::Beacon,1);
     TextPlan p;prepareTextPlan(p,"mod-setting");p.headline=planConcat(p,planLiteral(p,L"Audio beacon: "),planSettingValue(p,setting(Setting::Beacon),0));commitTextPlan(p);
@@ -407,5 +413,6 @@ void installModMenu() {
     hotkey(VK_F6,beaconKey); hotkey(VK_F7,detailKey);
     hotkeyWhen(VK_F11,readPuzzleKey,readKeyAvailable);
     hotkeyChordWhen(VK_OEM_2,true,contextHelpKey,[] { return true; });
+    hotkeyWhen('L',repeatSpeech,repeatKeyAvailable);
 }
 }

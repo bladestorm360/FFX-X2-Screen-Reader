@@ -58,6 +58,8 @@ bool namingContext=false; unsigned nameReads=0;
 bool namingReadbackAvailable() {return namingContext;}
 bool readEnteredName() { if(!namingContext) return false; ++nameReads; return true; }
 void repeatSpeech(bool) { ++repeats; }
+unsigned fixtureGameScan=0;
+bool gameKeyboardUsesScan(unsigned scan) { return scan && scan==fixtureGameScan; }
 void drainController() { ++drains; }
 void pauseNavAudio() { navPaused=true; }
 Point playerPosition() { return {5,0,5}; }
@@ -457,6 +459,13 @@ int main() {
     check(repeats==beforeRepeat,"F11 is handed back on the ordinary field after leaving a trial");
     fixtureEsc=true;pressForTest(VK_F11,false);fixtureEsc=false;
     check(repeats==beforeRepeat+1,"F11 retains repeat in the native Escape menu");
+    check(keys.count('L')!=0,"L is registered as the repeat-last-speech key");
+    pressForTest('L',false);
+    check(repeats==beforeRepeat+2,"L repeats the last speech on the ordinary field");
+    fixtureEsc=true;pressForTest('L',false);fixtureEsc=false;
+    check(repeats==beforeRepeat+3,"L repeats the last speech in the native Escape menu");
+    fixtureGameScan=0x26;pressForTest('L',false);fixtureGameScan=0;
+    check(repeats==beforeRepeat+3,"L is handed back when a game keyboard action uses it");
     check(settingInfo(Setting::MenuIndex).initial==0 && settingInfo(Setting::AutoWalkPath).initial==0,"new accessibility defaults are off");
     pressForTest(VK_F8,false); selectRow(L"Miscellaneous, submenu"); menuKeyForTest(VK_RETURN);
     selectRow(L"Menu indexing:"); setSetting(Setting::MenuIndex,1); menuKeyForTest(VK_LEFT);
