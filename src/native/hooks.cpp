@@ -293,6 +293,14 @@ bool deferNativeAction(NativeAction action) {
     if(!nativeGameThread() || actions.size()>=8 || !action.prepare || !action.invoke) return false;
     return actions.push(action);
 }
+// A target that cannot be installed is skipped so the rest of the batch still
+// runs. A resource scope hook is the exception: readers rely on it to pause
+// during loads, so the batch must not run without it.
+bool skipTarget(unsigned id,const char* cause) {
+    if(resourceCall(id)) failed=true;
+    recordLog("hook target skipped id=%x resource=%d: %s",id,resourceCall(id),cause);
+    return false;
+}
 bool hookAddressKind(uintptr_t target,unsigned id,Handler before,Handler after,bool snapshot) {
     // Production registrations are all bootstrap calls. Native callbacks may
     // never enter registry allocation, VirtualAlloc or MinHook operations.
@@ -301,19 +309,21 @@ bool hookAddressKind(uintptr_t target,unsigned id,Handler before,Handler after,b
     for (auto& h : hooks) if (h->target == target) {
         const auto count=h->count.load(std::memory_order_acquire);
         for(unsigned i=0;i<count;++i) if(h->listeners[i].enter==before && h->listeners[i].leave==after) return true;
-        if(count==NativeListenerLimit) {failed=true;return false;}
+        // A full listener table is a code error, not a bad address, so it
+        // still refuses the batch and is caught on the first run.
+        if(count==NativeListenerLimit) {failed=true;recordLog("hook listener limit id=%x",id);return false;}
         if(!snapshot) h->snapshotOnly.store(false,std::memory_order_release);
         h->listeners[count]={before,after};h->count.store(count+1,std::memory_order_release);return true;
     }
     MEMORY_BASIC_INFORMATION info{};
     if (!VirtualQuery(reinterpret_cast<void*>(target), &info, sizeof(info)) ||
         info.State != MEM_COMMIT || !(info.Protect & 0xf0)) {
-        failed = true; recordLog("hook target unavailable id=%x", id); return false;
+        return skipTarget(id,"target unavailable");
     }
     auto h = std::make_unique<Hook>(); h->target = target; h->rva = id;
     h->listeners[0]={before,after};h->snapshotOnly.store(snapshot);h->count.store(1,std::memory_order_release);
     h->stub = VirtualAlloc(nullptr, 16, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    if (!h->stub) { failed = true; return false; }
+    if (!h->stub) return skipTarget(id,"stub allocation failed");
     auto bytes = static_cast<uint8_t*>(h->stub);
     bytes[0] = 0x68; *reinterpret_cast<uintptr_t*>(bytes + 1) = reinterpret_cast<uintptr_t>(h.get());
     bytes[5] = 0xe9; *reinterpret_cast<int32_t*>(bytes + 6) =
@@ -321,15 +331,27 @@ bool hookAddressKind(uintptr_t target,unsigned id,Handler before,Handler after,b
     DWORD protection; VirtualProtect(bytes, 16, PAGE_EXECUTE_READ, &protection);
     FlushInstructionCache(GetCurrentProcess(), bytes, 16);
     auto result = MH_CreateHook(reinterpret_cast<void*>(target), h->stub, reinterpret_cast<void**>(&h->original));
-    if (result != MH_OK) { failed = true; recordLog("hook create id=%x: %s", id, MH_StatusToString(result)); }
-    else if (MH_QueueEnableHook(reinterpret_cast<void*>(target)) != MH_OK) failed = true;
-    hooks.push_back(std::move(h)); return !failed;
+    if (result == MH_OK && (result = MH_QueueEnableHook(reinterpret_cast<void*>(target))) != MH_OK)
+        MH_RemoveHook(reinterpret_cast<void*>(target));
+    if (result != MH_OK) {
+        // Nothing is patched yet, so no thread can be running this stub.
+        VirtualFree(h->stub, 0, MEM_RELEASE); return skipTarget(id,MH_StatusToString(result));
+    }
+    hooks.push_back(std::move(h)); return true;
 }
 bool hookAddress(uintptr_t target,unsigned id,Handler before,Handler after) {return hookAddressKind(target,id,before,after,false);}
 bool hook(unsigned rva, Handler before, Handler after) { return hookAddress(address(rva), rva, before, after); }
 bool hookSnapshot(unsigned rva,Handler before,Handler after) {return hookAddressKind(address(rva),rva,before,after,true);}
 bool enableHooks() {
-    if (failed || MH_ApplyQueued() != MH_OK) { discardHooks(); return false; }
+    if (failed) { discardHooks(); return false; }
+    if (const auto status = MH_ApplyQueued(); status != MH_OK) {
+        // Part of the batch may already be live, and a game thread may be
+        // inside a bridge that will return through a trampoline. Disable
+        // everything, but leave MinHook initialized and keep the stubs and
+        // hook records: MH_Uninitialize would free those trampolines.
+        MH_DisableHook(MH_ALL_HOOKS);
+        recordLog("native hook batch apply failed: %s", MH_StatusToString(status)); return false;
+    }
     recordLog("native hook batch enabled targets=%u", static_cast<unsigned>(hooks.size())); return true;
 }
 bool applyAddedHooks() {
@@ -342,6 +364,6 @@ bool applyAddedHooks() {
 void discardHooks() {
     MH_DisableHook(MH_ALL_HOOKS); MH_Uninitialize();
     for (auto& h : hooks) if (h->stub) VirtualFree(h->stub, 0, MEM_RELEASE);
-    hooks.clear();
+    hooks.clear(); failed=false;
 }
 }

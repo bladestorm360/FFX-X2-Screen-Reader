@@ -17,6 +17,7 @@ if /I "%~1"=="--abi" goto abi
 if /I "%~1"=="--threading" goto threading
 if /I "%~1"=="--tail" goto tail
 if /I "%~1"=="--overflow" goto overflow
+if /I "%~1"=="--hook-batch" goto hookbatch
 if /I "%~1"=="--native-actions" goto nativeactions
 if /I "%~1"=="--jecht" goto jecht
 if /I "%~1"=="--lightning" goto lightning
@@ -111,6 +112,14 @@ if not "%errorlevel%"=="0" goto failed
 hook_overflow_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--overflow" goto success
+:hookbatch
+cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_batch_fixture.exe "%TEST_SRC%hook_batch_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
+if not "%errorlevel%"=="0" goto failed
+copy /Y "%MINHOOK_ROOT%\bin\MinHook.x86.dll" MinHook.x86.dll >nul
+if not "%errorlevel%"=="0" goto failed
+hook_batch_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--hook-batch" goto success
 :nativeactions
 cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_native_actions_fixture.exe "%TEST_SRC%hook_native_actions_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
 if not "%errorlevel%"=="0" goto failed
