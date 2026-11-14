@@ -323,6 +323,17 @@ bool readKeyAvailable() {
     // unused field F11 back to native input (F6-F8 remain reserved globally).
     return namingReadbackAvailable() || guideKeysAvailable() || scene || inBattle() || escMenuActive();
 }
+// Shift+Slash: one short key list for the current context. Keep these lists in
+// step with Docs/controls.md. Context checks only read already-published state.
+const wchar_t* contextHelpText() {
+    if(active) return L"Mod menu keys: Up and Down select, Left and Right change, Enter activates, I describes, Home and End jump to first and last, Escape goes back, F8 closes.";
+    if(inBattle()) return L"Battle keys: T turn, H HP and status, O Overdrive, Shift T turn order, Shift H party HP, Shift O Overdrive meters, I details, Control arrows Sensor info, F11 repeat.";
+    if(sphereGridOpen()) return L"Sphere Grid keys: F2 path planner, Shift F2 clear plans, F3 ability planner, F4 and F5 guidance from character, Backslash and Shift Backslash guidance from cursor, O orientation, S Sphere Levels, F6 node number, I description, F7 Autodetail.";
+    if(scene || escMenuActive()) return L"Menu keys: I details, Shift I footer controls, U extra info, comma and period review lines, F7 Autodetail, F11 repeat, F8 mod menu.";
+    if(guideKeysAvailable()) return L"Trial keys: F9 and F10 previous and next step, Shift F10 selected step, F11 current step, Shift F11 inferred step, Backslash route, F8 Cloister submenu.";
+    return L"Field keys: backtick rescans, right and left bracket next and previous destination, Shift brackets change category, P repeats destination, Backslash routes, U unreachable filter, G gil, M map name, T repeats dialogue, F6 beacon, F7 Autodetail, F8 mod menu.";
+}
+void contextHelpKey(bool) { emitReady(contextHelpText(),"mod-context-help"); }
 void readPuzzleKey(bool shift) {
     if(readEnteredName()) return;
     if(gagazetActive()) { guideKey(shift?L"expected":L"step"); return; }
@@ -374,6 +385,7 @@ void modMenuKey(unsigned vk,bool shift) {
     }
     switch(vk) {
     case VK_F8: close(); break;
+    case VK_OEM_2: if(shift) contextHelpKey(true); break;
     case VK_F6: beaconKey(false); break;
     case VK_F7: detailKey(false); break;
     case VK_ESCAPE: case VK_BACK:
@@ -394,5 +406,6 @@ void installModMenu() {
     hotkey(VK_F8,menuKey); hotkeyWhen(VK_F9,stepKey,guideKeysAvailable); hotkeyWhen(VK_F10,pathKey,guideKeysAvailable);
     hotkey(VK_F6,beaconKey); hotkey(VK_F7,detailKey);
     hotkeyWhen(VK_F11,readPuzzleKey,readKeyAvailable);
+    hotkeyChordWhen(VK_OEM_2,true,contextHelpKey,[] { return true; });
 }
 }

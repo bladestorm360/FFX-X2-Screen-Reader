@@ -52,7 +52,8 @@ void appendSelectionDetailOwned(std::wstring,SelectionDetailToken) {}
 bool output(const std::wstring& text,bool,const char*) { said.push_back(text); return true; }
 void hotkey(unsigned vk,void(*handler)(bool)) { keys[vk]=handler; }
 void hotkeyWhen(unsigned vk,void(*handler)(bool),bool(*available)()) {keys[vk]=handler;contexts[vk]=available;}
-void captureSpeech(bool value) { captured=value; }
+// Shifted chords are stored above the 8-bit virtual-key range.
+void hotkeyChordWhen(unsigned vk,bool shift,void(*handler)(bool),bool(*available)(),bool) {if(shift) {keys[vk|0x100]=handler;contexts[vk|0x100]=available;}}
 bool namingContext=false; unsigned nameReads=0;
 bool namingReadbackAvailable() {return namingContext;}
 bool readEnteredName() { if(!namingContext) return false; ++nameReads; return true; }
@@ -68,7 +69,9 @@ void updateNavAudio(Point point,bool moving) {
 }
 void stopNavPreview() {}
 void previewNavAudio(bool) { ++previews; }
-bool inBattle() { return false; }
+bool fixtureBattle=false,fixtureGrid=false;
+bool inBattle() { return fixtureBattle; }
+bool sphereGridOpen() { return fixtureGrid; }
 std::wstring lightningDodgeControls() { return L"Dodge: fixture control."; }
 bool puzzleArmed() { return false; }
 std::wstring puzzleAction; bool trialPresent=false,viaPresent=false;
@@ -123,11 +126,17 @@ void resetWakka() { fixtureWakka=false; ++wakkaResets; }
 void spherePlannerKey(unsigned,bool) {}
 }
 #include "test_speech_domains.hpp"
+namespace ffx { void captureSpeech(bool value) { captured=value; speechq::fixture::modal=value; } }
 using namespace ffx;
 void menuKeyForTest(unsigned key,bool shift=false) {ffx::modMenuKey(key,shift);drainSpeechDomainsForTest();}
 void openMenuForTest(const ModMenuState& state) {ffx::openModMenu(state);drainSpeechDomainsForTest();}
 void pressForTest(unsigned key,bool shift=false) {if(!contexts.count(key) || contexts[key]()) keys[key](shift);drainSpeechDomainsForTest();}
 void check(bool ok,const char* message) { if(!ok) { fprintf(stderr,"FAIL: %s\n",message); exit(1); } }
+std::wstring contextHelpForTest() {
+    const unsigned key=VK_OEM_2|0x100;
+    if(!keys.count(key) || !contexts[key]()) return L"";
+    keys[key](true);drainSpeechDomainsForTest();return said.empty()?L"":said.back();
+}
 void selectRow(const std::wstring& label) {
     menuKeyForTest(VK_HOME);
     for(unsigned i=0;i<64;++i) {
@@ -177,9 +186,17 @@ int main() {
     scene=0;trialPresent=true;
     pressForTest(VK_F10,false); check(!modMenuActive() && said.back()==L"Fixture trial","path shortcut does not open settings");
     trialPresent=false;
+    check(contextHelpForTest().find(L"Field keys: backtick rescans")==0,"Shift+Slash lists field keys");
+    trialPresent=true;check(contextHelpForTest().find(L"Trial keys: F9 and F10")==0,"Shift+Slash lists trial guide keys");trialPresent=false;
+    fixtureGrid=true;check(contextHelpForTest().find(L"Sphere Grid keys: F2")==0,"Shift+Slash lists Sphere Grid keys");fixtureGrid=false;
+    fixtureEsc=true;check(contextHelpForTest().find(L"Menu keys: I")==0,"Shift+Slash lists Escape menu keys");fixtureEsc=false;
+    scene=6;check(contextHelpForTest().find(L"Menu keys: I")==0,"Shift+Slash lists native menu keys");scene=0;
+    fixtureBattle=true;check(contextHelpForTest().find(L"Battle keys: T")==0,"Shift+Slash lists battle keys");fixtureBattle=false;
     pressForTest(VK_F8,false);
     check(modMenuActive() && captured,"spoken menu captures game narration");
     check(said.back()==L"Accessibility mod menu. Speech: On, 1 of 6","main menu keeps Speech, Speech options and existing grouped submenus plus Close");
+    menuKeyForTest(VK_OEM_2,true);
+    check(said.back().find(L"Mod menu keys: Up and Down")==0 && modMenuActive(),"Shift+Slash inside the mod menu lists its keys");
     menuKeyForTest(VK_F6); menuKeyForTest(VK_F7);
     check(!setting(Setting::Beacon) && !setting(Setting::AutoDetail),"toggles remain available inside settings");
     check(navPaused,"F6 inside settings keeps route audio paused");

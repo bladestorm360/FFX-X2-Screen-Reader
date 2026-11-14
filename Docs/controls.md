@@ -106,6 +106,12 @@ Movie suppression follows audible soundtrack playback, including background musi
 Braille only sends no synthesized speech, including when no display is available.
 Ordinary field F1–F5 and F9–F12 pass to the game; F6–F8 remain mod controls.
 
+**Shift+Slash** (Shift+/, the question-mark key on US layouts) speaks the mod
+keys for the current context in one short list: battle, Sphere Grid, menus
+(Escape and native menus), a supported Cloister, Via or Gagazet guide, or the
+field. Inside the F8 menu it lists the menu's own keys. The game does not
+receive the key. In the tested keyboard setup the game binds nothing to Slash.
+
 F11 reads puzzle guidance in supported Cloister, Via, and Gagazet guide contexts.
 In native menus, battle, or the Escape menu, it repeats the current speech.
 Ordinary field F11 is passed through to the game. **F9/F10** select the

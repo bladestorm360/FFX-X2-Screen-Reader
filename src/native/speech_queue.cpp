@@ -143,7 +143,7 @@ bool take(Utterance& item) {
 bool output(const wchar_t* text,size_t length,bool interrupt,const char* producer,bool voiced,unsigned epoch) {
     if(!text || !length || epoch!=generation()) return false;
     unsigned flags=(interrupt?Interrupt:0u)|(voiced?Voiced:0u);
-    const bool mod=producer && std::strncmp(producer,"mod-",4)==0;
+    const bool mod=modProducer(producer);
     if(mod) flags|=Mod;
     if(!mod && !setting(Setting::Speech)) return false;
     auto item=header(flags,producer);
@@ -172,7 +172,7 @@ bool emitOwned(std::wstring text,const Header& anchor,const char* producer,bool 
     if(text.empty()) return false;
     auto item=anchor;item.control=None;item.charged=false;item.length=static_cast<unsigned>(text.size());
     unsigned flags=(interrupt?Interrupt:0u)|(voiced?Voiced:0u);
-    const bool mod=producer && std::strncmp(producer,"mod-",4)==0;
+    const bool mod=modProducer(producer);
     if(mod) flags|=Mod;
     if(!mod && !(anchor.context&SpeechEnabled)) return false;
     if((anchor.context&QueueProtected) || domainsProtectSpeech(anchor)) {

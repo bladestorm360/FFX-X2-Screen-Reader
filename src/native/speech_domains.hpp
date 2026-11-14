@@ -1,10 +1,13 @@
 #pragma once
 #include "speech_capture.hpp"
 #include <type_traits>
+#include <cstring>
 namespace ffx::speechq {
 constexpr unsigned DomainBase=256,DomainLimit=32;
 enum Domain : unsigned {DialogueVoiceDomain=0,MovieVoiceDomain=1,NamingDomain=2,SelectionDetailDomain=3,SystemMenuDomain=4,EscMenuDomain=5,TextPlanDomain=6,BattleStatusDomain=7,MinigameDomain=8,ButterflyDomain=9};
 enum ContextFlags : unsigned {SpeechEnabled=1,QueueProtected=2,ModalOpen=4,TutorialOpen=8};
+// Only "mod-" producers speak while a mod menu captures game speech (ModalOpen).
+inline bool modProducer(const char* producer) {return producer && std::strncmp(producer,"mod-",4)==0;}
 using DomainHandler=void(*)(const Header&,const std::wstring&);
 using DomainReset=void(*)(unsigned);
 using DomainMaintenance=void(*)();

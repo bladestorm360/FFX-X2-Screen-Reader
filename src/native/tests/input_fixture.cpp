@@ -45,7 +45,8 @@ void pumpController() { ++controllerPumps; }
 bool ownedPad=false;
 bool controllerOwned() { return ownedPad; }
 std::vector<unsigned> menuKeys;
-void modMenuKey(unsigned vk,bool) { menuKeys.push_back(vk); }
+bool menuShift=false;
+void modMenuKey(unsigned vk,bool shift) { menuKeys.push_back(vk); menuShift=shift; }
 void pumpUtilities() {}
 bool nativeGameThread() { return true; }
 bool tryNativeReaderAccess() noexcept {return nativeGameThread();}
@@ -257,6 +258,11 @@ int main() {
     check(keys[DIK_DOWN]==0x80,"fresh DirectInput arrow restores game after release");
     keys.fill(0); fire(0xfffe0001,state); keys[DIK_UP]=0x80; testModMenu=true; fire(0xfffe0001,state);
     check(!keys[DIK_UP],"settings takes exclusive DirectInput arrows");
+    keys.fill(0); fire(0xfffe0001,state); keys[DIK_LSHIFT]=0x80; fire(0xfffe0001,state);
+    // GetDeviceState refills the whole buffer each frame; the hook zeroed the swallowed Shift.
+    keys[DIK_LSHIFT]=keys[DIK_SLASH]=0x80; fire(0xfffe0001,state); drain();
+    check(!keys[DIK_SLASH] && menuKeys.back()==VK_OEM_2 && menuShift,"settings receives DirectInput Shift+Slash with Shift");
+    keys.fill(0); fire(0xfffe0001,state);
     testModMenu=false;
     hotkeyWhen(VK_RIGHT,key,statusContext);
     check(!capturesKey(VK_RIGHT),"inactive status leaves game arrows intact");
