@@ -189,6 +189,8 @@ focused character's remaining Sphere Levels; an unknown or unaffordable value
 leaves the native prompt alone. Directions use the recovered native selection
 rules, distinguishing a required diagonal from alternative single-arrow choices.
 Do not replace these with a simple angle rounding or relabel working links.
+The saved `sphere_node_numbers` setting (default On) gates the ", node N"
+suffix in selection, movement and route labels; F6 entry ignores it.
 
 F2 chooses a character/stat path; F3 chooses an ability. F4/F5 guide forward/back
 from the character; Backslash/Shift+Backslash guide from the preview cursor.

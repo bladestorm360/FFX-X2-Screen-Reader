@@ -81,6 +81,11 @@ void sphereReaderFixtures() {
     expect(L"Strength Node, activated for Tidus, node 12","activated node does not request another sphere");
     event(0x4a9810,0,[=]{set<uint8_t>(grid+0x115bc,1);});
     expect(L"Strength Node, requires 1 Power Sphere, node 12","material requirement follows active character activation bits");
+    setSetting(Setting::SphereNodeNumbers,0); set<int16_t>(grid+0x112fc,10); event(0x648d70,0);
+    expect(L"Empty","node numbers setting Off leaves only the node name");
+    check(sphereNodeLabel(snapshot,0)==L"Strength Node","route labels follow the node numbers setting");
+    setSetting(Setting::SphereNodeNumbers,1);
+    check(sphereNodeLabel(snapshot,0)==L"Strength Node, node 1","route labels keep node numbers by default");
     for(int key:{VK_F2,VK_F3,VK_F4,VK_F5,static_cast<int>('O'),static_cast<int>('S')}) check(contexts.at(key)(),"native grid selection establishes all grid shortcut contexts");
     const int assist=setting(Setting::OverdriveAssist); keys['O'](false);
     check(setting(Setting::OverdriveAssist)==assist,"O orientation cannot toggle Overdrive auto-success");
