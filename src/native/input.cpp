@@ -36,10 +36,14 @@ async::TryCaptureQueue<Key,64> queue;
 std::atomic<unsigned> inputRevision{1};
 std::array<bool,256> swallowedMessages{};
 std::atomic<bool> keyboard{false};
-thread_local unsigned messageDepth = 0;
-void messageEnter(Event& e) { e.before[0] = ++messageDepth; }
+// A/W forwarding nests one message hook inside another; only the outermost
+// call owns the message. Derive nesting from the hook layer's pending parent
+// instead of a counter: the hook layer skips return readers for calls begun
+// during loading or in an older generation, and a skipped decrement would
+// mute every later message for the session.
+bool messageHook(unsigned rva) { return rva>=0xffff0000 && rva<=0xffff0003; }
+void messageEnter(Event& e) { e.before[0] = messageHook(e.parentRva) ? 2 : 1; }
 void received(Event& e) {
-    if (messageDepth) --messageDepth;
     if(e.before[0]>1 || !nativeGameThread()) return;
     if (!e.result || e.result == static_cast<uintptr_t>(-1) ||
         (e.rva < 0xffff0002 && !(e.args[4] & PM_REMOVE))) return;
