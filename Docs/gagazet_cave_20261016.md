@@ -90,7 +90,7 @@ three return calls, two trial requests, D8 success writes and cave wall guards/
 calls. Final output: output/gagazet_fixture_20261016/return_route_20261016_194927.json.
 This is static native-script evidence, not executed movement/collision evidence.
 The original-EBP reader fixture verifies distinct target roles, unchanged real
-exit categories and changed-script refusal. [Current delivery/checks](debug.md#october16-special-features-controls-and-field-results).
+exit categories and changed-script refusal. [Current delivery/checks](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#october16-special-features-controls-and-field-results).
 
 For testing, Shift+F1: `warp 310 0` enters the Wakka trial water section;
 `warp 310 1` enters the three-swimmer trial water section. Continue by normal

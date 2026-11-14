@@ -205,7 +205,7 @@ settings, and cache the same detail for I. H still reads the active turn owner.
 Summon uses the helper with existing detail settings; the full 0x30FF record names
 the group and its native renderer displays actors15–17 separately. No numerical
 max ratios or Sphere Levels are drawn in these vital rows.
-See [tester evidence, native bodies and Sol review](debug.md#restricted-tester-review-exit-refresh-and-change-vitals--2026-10-08).
+See [tester evidence, native bodies and Sol review](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#restricted-tester-review-exit-refresh-and-change-vitals--2026-10-08).
 
 ### Exit lifetime and conservative path validation — 2026-10-07
 
@@ -229,7 +229,7 @@ Rectangle corners/edge centers supplement existing native-zone anchors.
 All geometry, callback state and native mutable collision remain freshly read;
 floor-association tolerances are safety constraints, not entity distance caps.
 Native A*/Dijkstra exhaust the finite graph without a route-distance/search cap.
-See [investigation, Sol reviews and verification](debug.md#exits-disappearing-while-walking--2026-10-07).
+See [investigation, Sol reviews and verification](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#exits-disappearing-while-walking--2026-10-07).
 
 ### Trial push guidance and configured push input — 2026-10-07
 
