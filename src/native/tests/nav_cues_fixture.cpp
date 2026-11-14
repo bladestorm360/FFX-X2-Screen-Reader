@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <atomic>
 #include <chrono>
+#include <cmath>
+#include <cstring>
 namespace {thread_local bool observingLeg=false;std::atomic<unsigned> legAllocations{0},legFrees{0};}
 namespace {static ffx::nav::Scene sceneFacts; static ffx::speechq::Header sceneHeader;}
 void* operator new(size_t size) {if(observingLeg) ++legAllocations;auto* p=std::malloc(size?size:1);if(!p) throw std::bad_alloc();return p;}
@@ -17,9 +19,29 @@ namespace ffx {
 void prepareNavRetirement();
 unsigned epoch=1,arrivals=0,publications=0,pauses=0;
 unsigned floorReads=0;
+unsigned autoWalkStops=0;
+unsigned previewStops=0;
+void stopAutoWalk() {++autoWalkStops;}
 unsigned wallCaptures=0,fixtureWallMask=0;
 std::atomic<int> scene{0};
 bool focused=true,menu=false,battle=false,beacon=true,arrival=true,autoWalk=false;
+bool nativeOwner=false;
+Point cameraForward{1,0,0};
+int dialogue=0;
+uint8_t controllerFlags=2;
+uintptr_t controlledActor=1;
+int __cdecl fixtureDialogueMode() {return dialogue;}
+uintptr_t address(unsigned rva) {
+    static uintptr_t controller=reinterpret_cast<uintptr_t>(&controllerFlags);
+    if(rva==0x46c840) return reinterpret_cast<uintptr_t>(fixtureDialogueMode);
+    if(rva==0xf26ae8) return reinterpret_cast<uintptr_t>(&controller);
+    if(rva==0xf00740) return reinterpret_cast<uintptr_t>(&controlledActor);
+    std::abort();
+}
+bool copy(uintptr_t source,void* destination,size_t size) {
+    if(!nativeOwner) std::abort();
+    std::memcpy(destination,reinterpret_cast<const void*>(source),size);return true;
+}
 Point player;
 NavAudioState published;
 std::vector<std::wstring> said;
@@ -40,7 +62,7 @@ int setting(Setting id) { return id==Setting::Beacon?beacon:id==Setting::Arrival
 bool output(const std::wstring& text,bool,const char*) { said.push_back(text); return true; }
 bool outputDialogue(const std::wstring& text,bool interrupt,const char* producer,bool) { return output(text,interrupt,producer); }
 bool hook(unsigned,Handler,Handler) { return true; }
-bool nativeGameThread() { return false; }
+bool nativeGameThread() { return nativeOwner; }
 Point playerPosition() { return player; }
 std::wstring pedestalInstruction(const Entity&) { return L"Fixture push action"; }
 Mesh readMesh() { ++floorReads; return fixtureFloor; }
@@ -48,14 +70,14 @@ void installWallCues() { fixtureWallMask=0; }
 void captureWallCues() { ++wallCaptures; fixtureWallMask=nearbyWalls(fixtureFloor,player,{1,0,0},{0,0,-1},2*11.13); }
 void cancelWallCues() { fixtureWallMask=0; }
 unsigned copiedWallCues() { return fixtureWallMask; }
-bool cameraBasis(Point& forward,Point& right) { forward={1,0,0}; right={0,0,-1}; return true; }
+bool cameraBasis(Point& forward,Point& right) { forward=cameraForward;right={forward.z,0,-forward.x};return true; }
 bool relativeBearing(Point delta,double& pan,double& front) {
     const auto length=distanceXZ({},delta); pan=-delta.z/length; front=delta.x/length; return true;
 }
 void publishNavAudio(const NavAudioState& state) { published=state; published.walls|=fixtureWallMask; ++publications; }
 void pauseNavAudio() { ++pauses; cancelWallCues(); }
 void pauseNavRouteAudio() { ++pauses; }
-void stopNavPreview() {}
+void stopNavPreview() {++previewStops;}
 void navAudioArrival() { ++arrivals; }
 void publishPositionalCue(float,float,bool,unsigned) {}
 }
@@ -82,6 +104,60 @@ void fixtureUpdateNavTarget(const Entity& target) {
     if(same) fixtureTarget=target;
     pump(); updateNavTarget(target);
 }
+void feedbackFixtures() {
+    Entity target;target.name=L"Camera goal";target.worker=3;target.id=21;target.position={45,0,5};
+    fixtureRouteNavAudio({player,target.position},target);said.clear();
+    for(unsigned context=0;context<3;++context) {
+        cameraForward={1,0,0};nativeOwner=true;captureNavCamera();
+        if(context==0) dialogue=1;if(context==1) controllerFlags=0;if(context==2) controlledActor=0;
+        cameraForward={0,0,1};captureNavCamera();
+        dialogue=0;controllerFlags=2;controlledActor=1;captureNavCamera();nativeOwner=false;drainSpeechDomainsForTest();
+        check(said.empty(),"dialogue, disabled control and silent cutscenes suppress camera cuts and resume without a hint");
+    }
+    cameraForward={1,0,0};
+    nativeOwner=true;captureNavCamera();cameraForward={0,0,1};captureNavCamera();
+    check(said.empty(),"camera owner captures no synchronous speech");nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==1 && said.back().find(L"east")!=std::wstring::npos,"camera cut emits one refreshed next-leg hint from copied camera");
+    nativeOwner=true;captureNavCamera();nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==1,"unchanged camera does not repeat cut hint");
+    for(unsigned i=1;i<=12;++i) {
+        const auto angle=(90+i*10)*3.14159265358979323846/180;cameraForward={std::cos(angle),0,std::sin(angle)};
+        nativeOwner=true;captureNavCamera();nativeOwner=false;drainSpeechDomainsForTest();
+    }
+    check(said.size()==1,"slow pan across more than forty-five degrees never counts as a cut");
+    nativeOwner=true;cameraForward={0,0,-1};captureNavCamera();cameraForward={1,0,0};captureNavCamera();nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==2 && said.back().find(L"north")!=std::wstring::npos,"busy worker speaks only the newest queued cut orientation");
+    nativeOwner=true;cameraForward={0,0,1};captureNavCamera();
+    for(unsigned i=1;i<=3;++i) {
+        const auto angle=(90+i*30)*3.14159265358979323846/180;cameraForward={std::cos(angle),0,std::sin(angle)};captureNavCamera();
+    }
+    nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==3 && said.back().find(L"south")!=std::wstring::npos,"delayed cut uses latest copied heading after a slow pan");
+    nativeOwner=true;cameraForward={0,0,1};captureNavCamera();navAudioContextRevision.fetch_add(1);nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==3,"native context pause rejects a queued camera hint");
+    nativeOwner=true;cameraForward={-1,0,0};captureNavCamera();navCollisionRevision.fetch_add(1);nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==3,"native collision change rejects a queued camera hint");
+    nativeOwner=true;cameraForward={0,0,-1};captureNavCamera();focused=false;captureNavCamera();focused=true;nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==3,"native focus loss rejects a queued camera hint");
+    nativeOwner=true;captureNavCamera();
+    nativeOwner=true;cameraForward={1,0,0};captureNavCamera();clearNavRoute();nativeOwner=false;drainSpeechDomainsForTest();
+    check(said.size()==3,"canceled route rejects a queued camera hint");
+    cameraForward={1,0,0};fixtureRouteNavAudio({player,target.position},target);said.clear();
+    const auto stops=autoWalkStops,previews=previewStops;
+    nativeOwner=true;routeNavAudio({player,target.position},target);nativeOwner=false;
+    updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    check(said.size()==1 && said.back()==L"Route lost: destination gone" && autoWalkStops==stops+1,"missing destination speaks once and cancels Auto walk");
+    drainSpeechDomainsForTest();NavLeg retired;
+    check(previewStops>previews && !navRouteKnown() && !navLeg(retired),"route loss cancels preview and invalidates previously queued route captures");
+    fixtureRouteNavAudio({player,target.position},target);said.clear();
+    check(claimNavRouteStopSpeech(),"native route timeout claims one failure announcement");
+    updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    check(said.empty(),"later worker retirement cannot repeat the native route-timeout reason");
+    clearNavRoute();said.clear();
+    const auto noRoutePreviews=previewStops;loseNavRoute(L"destination gone");
+    check(previewStops==noRoutePreviews+1 && said.empty(),"already retired route still performs cleanup without another announcement");
+}
 void dynamicGateFixtures() {
     // Connected two-row floor: the middle lower cell is a native mutable gate.
     // Closing it leaves a real detour through the upper row, with a fixed goal.
@@ -107,9 +183,12 @@ void dynamicGateFixtures() {
     check(navLeg(leg) && leg.pendingCollision,"native gate event immediately retires copied leg before worker update");
     updateOwnedNavAudio(oldScene,fixtureFloor,{goal},sceneHeader,L"");
     check(navLeg(leg) && leg.pendingCollision,"late pre-gate scene cannot republish old movement");
+    check(claimNavRouteStopSpeech(),"native failure claims feedback before a successful replan");
     for(auto& t:fixtureFloor.triangles) if(t.collisionGroup==48) t.collision=1;
     sceneFacts.geometry.collision.remaps[0]=1;pump();
     check(navLeg(leg) && !leg.pendingCollision && std::abs(leg.goal.z-player.z)>1,"unchanged target replans around newly closed gate");
+    check(!claimNavRouteStopSpeech(),"successful replan cannot re-arm a claimed stop announcement");
+    fixtureRouteNavAudio(routePoints(fixtureFloor,player,goal.position),goal);
     // Opening and closing back to the same state is still a new native serial.
     navCollisionRevision.fetch_add(2);check(navLeg(leg) && leg.pendingCollision,"ABA gate changes cannot revive a stale leg");pump();
     check(navLeg(leg) && !leg.pendingCollision,"fresh same-state scene recovers the detour");
@@ -121,18 +200,22 @@ void dynamicGateFixtures() {
     sceneFacts.geometry.collision.remaps[0]=1;pump();
     check(navLeg(leg) && std::abs(leg.goal.z-player.z)>1,"changed copied remap independently invalidates retained route");
     for(auto& t:fixtureFloor.triangles) if(t.center.x>10 && t.center.x<20) t.collision=1;
+    const auto lossSpeech=said.size(),lossStops=autoWalkStops;
     navCollisionRevision.fetch_add(1);pump();check(!navRouteKnown() && !navLeg(leg),"fully closed connection removes synthetic steering");
+    pump();check(said.size()==lossSpeech+1 && said.back()==L"Route lost: no connected route" && autoWalkStops==lossStops+1,"gate loss speaks once and retires Auto walk before its duplicate stop");
     clearNavRoute();sceneFacts.geometry.collision={};
 }
 }
-int main() {
+int main(int argc,char**) {
     // Match installNavigation's bootstrap ownership setup. Retired containers
     // remain held by the fixture's prepared pools; no native-side destruction.
     prepareNavRetirement();
-    dynamicGateFixtures();
+    if(argc==1) dynamicGateFixtures();
     Triangle a; a.valid=true; a.points[0]={0,0,0}; a.points[1]={100,0,0}; a.points[2]={0,0,100};
     a.vertices[0]=0; a.vertices[1]=1; a.vertices[2]=2; for(auto& n:a.neighbours)n=-1;
     fixtureFloor.triangles={a}; player={5,0,5}; pump();
+    feedbackFixtures();
+    if(argc>1) return 0;
     check(floorReads==0,"worker pump uses the copied fixture floor without Native mesh getters");
     Entity target; target.name=L"Fixture target"; target.actor=4; target.worker=3; target.id=2; target.position={45,0,5};
     fixtureRouteNavAudio({player,{20,0,5},target.position},target);
@@ -145,6 +228,7 @@ int main() {
     check(!navRouteKnown() && !navLeg(staleCrossing),"changed callback retires retained reverse ledge route with unchanged target");
     fixtureFloor.events={};fixtureRouteNavAudio({player,{20,0,5},target.position},target);
     check(navLeg(staleCrossing) && published.beacon,"disabled returning crossing permits a fresh route");
+    said.clear();
     player={11,0,5}; pump(); check(published.steps<1,"a turn waypoint is not skipped one walking step early");
     player={22,0,5}; pump(); check(published.beacon && published.steps>2,"movement passing a waypoint advances without exact pixel contact");
     player={45,0,5}; pump(); pump();
@@ -153,7 +237,7 @@ int main() {
     target.position={5,0,50}; fixtureUpdateNavTarget(target); pump();
     check(published.pan<-.9f,"moving destination recomputes connected route");
     target.position={1000,0,1000}; fixtureUpdateNavTarget(target);
-    check(said.back().find(L"route lost")!=std::wstring::npos,"disconnected moving target reports route loss");
+    check(said.back().find(L"Route lost")!=std::wstring::npos,"disconnected moving target reports route loss");
     const auto before=publications; focused=false; pump();
     check(publications==before && pauses,"foreign focus pauses cues");
     focused=true; menu=true; pump(); check(publications==before,"mod menu pauses game cues");
@@ -180,7 +264,7 @@ int main() {
     check(arrivals==priorArrival+2 && !published.beacon,"arrival occurs inside moved native interaction zone");
     target.inactive=false; player={36,0,5}; fixtureRouteNavAudio({player,{56,0,5}},target);
     target.inactive=true; fixtureUpdateNavTarget(target); NavLeg inactiveLeg;
-    check(!navLeg(inactiveLeg) && said.back().find(L"Currently inactive")!=std::wstring::npos,
+    check(!navLeg(inactiveLeg) && said.back().find(L"destination inactive")!=std::wstring::npos,
         "availability-only changes invalidate the route instead of retaining stale push eligibility");
     target.inactive=false;
     target.zone={}; target.position={45,0,5}; player={5,0,5};
@@ -240,8 +324,8 @@ int main() {
     target.position=target.zone.center;fixtureRouteNavAudio({player,{20,-50,5},{66,-50,5}},target);
     const auto swimArrivals=arrivals;player={22,-90,5};pump();
     check(navLeg(leg) && leg.goal.x==66 && published.beacon && published.steps>2,"native swim depth changes cannot stall advancement at a cached turn waypoint");
-    target.zone.range=6;fixtureUpdateNavTarget(target);
-    check(navLeg(leg) && leg.final.y==-90 && !said.empty() && said.back().find(L"route lost")==std::wstring::npos,"swim target geometry updates replan with current depth from the owned cached mesh");
+    const auto swimSpeech=said.size();target.zone.range=6;fixtureUpdateNavTarget(target);
+    check(navLeg(leg) && leg.final.y==-90 && said.size()==swimSpeech,"swim target geometry updates replan with current depth from the owned cached mesh");
     player=leg.final;player.y=-50;pump();
     check(arrivals==swimArrivals && navLeg(leg) && !leg.arrived,"swimming approach alone cannot report arrival outside native height bounds");
     player.y=-90;pump();

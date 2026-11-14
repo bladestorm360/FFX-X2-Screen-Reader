@@ -32,6 +32,7 @@ if /I "%~1"=="--butterflies" goto butterflies
 if /I "%~1"=="--minigames" goto minigames
 if /I "%~1"=="--minigame-completion" goto minigamecompletion
 if /I "%~1"=="--navigation-audio" goto navigationaudio
+if /I "%~1"=="--navigation-cues" goto navigationcues
 if /I "%~1"=="--navigation-geometry" goto navigationgeometry
 if /I "%~1"=="--sin-routes" goto sinroutes
 if /I "%~1"=="--sin-later-maps" goto sinlatermaps
@@ -163,6 +164,18 @@ controller_bridge_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--controller" goto success
 :navigationaudio
+cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_READER_TEST /Fe:navigation_cancel_fixture.exe "%TEST_SRC%navigation_cancel_fixture.cpp" "%TEST_SRC%..\auto_walk.cpp" "%TEST_SRC%..\movement_keys.cpp" "%TEST_SRC%..\game_binding_input.cpp" "%TEST_SRC%..\nav_cues.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp" "%TEST_SRC%..\butterfly_navigation.cpp" "%TEST_SRC%..\swimming_route.cpp" "%TEST_SRC%..\butterfly_paths.cpp" "%TEST_SRC%..\owned_retirement.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+navigation_cancel_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:navigation_order_fixture.exe "%TEST_SRC%navigation_order_fixture.cpp"
+if not "%errorlevel%"=="0" goto failed
+navigation_order_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /DFFX_READER_TEST /Fe:reachability_cache_fixture.exe "%TEST_SRC%reachability_cache_fixture.cpp" "%TEST_SRC%..\reachability_worker.cpp"
+if not "%errorlevel%"=="0" goto failed
+reachability_cache_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--navigation-audio" copy /Y "%REPO_ROOT%\install\native\SDL3.dll" SDL3.dll >nul
 pushd "%TEST_SRC%.."
 rc /nologo /fo "%TEST_BUILD%\test_audio.res" audio_assets.rc
@@ -173,10 +186,12 @@ cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_READER_TEST /I"%SDL3_SOURCE%\include" 
 if not "%errorlevel%"=="0" goto failed
 nav_audio_fixture.exe
 if not "%errorlevel%"=="0" goto failed
+:navigationcues
 cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:nav_cues_fixture.exe "%TEST_SRC%nav_cues_fixture.cpp" "%TEST_SRC%..\nav_cues.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp" "%TEST_SRC%..\butterfly_navigation.cpp" "%TEST_SRC%..\swimming_route.cpp" "%TEST_SRC%..\butterfly_paths.cpp" "%TEST_SRC%..\owned_retirement.cpp"
 if not "%errorlevel%"=="0" goto failed
 nav_cues_fixture.exe
 if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--navigation-cues" goto success
 if /I "%~1"=="--navigation-audio" goto success
 :butterflies
 cl /nologo /W4 /WX /O2 /EHa /DFFX_READER_TEST /std:c++17 /MT /Fe:butterfly_fixture.exe "%TEST_SRC%butterfly_fixture.cpp" "%TEST_SRC%..\butterfly.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\butterfly_processing.cpp" /link user32.lib

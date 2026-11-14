@@ -31,8 +31,15 @@ bool sameGeometry(const Geometry& a,const Geometry& b) {
     return a.epoch==b.epoch && a.revision==b.revision && a.count==b.count && a.vertexCount==b.vertexCount && a.root==b.root && a.triangles==b.triangles && a.vertices==b.vertices && a.scale==b.scale;
 }
 bool sameContext(const Context& a,const Context& b) {
+    const auto finite=[](Point p) {return std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);};
+    if(!finite(a.player) || !finite(b.player)) return false;
+    const bool floorKnown=a.floor>=0 && static_cast<unsigned>(a.floor)<a.geometry.count;
+    // Missing native floors use one walking step (11.13 units), not exact pose.
+    const auto bucket=[](double coordinate) {return std::floor(coordinate/11.13);};
+    const bool samePosition=floorKnown || (bucket(a.player.x)==bucket(b.player.x) &&
+        bucket(a.player.y)==bucket(b.player.y) && bucket(a.player.z)==bucket(b.player.z));
     return a.actor==b.actor && sameGeometry(a.geometry,b.geometry) && a.floor==b.floor && a.swimming==b.swimming && a.waterBake==b.waterBake && a.waterCrossings==b.waterCrossings && nav::sameRouteEvents(a.events,b.events) &&
-        a.player.x==b.player.x && a.player.y==b.player.y && a.player.z==b.player.z &&
+        samePosition &&
         a.collision.actorFlags==b.collision.actorFlags && a.collision.actorIsControlled==b.collision.actorIsControlled && a.collision.remaps==b.collision.remaps;
 }
 namespace {
@@ -93,6 +100,15 @@ void finish() {
         ownedMesh()=decodeOwnedNavigationMesh(cachedRaw(),cachedPoints(),job().context.geometry.scale,job().context.collision,
             job().context.swimming,job().context.floor,job().context.player,job().context.waterBake,job().context.waterCrossings,job().context.events);meshContext=job().context;haveMesh=true;
     }
+    // A reused swimming component still follows the current native depth.
+    if(job().context.swimming && ownedMesh().fixedHeight && ownedMesh().planeY!=job().context.player.y) {
+        ownedMesh().planeY=job().context.player.y;
+        for(auto& triangle:ownedMesh().triangles) {
+            nav::checkComputation();for(auto& p:triangle.points) p.y=job().context.player.y;
+            triangle.center.y=job().context.player.y;
+        }
+    }
+    ownedMesh().player=job().context.player;ownedMesh().playerTriangle=job().context.floor;
     ResultBatch batch;batch.request=job().request;
     for(unsigned i=0;i<job().targets.size() && alive();++i) {
         const auto& t=job().targets[i]; bool unreachable=false;
