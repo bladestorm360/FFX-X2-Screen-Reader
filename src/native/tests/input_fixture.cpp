@@ -173,7 +173,8 @@ int main() {
     // Nested A/W forwarding has one message owner.
     Event outer=message; outer.rva=0xffff0000;
     events.at(0xffff0000).enter(outer);
-    fire(0xffff0001,message); events.at(0xffff0000).leave(outer); drain();
+    Event forwarded=message; forwarded.parentRva=0xffff0000;
+    fire(0xffff0001,forwarded); events.at(0xffff0000).leave(outer); drain();
     check(pressed==2,"nested Windows message produces one event");
     uintptr_t table[32]{}; for(auto& slot:table)slot=0x10000;
     uintptr_t device=reinterpret_cast<uintptr_t>(table), object=reinterpret_cast<uintptr_t>(&device);
@@ -398,5 +399,16 @@ int main() {
     check(!keys[DIK_N]&&pressed==beforeDialog,"dialog's held shortcut drains after closing");
     keys.fill(0);fire(0xfffe0001,state);keys[DIK_N]=0x80;fire(0xfffe0001,state);drain();
     check(pressed==beforeDialog+1,"fresh shortcut works again after dialog key release");
+    // The hook layer skips a return reader whose call began during loading or
+    // in an older generation. That skipped return must not mute later messages.
+    MSG skipped{};skipped.message=WM_KEYDOWN;skipped.wParam='N';
+    Event pending;pending.rva=0xffff0000;pending.result=1;pending.args[0]=reinterpret_cast<uintptr_t>(&skipped);
+    pending.args[4]=PM_REMOVE;
+    events.at(0xffff0000).enter(pending);
+    Event inner=pending;inner.parentRva=0xffff0000;fire(0xffff0001,inner);
+    check(skipped.message==WM_KEYDOWN,"a call nested in a pending message call is not a second message owner");
+    fire(0xffff0000,pending);drain();
+    check(skipped.message==WM_NULL,"the next message call is processed after a skipped return");
+    skipped.message=WM_KEYUP;fire(0xffff0000,pending);drain();
     std::puts("PASS: native keyboard, Escape PInput manual help/retirement, exclusive Shift-F1 under queue pressure/console focus, plain F1 and NVDA F12 passthrough, modifier/context shortcuts, exclusive menus, buffered Peek, focus, generation and SDL isolation.");
 }
