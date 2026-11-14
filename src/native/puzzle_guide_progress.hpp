@@ -49,6 +49,17 @@ template<class Done,class Cleared> void advancePuzzleProgress(const PuzzleRoute&
         else if(next+1<end && steps[next].check && !puzzleStepPlaced(route,next) && done(steps[next]) && takesBack) progress.removed=progress.placed;
         else progress.expected=static_cast<unsigned>(progress.placed);
     }
+    // A pickup undone: the step before the expected one carried a sphere, the
+    // carried value now reads empty, and the expected step did not happen. The
+    // player put the sphere back (the Djose entry recesses), so ask for the
+    // pickup again. Not for an unchecked expected step, whose own action may
+    // have used the sphere.
+    if(progress.expected>begin && progress.expected<end) {
+        const auto before=progress.expected-1;
+        const auto& pickup=steps[before];
+        if(steps[progress.expected].check && !done(steps[progress.expected]) && pickup.check && !pickup.checkpoint && pickup.done.value!=0 &&
+           !puzzleStepPlaced(route,before) && cleared(pickup)) progress.expected=before;
+    }
     // Checkpoints are durable native flags, so the guide may jump forward to
     // one. Otherwise it only moves forward one done step at a time, so a
     // carried sphere that is placed later does not move it backwards.

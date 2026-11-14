@@ -96,11 +96,13 @@ int main() {
     flags[carry]=0; flags[pedestal]=1; check(expected(p)==7,"pedestal placement expects the third sphere");
     // Taking the sphere back out of the pedestal is not a route step.
     flags[pedestal]=0; flags[carry]=1; check(expected(p)==6,"removing the pedestal sphere moves the guide back to the pedestal");
-    flags[carry]=0; check(expected(p)==6,"a carried value alone never moves the guide back");
+    // The sphere was put down somewhere other than the pedestal, so the pickup
+    // is undone.
+    flags[carry]=0; check(expected(p)==5,"putting the carried sphere down elsewhere expects its pickup again");
     flags[carry]=1; flags[pedestal]=0; check(expected(p)==6,"picking it up again expects the pedestal");
     flags[carry]=0; flags[pedestal]=1; check(expected(p)==7,"reinserting it resumes after the pedestal");
     flags[carry]=3; check(expected(p)==8,"carried pickup still advances sequentially");
-    flags[carry]=0; check(expected(p)==8,"a carried value that changes later does not move the guide back");
+    flags[carry]=0; check(expected(p)==7,"putting the third sphere down before the chest expects its pickup again");
     flags[treasure]=1; check(expected(p)==9,"treasure expects the final unchecked step");
     // Undoing an earlier placement while a later one holds is not tracked.
     flags[hidden]=0; check(expected(p)==9,"only the latest placement can move the guide back");
@@ -128,6 +130,13 @@ int main() {
         // step, even though the next pickup now reads as done.
         PuzzleProgress d; flags={{carry,1}};
         check(expected(d,djose)==1,"djose: carrying the first sphere expects door recess 1");
+        // Putting it back into entry recess 1 empties the carried value and
+        // leaves door recess 1 empty: the pickup was undone.
+        flags[carry]=0;
+        const auto putBack=expected(d,djose);
+        if(putBack!=0) std::fprintf(stderr,"djose: expected step index %u after putting the sphere back into entry recess 1, want 0\n",putBack);
+        check(putBack==0,"djose: putting the first sphere back expects that pickup again");
+        flags[carry]=1; check(expected(d,djose)==1,"djose: taking it again expects door recess 1");
         flags[carry]=0; flags[door]=1; check(expected(d,djose)==2,"djose: door recess 1 expects the second entry sphere");
         flags[door]=0; flags[carry]=1;
         const auto back=expected(d,djose);
