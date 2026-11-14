@@ -317,6 +317,12 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
         const auto [low,high]=declarations[i];auto& row=part.bindings.rows[i];row.binding=low;row.high=high;
         row.value=utilityValue(script,low,high);
     }
+    // Array checks (Bevelle sphere locations) read one element per binding row.
+    for(const auto& route:puzzleRoutes) if(script.name==route.script) for(const auto& step:route.steps) if(step.check && step.done.element) {
+        check(part.bindings.count<part.bindings.rows.size(),"Native guide fixture element row bound");
+        auto& row=part.bindings.rows[part.bindings.count++];row.binding=step.done.low;row.high=step.done.high;row.element=step.done.element;
+        row.value=utilityValue(script,step.done.low,step.done.high,step.done.element);
+    }
     speechq::Header header{};header.generation=guideScene.epoch;
     struct WorkerGuard {bool previous;WorkerGuard():previous(fixtureNativeOwner){fixtureNativeOwner=false;}~WorkerGuard(){fixtureNativeOwner=previous;}} guard;
     return puzzleGuideOwned(action,guideScene,Mesh{},std::vector<Entity>{},header,0,0);

@@ -3,7 +3,7 @@
 // expected step (Shift+F11). A stage expecting 0 proves the guide reports an
 // unidentified step instead of guessing past an unchecked action.
 namespace {
-struct GuideWrite {unsigned low;int value;};
+struct GuideWrite {unsigned low;int value;unsigned element=0;unsigned high=1;};
 struct GuideStage {const char* action;std::vector<GuideWrite> writes;int expected;};
 const PuzzleRoute& guideRoute(const char* script) {
     for(const auto& route:puzzleRoutes) if(!std::strcmp(route.script,script)) return route;
@@ -14,7 +14,7 @@ void loadGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
     check(trial!=std::end(trialUtilities),"guide trial exists");
     load(*trial,trial->collect);resetOwnedPuzzleGuide();
     for(const auto& step:guideRoute(script).steps) if(step.check) declaration(step.done.low,step.done.high);
-    for(const auto& stage:stages) for(const auto& write:stage.writes) declaration(write.low,1);
+    for(const auto& stage:stages) for(const auto& write:stage.writes) declaration(write.low,write.high);
     put(chunk,0x402,static_cast<uint16_t>(declarations.size()));
     utility_fixture_resources::prepareUtilityResources(ptr(chunk),chunk.data(),chunk.size());
 }
@@ -28,7 +28,7 @@ void expectGuide(const char* script,const char* action,int expected) {
 void walkGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
     loadGuideRoute(script,stages);
     for(const auto& stage:stages) {
-        for(const auto& write:stage.writes) setValue(write.low,1,write.value);
+        for(const auto& write:stage.writes) setValue(write.low,write.high,write.value,write.element);
         expectGuide(script,stage.action,stage.expected);
     }
     resetOwnedPuzzleGuide();
@@ -176,9 +176,45 @@ void macalaniaGuideRouteFixture() {
         {"take central sphere back",{{0x0c000098,0},{0x0c000094,4}},12},
     });
 }
+// bvyt1100 keeps sphere locations in the 72-element array 0x0d000032: element
+// 12*sphere+place is 1 while that sphere is at that place. Spheres 1-3 are
+// Bevelle Spheres, 4 Glyph, 5 Destruction. Place 1 is carried; 4 w30, 5 w31,
+// 6 w32, 7 w33, 8 w34, 9 w36, 10 w37, 11 w35, 2 the rail pedestal.
+GuideWrite bevelleSphere(unsigned sphere,unsigned place,int value) {return {0x0d000032,value,12*sphere+place,0xc0048};}
+void bevelleGuideRouteFixture() {
+    // 0x08 rail pedestal node (1 = pushed onto the entrance track); 0x25
+    // Bevelle Sphere in w31; 0x26 Destruction Sphere in w33; 0x29 sphere in
+    // w37; 0x2a second chest opened.
+    walkGuideRoute("bvyt1100",{
+        {"entry",{bevelleSphere(1,2,1),bevelleSphere(2,4,1),bevelleSphere(3,6,1),bevelleSphere(4,7,1),bevelleSphere(5,9,1)},1},
+        {"push rail pedestal onto track",{{0x0c000008,1}},2},
+        {"ride the rail",{{0x0c000008,19}},2},
+        {"take upper Bevelle Sphere",{bevelleSphere(2,4,0),bevelleSphere(2,1,1)},3},
+        {"insert upper rail power recess",{bevelleSphere(2,1,0),bevelleSphere(2,5,1),{0x0c000025,1}},4},
+        {"take lower Bevelle Sphere",{bevelleSphere(3,6,0),bevelleSphere(3,1,1)},5},
+        {"insert lower rail power recess",{bevelleSphere(3,1,0),bevelleSphere(3,8,1)},6},
+        {"take Glyph Sphere",{bevelleSphere(4,7,0),bevelleSphere(4,1,1)},7},
+        {"insert Glyph barrier recess",{bevelleSphere(4,1,0),bevelleSphere(4,11,1)},8},
+        {"take Destruction Sphere",{bevelleSphere(5,9,0),bevelleSphere(5,1,1)},9},
+        {"insert Destruction Sphere in former Glyph recess",{bevelleSphere(5,1,0),bevelleSphere(5,7,1),{0x0c000026,1}},10},
+        {"retrieve lower power recess sphere",{bevelleSphere(3,8,0),bevelleSphere(3,1,1)},11},
+        {"open Destruction treasure",{{0x01000a70,16}},12},
+        {"insert upper platform recess",{bevelleSphere(3,1,0),bevelleSphere(3,10,1),{0x0c000029,1}},0},
+        {"push pedestal to upper platform",{{0x0c000008,66}},0},
+        {"open second chest",{{0x0c00002a,1}},15},
+    });
+    walkGuideRoute("bvyt1100",{{"late start after Glyph placed",{{0x0c000025,1},bevelleSphere(4,11,1)},8}});
+    walkGuideRoute("bvyt1100",{{"late start after Destruction placed",{{0x0c000025,1},bevelleSphere(4,11,1),{0x0c000026,1}},10}});
+    // Taking the sphere back out of w31 never moves the guide backward.
+    walkGuideRoute("bvyt1100",{
+        {"insert upper rail power recess",{{0x0c000025,1}},4},
+        {"take it back",{{0x0c000025,0},bevelleSphere(2,1,1)},4},
+    });
+}
 }
 void puzzleGuideRouteFixtures() {
     djoseGuideRouteFixture();
     kilikaGuideRouteFixture();
     macalaniaGuideRouteFixture();
+    bevelleGuideRouteFixture();
 }
