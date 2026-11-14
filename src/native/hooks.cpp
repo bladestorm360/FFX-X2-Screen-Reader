@@ -26,7 +26,21 @@ std::vector<std::unique_ptr<Hook>> hooks;
 std::mutex registryMutex;
 std::atomic<unsigned> resourceDepth{0};
 thread_local NativeCallStack calls;
-std::atomic<bool> callOverflow{false};
+// A resource call that finds no free call record gets no return adapter, so
+// its end is inferred from the stack instead. While any thread has such a
+// call outstanding, readers stay paused as they would for a tracked load.
+thread_local uintptr_t overflowStack=0,overflowReturn=0;
+std::atomic<unsigned> overflowThreads{0};
+// The first few episodes are logged; a flapping overflow must not flood the log.
+constexpr unsigned OverflowLogLimit=8;
+std::atomic<unsigned> overflowLogs{0};
+bool logOverflow() { return overflowLogs.load(std::memory_order_relaxed)<OverflowLogLimit; }
+// A thread that exits while latched can never return through the latched
+// frame, so its share of the count is released with the thread.
+struct OverflowRelease {
+    ~OverflowRelease() { if(overflowStack) overflowThreads.fetch_sub(1,std::memory_order_acq_rel); }
+};
+thread_local OverflowRelease overflowRelease;
 thread_local bool inReader = false;
 thread_local bool draining = false;
 thread_local NativeActionQueue actions;
@@ -37,6 +51,26 @@ struct NativeErrorState {
 };
 bool failed = false;
 bool resourceCall(unsigned rva) { return rva==0x46fed0 || rva==0x5093b0 || rva==map_transition::Initialize; }
+void latchCallOverflow(uintptr_t stack,uintptr_t returnAddress,unsigned rva) {
+    if(overflowStack) return; // The outermost untracked call decides recovery.
+    overflowStack=stack;overflowReturn=returnAddress;
+    (void)&overflowRelease; // Construct the thread's release guard.
+    overflowThreads.fetch_add(1,std::memory_order_acq_rel);
+    if(logOverflow()) recordLog("native call overflow latched rva=%x owner=%lu",rva,GetCurrentThreadId());
+}
+// The untracked call's return-address slot sits at overflowStack. A later
+// hooked entry above it, or one at the same slot with a different return
+// address, proves that frame has returned. A tail jump reuses the slot with the
+// same return address and is still inside the call. A tracked call returning
+// from at or above the slot also encloses, or is, the untracked call.
+void clearCallOverflow(uintptr_t stack,uintptr_t returnAddress,bool returning) {
+    if(!overflowStack || stack<overflowStack) return;
+    if(stack==overflowStack && !returning && returnAddress==overflowReturn) return;
+    overflowStack=0;overflowReturn=0;
+    overflowThreads.fetch_sub(1,std::memory_order_acq_rel);
+    if(overflowLogs.fetch_add(1,std::memory_order_relaxed)<OverflowLogLimit)
+        recordLog("native call overflow recovered owner=%lu",GetCurrentThreadId());
+}
 
 void dispatch(Handler fn, Event& event) {
     if (!fn || (nativeResourceLoading() && !resourceCall(event.rva) && !event.captureOnly)) return;
@@ -130,9 +164,10 @@ extern "C" void __cdecl enterBridge(uintptr_t* r) {
             }
             calls.pop();
         }
+        clearCallOverflow(stack,r[10],false);
         if(calls.full() || !(pending=claimNativeCall())) {
             if(resourceCall(h->rva)) {
-                callOverflow.store(true,std::memory_order_release);
+                latchCallOverflow(stack,r[10],h->rva);
                 Event event;event.rva=h->rva;event.epoch=generation();
                 copy(reinterpret_cast<uintptr_t>(&r[11]),event.args.data(),sizeof(event.args));
                 inReader=true;for(unsigned i=0;i<listenerCount;++i) dispatch(h->listeners[i].enter,event);inReader=false;
@@ -206,6 +241,7 @@ extern "C" void __cdecl leaveBridge(uintptr_t* r) {
     {
     // A return adapter exists only after its context has been stored.
     finished=calls.take();auto& call=*finished;auto* h=static_cast<Hook*>(call.hook);
+    clearCallOverflow(call.stack,call.returnAddress,true);
     if(call.loading) {
         --resourceDepth;call.loading=false;
         recordLog("native reader resource scope end rva=%x depth=%u owner=%lu",h->rva,resourceDepth.load(),GetCurrentThreadId());
@@ -244,7 +280,7 @@ bool observeGameThread() {
     return nativeGameThread();
 }
 bool nativeGameThread() { return gameOwner.load()==GetCurrentThreadId(); }
-bool nativeResourceLoading() noexcept {return callOverflow.load(std::memory_order_acquire) || resourceDepth.load(std::memory_order_acquire)!=0;}
+bool nativeResourceLoading() noexcept {return overflowThreads.load(std::memory_order_acquire)!=0 || resourceDepth.load(std::memory_order_acquire)!=0;}
 bool nativeReaderResourcesReady() noexcept {return !nativeResourceLoading() && ownerResetReady();}
 bool tryNativeReaderAccess() noexcept {
     NativeErrorState errorState;
