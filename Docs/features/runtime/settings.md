@@ -31,6 +31,7 @@ older setting string still says H. [Controls](../../controls.md) is authoritativ
 | Auto walk / `auto_walk` | 0; 0..1; 1 | Backslash walks the selected collision route. Your movement cancels immediately. Menus, dialogue, combat, map changes, lost focus and stalled routes stop walking. Interact manually on arrival. |
 | Speak auto walk path / `auto_walk_path` | 0; 0..1; 1 | Read route directions before walking. Off announces only Auto walking to the selected destination. |
 | Menu indexing / `menu_index` | 0; 0..1; 1 | Announce the selected entry number and total in mod menus and destination lists. |
+| Unavailable cue / `unavailable_cue` | 1; 0..1; 1 | Say "Unavailable" when the game plays its error buzzer in a menu or battle. Greyed field Items and Abilities rows and greyed battle rows always end with "unavailable". |
 | Lightning warning / `lightning_warning` | 1; 0..1; 1 | Play a short beep as the Thunder Plains warning flash begins, giving the full dodge window. Press dodge once when it sounds. Turn off Auto dodge to practise manually. |
 | Lightning auto-dodge / `lightning_auto_dodge` | 0; 0..1; 1 | Automatically dodge ordinary Thunder Plains lightning. Disabled during dialogue, menus and battle. |
 | Show maximum HP / `show_maximum_hp` | 0; 0..1; 1 | In battle and field targeting, read current HP followed by the maximum HP number. Off reads current HP and its percentage of maximum. |
