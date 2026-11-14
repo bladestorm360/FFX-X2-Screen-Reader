@@ -91,13 +91,13 @@ void selectionAfter(Event& e) {
     const bool confirmation=k[4]>=0;
     TextPlan p;prepareTextPlan(p,confirmation && opening?"sphere-confirmation-prompt":"sphere-list",!(confirmation && opening));
     const auto name=k[1]==8?planRecordName(p,0x390a40,static_cast<unsigned>(k[3])):planEncoded(p,k[3]);
-    const auto line=k[1]==8?planCountedName(p,name,quantity(static_cast<unsigned>(k[3]))):name;
+    auto line=k[1]==8?planCountedName(p,name,quantity(static_cast<unsigned>(k[3]))):name;
+    // Native +4 marks a greyed Use row; say it inline like the row's quantity.
+    if(k[1]==8 && read<uint8_t>(k[0]+k[1]*0x340+0x40+k[2]*12+4)) line=planConcat(p,line,planLiteral(p,L", unavailable"));
     if(confirmation && opening) {p.interrupt=true;p.headline=planEncoded(p,read<uintptr_t>(k[0]+k[4]*0x340+0x40));
         if(k[4]==9) p.headline=planConcat(p,p.headline,movementCost(p));addTextPlanOutput(p,line,"sphere-list",false);}
     else p.headline=line;
     if(k[1]==8) {
-        const auto entry=k[0]+k[1]*0x340+0x40+k[2]*12;
-        if(read<uint8_t>(entry+4)) addTextPlanOutput(p,planLiteral(p,L"Unavailable"),"sphere-availability",false);
         planSelectionDetail(p,planSphereItemDescription(p,static_cast<unsigned>(k[3])),setting(Setting::AutoDetail)!=0);
     }else if(confirmation) resetSelectionDetail();
     else planSelectionDetail(p,planMenuDescription(p,9,k[2]==0?0x1f:0x1e),setting(Setting::AutoDetail)!=0);

@@ -42,9 +42,8 @@ void sphereReaderFixtures() {
     }
     set<uint8_t>(inventory+0x50,1); set<int16_t>(inventory+0x18,1);
     auto before=said.size(); event(0x6583e0,0);
-    check(said.size()==before+2 && said[before].first==L"Mana Sphere, 0" && said.back().first==L"Unavailable",
-        "native disabled entry announces unavailability after its name and quantity");
-    check(!said.back().second,"unavailability queues after the selected sphere");
+    check(said.size()==before+1 && said.back().first==L"Mana Sphere, 0, unavailable",
+        "native disabled entry says unavailable inline after its name and quantity");
     constexpr unsigned grid=0x2320000;
     std::memset(reinterpret_cast<void*>(address(grid)),0,0x12000);
     set<uintptr_t>(0x1f05834,address(grid)); set<uintptr_t>(0x16860e0,address(0x2310400));
