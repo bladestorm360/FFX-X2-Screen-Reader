@@ -319,6 +319,12 @@ namespace FfxScreenReader.Setup
                 catch (Exception ex) { throw UninstallRefused("PrismRuntime changed after setup. " + ex.Message); }
             }
             closedProcesses();
+            // Restore the launcher configuration first, so a failure part way through
+            // never leaves it loading a reader DLL that was already removed.
+            files.Sort(delegate(string[] x, string[] y) {
+                return (String.Equals(y[1], ConfigName, StringComparison.OrdinalIgnoreCase) ? 1 : 0) -
+                    (String.Equals(x[1], ConfigName, StringComparison.OrdinalIgnoreCase) ? 1 : 0);
+            });
             try
             {
                 foreach (string[] file in files)

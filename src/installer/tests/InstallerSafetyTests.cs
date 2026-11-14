@@ -41,6 +41,7 @@ internal static class InstallerSafetyTests
         UninstallRestores();
         UpgradeFromOlderSetup();
         UninstallRefuses();
+        UninstallFailureKeepsLauncher();
     }
 
     private static byte[] Pe()
@@ -304,5 +305,20 @@ internal static class InstallerSafetyTests
         before = Snapshot(older);
         Reject(delegate { Engine().Uninstall(older, delegate { }); }, "Install with this version first, then choose Uninstall again", "Uninstall after 1.0.2");
         Unchanged(older, before, "Uninstall after 1.0.2");
+    }
+
+    // A failure part way through uninstall must not leave the launcher
+    // configuration naming a reader DLL that is already gone.
+    private static void UninstallFailureKeepsLauncher()
+    {
+        string game = Game("Uninstall failure");
+        string config = Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config");
+        Engine().Install(game, delegate { });
+        Reject(delegate { Engine().Uninstall(game, delegate(string text) {
+            if (text == "Removing FFXLauncherNative.dll") throw new IOException("Synthetic uninstall failure");
+        }); }, "Uninstall did not finish", "Uninstall failure");
+        assert(File.Exists(Path.Combine(game, "FFXLauncherReader.dll")) ||
+            File.ReadAllText(config).IndexOf("FfxLauncher.ReaderDomainManager", StringComparison.Ordinal) < 0,
+            "Launcher configuration does not name a deleted reader DLL");
     }
 }
