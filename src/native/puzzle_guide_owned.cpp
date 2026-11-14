@@ -1,6 +1,7 @@
 #include "puzzle_guide_owned.hpp"
 #include "puzzle_guide.hpp"
 #include "puzzle_guide_data.hpp"
+#include "puzzle_guide_progress.hpp"
 #include "puzzle_tiles.hpp"
 #include "puzzle_tiles_data.hpp"
 #include "zanarkand_patterns.hpp"
@@ -21,7 +22,7 @@
 #include <cstring>
 namespace ffx {
 namespace {
-struct State {unsigned epoch=0,revision=0,step=0,expected=0,part=0,begin=0,end=0;const PuzzleRoute* route=nullptr;int pattern=-1,progress=-1;std::set<unsigned> visited;};
+struct State {unsigned epoch=0,revision=0,step=0,expected=0,part=0,begin=0,end=0;const PuzzleRoute* route=nullptr;int pattern=-1,progress=-1,placed=-1,removed=-1;std::set<unsigned> visited;};
 ProcessStorage<State> storage;
 std::atomic<unsigned> revision{1};std::atomic<bool> enabled{false};
 std::atomic<bool> refreshPending{false};
@@ -32,8 +33,9 @@ int value(const nav::Scene& observation,const State& state,unsigned low,unsigned
 }
 bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
 void advance(const nav::Scene& observation,State& state) {
-    for(unsigned i=state.expected;i+1<state.end;++i) if(state.route->steps[i].checkpoint && done(observation,state,state.route->steps[i])) state.expected=i+1;
-    while(state.expected+1<state.end && done(observation,state,state.route->steps[state.expected])) ++state.expected;
+    PuzzleProgress progress{state.expected,state.placed,state.removed};
+    advancePuzzleProgress(*state.route,state.begin,state.end,progress,[&](const PuzzleStep& step) {return done(observation,state,step);});
+    state.expected=progress.expected;state.placed=progress.placed;state.removed=progress.removed;
 }
 bool context(const nav::Scene& observation,State& state) {
     const auto current=revision.load(std::memory_order_acquire);const PuzzleRoute* route=nullptr;unsigned selected=observation.partCount;
@@ -50,7 +52,7 @@ bool context(const nav::Scene& observation,State& state) {
         else if(visit==ZanarkandPhase::ReturnVisit) begin=route->returnStep;
         else end=0;
     }
-    if(state.epoch!=observation.epoch || state.revision!=current || state.route!=route || state.begin!=begin || state.end!=end) {state.visited.clear();state.step=state.expected=begin;state.pattern=state.progress=-1;state.epoch=observation.epoch;state.revision=current;state.route=route;state.begin=begin;state.end=end;}
+    if(state.epoch!=observation.epoch || state.revision!=current || state.route!=route || state.begin!=begin || state.end!=end) {state.visited.clear();state.step=state.expected=begin;state.pattern=state.progress=state.placed=state.removed=-1;state.epoch=observation.epoch;state.revision=current;state.route=route;state.begin=begin;state.end=end;}
     return true;
 }
 void synchronizeTiles(const nav::Scene& observation,State& state) {
