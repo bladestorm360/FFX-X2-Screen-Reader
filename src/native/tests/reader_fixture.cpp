@@ -4,6 +4,7 @@
 #include <chrono>
 #include "../sphere_owned.hpp"
 #include "ready_speech_adapter.hpp"
+#include "battle_call_sites.hpp"
 #include "test_jecht_caption.hpp"
 #include "../owned_callback_proof.hpp"
 #include "../input_device.hpp"
@@ -141,6 +142,7 @@ std::map<unsigned, std::vector<Listener>> listeners;
 std::map<unsigned, void(*)(bool)> keys;
 std::vector<std::pair<std::wstring, bool>> said;
 bool hook(unsigned id, Handler enter, Handler leave) { listeners[id].push_back({enter,leave}); return true; }
+bool hookAddress(uintptr_t,unsigned id,Handler enter,Handler leave) { listeners[id].push_back({enter,leave}); return true; }
 void hotkey(unsigned vk, void(*cb)(bool)) { keys[vk] = cb; }
 std::map<unsigned,bool(*)()> contexts;
 void hotkeyWhen(unsigned vk,void(*cb)(bool),bool(*available)()) { keys[vk]=cb; contexts[vk]=available; }
@@ -215,6 +217,8 @@ void stub(unsigned off, void* function) {
     std::memcpy(code+1,&target,4); code[5]=0xff; code[6]=0xe0;
     FlushInstructionCache(GetCurrentProcess(),code,7);
 }
+int canUseResult=0,canUseActor=-1;
+int __cdecl canUse(int actor,int) { canUseActor=actor; return canUseResult; }
 uintptr_t __cdecl navigationWorker(int) { ++workerReads; return address(0x2251000); }
 unsigned __cdecl language() { return 0; }
 uintptr_t __cdecl names(int id) { return address(id==1 ? 0x2100020 : id==8 ? 0x2100040 : 0x2100000); }
@@ -456,12 +460,17 @@ int main(int argc, char** argv) {
     followupStubs(); navigationIdentityFixtures(); airshipPassageFixtures();
     polishTextFixtures();
     setSetting(Setting::MenuIndex,1);
-    installFieldMenus(); installMessages(); installSystemMenus(); installSphereGrid(); installBattle(); installNavigation();
-    maintenanceReaderFixtures(); airshipRuntimeFixtures(); baajNavigationFixtures(); airshipCidFixtures(); sinNativeFixtures(); sinPlatformFixtures(); airshipDestinationFixtures(); reportedEventRuntimeFixtures(); arenaCaptureFixtures(); helpCaptureFixtures();
+    battleCallSites(testBase+0x2700000,canUse);
+    installFieldMenus(); installUnavailable(); installMessages(); installSystemMenus(); installSphereGrid(); installBattle(); installNavigation();
+    setSetting(Setting::MenuIndex,0); // Indexed native lists have a separate synthetic fixture.
+    maintenanceReaderFixtures();
+    setSetting(Setting::MenuIndex,1);
+    airshipRuntimeFixtures(); baajNavigationFixtures(); airshipCidFixtures(); sinNativeFixtures(); sinPlatformFixtures(); airshipDestinationFixtures(); reportedEventRuntimeFixtures(); arenaCaptureFixtures(); helpCaptureFixtures();
+    setSetting(Setting::MenuIndex,0);
     set<int>(win+0x28,1); set<uint16_t>(win+0x30,2); set<int8_t>(win+0x45,0);
     set<uint8_t>(win+0x42,1); set<uint8_t>(win+0x43,0); set<int>(win+0x94,4);
-    set<uint16_t>(0x1197730,1); set<uint8_t>(0x1197732,3);
-    set<uint16_t>(0x1197734,2); set<uint8_t>(0x1197736,4);
+    set<uint16_t>(0x1197730,1); set<uint8_t>(0x1197732,3); set<uint8_t>(0x1197733,1);
+    set<uint16_t>(0x1197734,2); set<uint8_t>(0x1197736,4); set<uint8_t>(0x1197737,1);
     scene=3;
     event(0x4c6da0,address(win),[]{set<int>(win+0x28,2);});
     expect(L"Potion, 3","items opening");
@@ -705,6 +714,20 @@ int main(int argc, char** argv) {
     event(0x49c870,address(0xf3c910)); expect(L"Potion","battle command");
     count=said.size(); event(0x49c870,address(0xf3c910)); check(said.size()==count,"unchanged battle cursor");
     event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,1);}); expect(L"Ether","battle command move");
+    canUseResult=-2; set<int16_t>(0xf3c918,2);
+    event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,0);}); expect(L"Potion, unavailable","battle command the game greys is unavailable");
+    check(canUseActor==2,"battle availability asks for the window's own actor");
+    canUseResult=-4; count=said.size();
+    event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,1);}); check(said.size()==count,"row the native drawer skips stays silent");
+    canUseResult=0;
+    event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,0);}); expect(L"Potion","usable battle command is unmarked");
+    set<int16_t>(0xf3c918,0);
+    event(0x486b00,3); expect(L"Unavailable","battle buzzer says Unavailable");
+    check(said.back().second,"battle buzzer cue interrupts");
+    count=said.size(); event(0x486b00,1); check(said.size()==count,"battle confirm sound stays silent");
+    setSetting(Setting::UnavailableCue,0); event(0x486b00,3); check(said.size()==count,"battle buzzer cue Off stays silent");
+    setSetting(Setting::UnavailableCue,1);
+    event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,1);}); expect(L"Ether","battle command move after availability checks");
     protectSpeech(false);
     event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");
     check(said.back().second,"target movement interrupts after deliberate input, including held menu navigation");
@@ -733,6 +756,7 @@ int main(int argc, char** argv) {
     check(keys.count('N') && keys.count('H') && keys.count('S') && keys.count(VK_OEM_COMMA) && keys.count(VK_OEM_PERIOD),"all review hotkeys");
     set<uint8_t>(0xd2a8e0,0); resetNavigation();
     keys[VK_OEM_5](false); expect(L"No entity selected","navigation empty selection feedback");
+    setSetting(Setting::MenuIndex,1);
     constexpr unsigned actors=0x2240000, npc=actors+0x880;
     set<uintptr_t>(0x1fc44e4,address(actors)); set<unsigned>(0x1fc44e0,2);
     set<uint16_t>(actors+2,1); set<uint16_t>(npc,0x2002); set<uint16_t>(npc+2,1);
@@ -844,7 +868,9 @@ int main(int argc, char** argv) {
     sphereOwnedFixtures();
     messageFixtures();
     followupFixtures();
+    setSetting(Setting::MenuIndex,0);
     fieldMenuFixtures();
+    setSetting(Setting::MenuIndex,1);
     swimmingFixtures();
     buttonGlyphFixtures();
     swimmingProgressionFixtures();

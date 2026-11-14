@@ -4,7 +4,7 @@
 namespace ffx {
 using TextRef=unsigned;
 constexpr unsigned TextPlanNodeLimit=128,TextPlanByteLimit=98304+16384;
-enum class TextPlanOp : unsigned {Literal,Integer,First,Lines,Description,Concat,Join,SpaceJoin,Periods,IfText,Or,Hp,Mp,EquipmentName,MessagePrompt,MessageRows,BattleTarget,SettingValue,NativeButtonMask,PrimaryDodgeName,LineBreaks,OrderedRows};
+enum class TextPlanOp : unsigned {Literal,Integer,First,Lines,Description,Concat,Join,SpaceJoin,Periods,IfText,Or,Hp,Mp,EquipmentName,MessagePrompt,MessageRows,BattleTarget,SettingValue,NativeButtonMask,PrimaryDodgeName,LineBreaks,OrderedRows,MenuIndex};
 struct TextPlanNode {
     TextPlanOp op=TextPlanOp::Literal;
     unsigned left=0,right=0,offset=0,length=0;
@@ -33,6 +33,7 @@ void prepareTextPlan(TextPlan&,const char* producer,bool interrupt=true);
 void addTextPlanOutput(TextPlan&,TextRef,const char* producer,bool interrupt=false);
 TextRef planLiteral(TextPlan&,const wchar_t*);
 TextRef planInteger(TextPlan&,int64_t);
+TextRef planMenuIndex(TextPlan&,unsigned selected,unsigned count);
 TextRef planNativeButtonMask(TextPlan&,uint16_t);
 TextRef planPrimaryDodgeName(TextPlan&);
 TextRef planSettingValue(TextPlan&,int value,unsigned style); // 0=toggle,1=voiced,2=combat,3=Polish,4=steps,5=percent.

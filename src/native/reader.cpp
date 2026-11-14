@@ -101,7 +101,7 @@ unsigned initializeReader(bool& initializedHooks) {
     hook(0x46fed0, teardown, loadFinished);
     hook(0x5093b0, teardown, loadFinished);
     hook(map_transition::Initialize, teardown, fieldFinished);
-    installFieldMenus(); installMessages(); installSystemMenus();
+    installFieldMenus(); installUnavailable(); installMessages(); installSystemMenus();
     installSphereGrid(); installBattle(); installNavigation(); installMinigames(); installMinigameCompletion(); installButterfly(); installInput(); installUtilities(); installLightning(); installJecht(); installGagazet(); installSinCollection(); installAirshipSearch();installIntroCue();
     retirement::prepare<std::wstring>();
     if(!retirement::start(module)) {recordLog("native retirement worker unavailable");return 0;}

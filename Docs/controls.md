@@ -86,7 +86,7 @@ characters say Unknown character. F7 toggles Autodetail.
 - **Navigation audio:** beacon, wall and arrival sounds, their volumes, wall
   range, race pickup cues, Jecht Shot cues, Lightning warning and sound previews.
 - **Navigation:** Auto walk, Speak auto walk path, Hide unreachable destinations and Partial steps.
-- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
+- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Unavailable cue, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
 
 ### Optional minigame completion assistance
 
@@ -134,7 +134,14 @@ the existing inferred-step guidance. Both puzzles and their controls are confirm
 **T** repeats the current dialogue page while its window or event is active.
 It uses dialogue text independently of other mod announcements and expires
 when dialogue closes. Native TK Al Bhed glyphs follow collected Primers.
-**Menu indexing** defaults Off in F8 > Miscellaneous.
+**Menu indexing** defaults Off in F8 > Miscellaneous. It reads positions in mod
+menus and native field Items, Key Items, Abilities, equipment, Customize and
+Overdrive lists when their counts are known. Battle lists are not covered.
+
+Field Items and Abilities rows the game shows greyed out end with "unavailable".
+Battle command, magic and item rows that the game greys out also end with
+"unavailable". **Unavailable cue** defaults On in F8 > Miscellaneous. It says
+"Unavailable" when the game plays its error buzzer in a menu or battle.
 
 The post-game audio drama also reads its localized timed captions. Choose its
 output mode in FFX's F8 menu before opening the audio drama; the saved setting

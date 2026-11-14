@@ -195,12 +195,15 @@ int main() {
     menuKeyForTest(VK_ESCAPE);
     setSetting(Setting::SpeakPunctuationNames,previousPunctuationOption);
     selectRow(L"Miscellaneous, submenu"); menuKeyForTest(VK_RIGHT);
-    check(said.back()==L"Miscellaneous. Autodetail: Off, 1 of 15","Miscellaneous groups other settings and omits trial controls outside a trial");
+    check(said.back()==L"Miscellaneous. Autodetail: Off, 1 of 16","Miscellaneous groups other settings and omits trial controls outside a trial");
     menuKeyForTest(VK_DOWN);
-    check(said.back()==L"Automatically read extra info: Off, 2 of 15" && !setting(Setting::AutoExtraInfo),"extra-info setting is default Off directly below Autodetail");
+    check(said.back()==L"Automatically read extra info: Off, 2 of 16" && !setting(Setting::AutoExtraInfo),"extra-info setting is default Off directly below Autodetail");
     menuKeyForTest(VK_RIGHT);drainSettingsForTest();loadSettings();
     check(setting(Setting::AutoExtraInfo)==1 && !setting(Setting::AutoDetail),"extra info persists independently of Autodetail");
     menuKeyForTest(VK_LEFT);drainSettingsForTest();
+    selectRow(L"Unavailable cue:");check(said.back()==L"Unavailable cue: On, 6 of 16" && settingInfo(Setting::UnavailableCue).initial==1,"unavailable cue defaults On after Menu indexing");
+    menuKeyForTest(VK_LEFT);drainSettingsForTest();loadSettings();check(!setting(Setting::UnavailableCue),"unavailable cue can be turned Off and persists");
+    menuKeyForTest(VK_RIGHT);drainSettingsForTest();check(setting(Setting::UnavailableCue)==1,"unavailable cue can be restored");
     selectRow(L"Jecht Shot auto-success:");check(settingInfo(Setting::JechtAssist).initial==0,"Jecht automation defaults Off");
     setSetting(Setting::JechtAssist,0);menuKeyForTest(VK_RIGHT);drainSettingsForTest();loadSettings();
     check(setting(Setting::JechtAssist)==1,"Jecht assistance is accessible and persists");menuKeyForTest(VK_LEFT);
@@ -359,7 +362,7 @@ int main() {
     pressForTest(VK_F11,true); check(puzzleAction==L"expected","Shift F11 reads expected trial state without changing selection");
     ModMenuState noGagazetMenu{};noGagazetMenu.status=L"Fixture context";noGagazetMenu.epoch=epoch;
     openMenuForTest(noGagazetMenu);selectRow(L"Miscellaneous, submenu");menuKeyForTest(VK_RETURN);menuKeyForTest(VK_END);
-    check(said.back()==L"Back, 15 of 15","Gagazet cave puzzles are absent from Miscellaneous outside their context");
+    check(said.back()==L"Back, 16 of 16","Gagazet cave puzzles are absent from Miscellaneous outside their context");
     menuKeyForTest(VK_ESCAPE);menuKeyForTest(VK_ESCAPE);
     fixtureGagazet=true;
     check(puzzleGuidanceAvailable(),"controller guidance includes Gagazet's actual guide");
@@ -368,7 +371,7 @@ int main() {
     fixtureGagazet=false;
     ModMenuState noSinMenu{};noSinMenu.status=L"Fixture context";noSinMenu.epoch=epoch;
     openMenuForTest(noSinMenu);selectRow(L"Miscellaneous, submenu");menuKeyForTest(VK_RETURN);menuKeyForTest(VK_END);
-    check(said.back()==L"Back, 15 of 15","Sin collection submenu is absent outside its captured context");
+    check(said.back()==L"Back, 16 of 16","Sin collection submenu is absent outside its captured context");
     menuKeyForTest(VK_ESCAPE);menuKeyForTest(VK_ESCAPE);
     constexpr Setting minigameAssistSettings[]={Setting::ChocoboAssist,Setting::RemiemAssist,Setting::ButterflyAssist,Setting::BlitzAssist};
     const auto priorMenuIndex=setting(Setting::MenuIndex);
@@ -388,16 +391,16 @@ int main() {
     minigameAssistMask=0;
     ModMenuState minigameMenu{};minigameMenu.status=L"Fixture context";minigameMenu.epoch=epoch;
     openMenuForTest(minigameMenu);selectRow(L"Miscellaneous, submenu");menuKeyForTest(VK_RETURN);
-    check(availableMinigameRows(15)==0,"all four minigame assistance rows are individually hidden outside preparation contexts");
-    menuKeyForTest(VK_END);check(said.back()==L"Back, 15 of 15","Miscellaneous keeps its updated row count outside preparation contexts");
+    check(availableMinigameRows(16)==0,"all four minigame assistance rows are individually hidden outside preparation contexts");
+    menuKeyForTest(VK_END);check(said.back()==L"Back, 16 of 16","Miscellaneous keeps its updated row count outside preparation contexts");
     menuKeyForTest(VK_ESCAPE);menuKeyForTest(VK_ESCAPE);
     for(unsigned i=0;i<_countof(minigameAssistSettings);++i) {
         minigameAssistMask=1u<<i;
         check(minigameAssistAvailable(minigameAssistSettings[i]),"fixture exposes only the selected minigame preparation context");
         openMenuForTest(minigameMenu);selectRow(L"Miscellaneous, submenu");menuKeyForTest(VK_RETURN);
-        check(said.back()==L"Miscellaneous. Autodetail: Off, 1 of 16","one available minigame setting adds exactly one Miscellaneous row");
+        check(said.back()==L"Miscellaneous. Autodetail: Off, 1 of 17","one available minigame setting adds exactly one Miscellaneous row");
         const std::wstring label=settingInfo(minigameAssistSettings[i]).name;
-        check(availableMinigameRows(16)==(1u<<i),"each minigame preparation flag exposes only its matching setting row");
+        check(availableMinigameRows(17)==(1u<<i),"each minigame preparation flag exposes only its matching setting row");
         selectRow(label+L":");
         check(setting(minigameAssistSettings[i])==0 && settingInfo(minigameAssistSettings[i]).initial==0,
             "available minigame assistance is a visible default-off setting");

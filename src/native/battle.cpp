@@ -55,6 +55,10 @@ void highlighted(uintptr_t win) {
     if(!list || count>0x1000 || static_cast<unsigned>(row)>=count) return;
     const int id=read<uint16_t>(list+row*2);
     if (row == previousRow && id == previousCommand) return;
+    // -4: the native drawer does not draw this row. Forget the last row so
+    // the next drawn row is read, even when it is the same one as before.
+    const auto usable=battleRowUsable(win,id,read<uint16_t>(win+6));
+    if(usable==-4) { previousRow = previousCommand = -1; return; }
     previousRow = row; previousCommand = id;
     lastCommand=id;
     const auto type=read<uint16_t>(win+6);
@@ -70,6 +74,7 @@ void highlighted(uintptr_t win) {
     }
     const auto name=commandName(p,win,id,type);
     p.headline=type==10?planSuffix(p,name,detail,L", "):name;
+    if(usable<0) p.headline=planConcat(p,p.headline,planLiteral(p,L", unavailable"));
     planSelectionDetail(p,detail,type!=10 && (setting(Setting::CombatDetail)!=0 || setting(Setting::AutoDetail)!=0));
     commitTextPlan(p);
 
