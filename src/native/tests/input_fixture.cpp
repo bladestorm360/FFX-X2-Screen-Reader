@@ -12,6 +12,7 @@ namespace ffx {
 void directInputStateForTest(Event&,bool);
 void directInputDataForTest(Event&,bool);
 void directInputReleaseForTest(Event&);
+void directInputKeyboardTypeForTest(int);
 bool testForeground=true;
 bool testInputDialog=false;
 bool inputDialogActive() {return testInputDialog;}
@@ -93,6 +94,9 @@ static bool consoleContext() { return fieldConsole; }
 static unsigned consolePresses=0;
 static void consoleKey(bool shift) { (void)shift; if(!scene) ++consolePresses; }
 static void key(bool shift) { ++pressed; if(shift)++shifted; }
+static unsigned punctuation=0;
+static void scanKey(bool) { punctuation=VK_OEM_3; }
+static void nextKey(bool) { punctuation=VK_OEM_6; }
 static unsigned functionKeyCalls=0;
 static bool guideKeyContext=false;
 static bool guideContext() {return guideKeyContext;}
@@ -112,7 +116,10 @@ int main() {
     // the user's desktop are unchanged while GetKeyState becomes deterministic.
     BYTE fixtureModifiers[256]{};
     check(SetKeyboardState(fixtureModifiers)!=0,"isolate synthetic message modifiers");
-    installInput(); hotkey('N',key); hotkey(VK_OEM_4,key);
+    // This machine may report a Japanese keyboard type. Pin the US mapping
+    // here; the Japanese DirectInput codes are checked at the end.
+    directInputKeyboardTypeForTest(4);
+    installInput(); hotkey('N',key); hotkey(VK_OEM_4,key); hotkey(VK_OEM_3,scanKey); hotkey(VK_OEM_6,nextKey);
     // The actual mod_menu fixture checks production registrations. Exercise
     // that ownership layout through the production native input adapters too.
     for(unsigned vk=VK_F2;vk<=VK_F5;++vk) hotkeyWhen(vk,functionKey,gridContext);
@@ -434,5 +441,14 @@ int main() {
     fire(0xffff0000,pending);drain();
     check(skipped.message==WM_NULL,"the next message call is processed after a skipped return");
     skipped.message=WM_KEYUP;fire(0xffff0000,pending);drain();
+    directInputKeyboardTypeForTest(7);
+    const auto beforeJapanese=pressed;
+    keys.fill(0);fire(0xfffe0001,state);keys[DIK_AT]=0x80;fire(0xfffe0001,state);drain();
+    check(pressed==beforeJapanese+1 && !keys[DIK_AT],"Japanese keyboard type: physical [ reaches the [ hotkey");
+    keys.fill(0);fire(0xfffe0001,state);keys[DIK_KANJI]=0x80;fire(0xfffe0001,state);drain();
+    check(punctuation==VK_OEM_3 && !keys[DIK_KANJI],"Japanese keyboard type: physical ` reaches the ` hotkey");
+    punctuation=0;keys.fill(0);fire(0xfffe0001,state);keys[DIK_LBRACKET]=0x80;fire(0xfffe0001,state);drain();
+    check(punctuation==VK_OEM_6 && pressed==beforeJapanese+1,"Japanese keyboard type: physical ] reaches ], not [");
+    directInputKeyboardTypeForTest(4);
     std::puts("PASS: native keyboard, Escape PInput manual help/retirement, exclusive Shift-F1 under queue pressure/console focus, plain F1 and NVDA F12 passthrough, modifier/context shortcuts, exclusive menus, buffered Peek, focus, generation and SDL isolation.");
 }
