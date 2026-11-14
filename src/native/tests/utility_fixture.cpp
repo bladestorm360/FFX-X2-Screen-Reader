@@ -363,6 +363,7 @@ void retirePuzzleGuideTargets() { std::abort(); }
 #include "trial_collection_fixture.inc"
 #include "gagazet_fixture.inc"
 #include "gagazet_timing_fixture.inc"
+#include "puzzle_guide_route_fixture.inc"
 int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std::setvbuf(stdout,nullptr,_IONBF,0);installUtilities();
     nativeQueuedKilikaFixture();
     trialCollectionFixtures();
@@ -399,6 +400,7 @@ int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std:
     setValue(0x5c0000dc,1,1);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 7 of")!=std::wstring::npos,"durable checkpoint recovers expected step past emptied carried sphere");
     resetOwnedPuzzleGuide();
+    puzzleGuideRouteFixtures();
     // Both Kilika entry sphere/recess choices activate the same full native
     // destruction insertion. Only its one owned window1 choice is automatic.
     for(unsigned local:{28u,29u}) {
