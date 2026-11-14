@@ -286,7 +286,7 @@ internal static class InstallerSafetyTests
         byte[] saved = File.ReadAllBytes(report);
         File.Delete(report);
         before = Snapshot(game);
-        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Uninstall with missing report");
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Install with this version first, then choose Uninstall again", "Uninstall with missing report");
         Unchanged(game, before, "Uninstall with missing report");
         File.WriteAllBytes(report, saved);
 
@@ -294,5 +294,15 @@ internal static class InstallerSafetyTests
         before = Snapshot(game);
         Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Uninstall after a later change");
         Unchanged(game, before, "Uninstall after a later change");
+
+        // Setup 1.0.2 wrote INSTALL_REPORT.txt without an uninstall record.
+        string older = Game("Uninstall after 1.0.2");
+        string olderBackup = Path.Combine(older, "FFX_SR_Install_Backups", "20261025-120000-0123456789abcdef0123456789abcdef");
+        Directory.CreateDirectory(olderBackup);
+        File.WriteAllLines(Path.Combine(olderBackup, "INSTALL_REPORT.txt"), new[] {
+            "Steam depot: 359871", "Verified manifest: 1234567890", "Added DLL/ASI files removed (backups preserve their relative paths):" });
+        before = Snapshot(older);
+        Reject(delegate { Engine().Uninstall(older, delegate { }); }, "Install with this version first, then choose Uninstall again", "Uninstall after 1.0.2");
+        Unchanged(older, before, "Uninstall after 1.0.2");
     }
 }

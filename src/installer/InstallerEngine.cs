@@ -366,7 +366,7 @@ namespace FfxScreenReader.Setup
             for (int i = folders.Length - 1; i >= 0; i--)
             {
                 string report = Path.Combine(folders[i], "INSTALL_REPORT.txt");
-                if (!File.Exists(report)) throw UninstallRefused("The newest setup backup has no install report: " + folders[i] + ".");
+                if (!File.Exists(report)) throw UninstallRefused(NoRecord);
                 string[] lines = File.ReadAllLines(report);
                 // Uninstall returns the stock game, so backups older than an undone install are spent.
                 if (Array.IndexOf(lines, UninstalledLine) >= 0) break;
@@ -409,6 +409,7 @@ namespace FfxScreenReader.Setup
                 else if (parts.Length == 2 && parts[0] == "prism" && (parts[1] == "installed" || parts[1] == "kept") && prismState == null) prismState = parts[1];
                 else throw UninstallRefused("The install report is not valid: " + report + ".");
             }
+            if (!inRecord) throw UninstallRefused(NoRecord);
             if (!complete || prismState == null || files.Count == 0)
                 throw UninstallRefused("The install report is incomplete: " + report + ".");
             return files;
@@ -437,6 +438,11 @@ namespace FfxScreenReader.Setup
         {
             return File.Exists(path) ? Hash(File.ReadAllBytes(path)) : "absent";
         }
+
+        // Setup 1.0.2 and earlier wrote no uninstall record. Installing with this version
+        // writes one, and its uninstall also removes the older version's files.
+        private const string NoRecord = "The newest setup backup has no uninstall record. It was made by an older version of setup, " +
+            "or by an installation that did not finish. Install with this version first, then choose Uninstall again.";
 
         private static Exception UninstallRefused(string reason)
         {
