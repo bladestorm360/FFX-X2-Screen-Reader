@@ -144,7 +144,7 @@ void updateAutoWalk() {
     if(leg.pendingCollision) {
         mask=0;
         if(!collisionPendingSince) collisionPendingSince=now;
-        else if(now-collisionPendingSince>600) stop("collision route update unavailable",L"collision route update unavailable",true);
+        else if(now-collisionPendingSince>600) stop("collision route update unavailable",L"route blocked",true);
         return;
     }
     if(collisionPendingSince) {collisionPendingSince=0;octant=-1;unstickUntil=0;movingSince=improved=now;best=-1;}
