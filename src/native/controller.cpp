@@ -16,6 +16,7 @@
 #include <xinput.h>
 #include <atomic>
 #include <cstring>
+#include <cstdlib>
 #include <algorithm>
 #include <cwctype>
 namespace ffx {
@@ -45,6 +46,31 @@ void stripReserved(XINPUT_GAMEPAD& game) {
     if(mask&1)game.sThumbRX=game.sThumbRY=0;
     if(mask&2)game.bLeftTrigger=game.bRightTrigger=0;
 }
+// Controls the mod owned in its last published frame: XInput button bits plus
+// the analog controls below. That is what a bound command consumed, or every
+// held control while an exclusive frame (mod menu, console, mod command mode)
+// owns the pad. The original-import fallback masks them so a stale filtered
+// frame cannot hand the game a press the mod already used. Each bit clears
+// once the raw control is released, so a later press reaches the game even if
+// no filtered frame is published again. Only XInput slot 0 is masked: the game
+// reads slot 0, and the SDL-owned pad is assumed to be that slot.
+constexpr unsigned MaskLeftTrigger=1u<<16,MaskRightTrigger=1u<<17,MaskRightStick=1u<<18,MaskLeftStick=1u<<19;
+std::atomic<unsigned> consumedMask{0};
+void maskConsumed(XINPUT_GAMEPAD& game) {
+    const auto mask=consumedMask.load(std::memory_order_acquire);
+    if(!mask) return;
+    unsigned held=game.wButtons;
+    if(game.bLeftTrigger>XINPUT_GAMEPAD_TRIGGER_THRESHOLD) held|=MaskLeftTrigger;
+    if(game.bRightTrigger>XINPUT_GAMEPAD_TRIGGER_THRESHOLD) held|=MaskRightTrigger;
+    if(std::abs(game.sThumbRX)>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE || std::abs(game.sThumbRY)>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) held|=MaskRightStick;
+    if(std::abs(game.sThumbLX)>XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE || std::abs(game.sThumbLY)>XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) held|=MaskLeftStick;
+    consumedMask.fetch_and(held,std::memory_order_acq_rel);
+    game.wButtons&=static_cast<WORD>(~mask);
+    if(mask&MaskLeftTrigger) game.bLeftTrigger=0;
+    if(mask&MaskRightTrigger) game.bRightTrigger=0;
+    if(mask&MaskRightStick) game.sThumbRX=game.sThumbRY=0;
+    if(mask&MaskLeftStick) game.sThumbLX=game.sThumbLY=0;
+}
 bool currentState(XINPUT_STATE& state,physical::Frame* current=nullptr) {
     if(!owned.load(std::memory_order_acquire) || !nativeReaderResourcesReady()) return false;
     Bridge copied;physical::Frame frame;
@@ -67,7 +93,7 @@ DWORD WINAPI getState(DWORD index,XINPUT_STATE* state) {
     if(!currentState(copied)) {
         const auto result=nativeGet?nativeGet(index,state):ERROR_DEVICE_NOT_CONNECTED;
         if(result==ERROR_SUCCESS && state && inputDialogActive()) state->Gamepad={};
-        else if(result==ERROR_SUCCESS && state)stripReserved(state->Gamepad);
+        else if(result==ERROR_SUCCESS && state) {stripReserved(state->Gamepad);if(!index)maskConsumed(state->Gamepad);}
         return result;
     }
     if(!state) return ERROR_BAD_ARGUMENTS;
@@ -205,13 +231,24 @@ void publish(bool exclusive) {
     if(consumed&pad::bit(pad::LT)) visible.lt=0;
     if(consumed&(pad::bit(pad::RSUp)|pad::bit(pad::RSDown)|pad::bit(pad::RSLeft)|pad::bit(pad::RSRight))) visible.rx=visible.ry=0;
     XINPUT_GAMEPAD game{};
+    constexpr int controls[]={pad::South,pad::East,pad::West,pad::North,pad::Menu,pad::L3,pad::R3,pad::LB,pad::RB,pad::Up,pad::Down,pad::Left,pad::Right};
+    constexpr WORD buttons[]={XINPUT_GAMEPAD_A,XINPUT_GAMEPAD_B,XINPUT_GAMEPAD_X,XINPUT_GAMEPAD_Y,XINPUT_GAMEPAD_START,
+        XINPUT_GAMEPAD_LEFT_THUMB,XINPUT_GAMEPAD_RIGHT_THUMB,XINPUT_GAMEPAD_LEFT_SHOULDER,XINPUT_GAMEPAD_RIGHT_SHOULDER,
+        XINPUT_GAMEPAD_DPAD_UP,XINPUT_GAMEPAD_DPAD_DOWN,XINPUT_GAMEPAD_DPAD_LEFT,XINPUT_GAMEPAD_DPAD_RIGHT};
+    // An exclusive frame hands the game nothing, so the stale fallback must
+    // hide every control the player holds, not only what a command consumed.
+    const auto ownedControls=exclusive?consumed|physicalState.held:consumed;
+    unsigned mask=0;
+    for(unsigned i=0;i<_countof(controls);++i) if(ownedControls&pad::bit(controls[i])) mask|=buttons[i];
+    if(ownedControls&pad::bit(pad::LT) || (exclusive && physicalState.lt)) mask|=MaskLeftTrigger;
+    if(ownedControls&pad::bit(pad::RT) || (exclusive && physicalState.rt)) mask|=MaskRightTrigger;
+    if(ownedControls&(pad::bit(pad::RSUp)|pad::bit(pad::RSDown)|pad::bit(pad::RSLeft)|pad::bit(pad::RSRight)) ||
+        (exclusive && (physicalState.rx || physicalState.ry))) mask|=MaskRightStick;
+    if(exclusive && (physicalState.lx || physicalState.ly)) mask|=MaskLeftStick;
+    consumedMask.store(mask,std::memory_order_release);
     if(!exclusive) autoWalkController(visible);
     if(gameSelect) { game.wButtons=XINPUT_GAMEPAD_BACK; gameSelect=false; }
     if(!exclusive) {
-        constexpr int controls[]={pad::South,pad::East,pad::West,pad::North,pad::Menu,pad::L3,pad::R3,pad::LB,pad::RB,pad::Up,pad::Down,pad::Left,pad::Right};
-        constexpr WORD buttons[]={XINPUT_GAMEPAD_A,XINPUT_GAMEPAD_B,XINPUT_GAMEPAD_X,XINPUT_GAMEPAD_Y,XINPUT_GAMEPAD_START,
-            XINPUT_GAMEPAD_LEFT_THUMB,XINPUT_GAMEPAD_RIGHT_THUMB,XINPUT_GAMEPAD_LEFT_SHOULDER,XINPUT_GAMEPAD_RIGHT_SHOULDER,
-            XINPUT_GAMEPAD_DPAD_UP,XINPUT_GAMEPAD_DPAD_DOWN,XINPUT_GAMEPAD_DPAD_LEFT,XINPUT_GAMEPAD_DPAD_RIGHT};
         for(unsigned i=0;i<_countof(controls);++i) if(visible.held&pad::bit(controls[i])) game.wButtons|=buttons[i];
         game.sThumbLX=visible.lx; game.sThumbLY=visible.ly; game.sThumbRX=visible.rx; game.sThumbRY=visible.ry;
         game.bLeftTrigger=visible.lt; game.bRightTrigger=visible.rt;
@@ -349,6 +386,9 @@ void pumpController() {
 }
 bool controllerOwned() { XINPUT_STATE state{};return currentState(state); }
 void drainController() { drain=true; }
+#if defined(FFX_READER_TEST) && !defined(FFX_SDL_OWNER_TEST)
+GetState swapControllerNativeStateForTest(GetState get) {const auto previous=nativeGet;nativeGet=get;return previous;}
+#endif
 #ifdef FFX_SDL_OWNER_TEST
 DWORD controllerStateForTest(DWORD index,XINPUT_STATE* state) {return getState(index,state);}
 DWORD controllerRumbleForTest(DWORD index,XINPUT_VIBRATION* value) {return setState(index,value);}
