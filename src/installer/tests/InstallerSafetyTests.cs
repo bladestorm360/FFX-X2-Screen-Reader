@@ -39,8 +39,8 @@ internal static class InstallerSafetyTests
         OtherModsStay();
         PayloadFailureRollsBack();
         UninstallRestores();
+        UpgradeFromOlderSetup();
         UninstallRefuses();
-
     }
 
     private static byte[] Pe()
@@ -195,28 +195,81 @@ internal static class InstallerSafetyTests
         File.WriteAllText(Path.Combine(game, "Tolk.dll"), "legacy Tolk");
         File.WriteAllText(Path.Combine(game, "dxgi.dll"), "ReShade");
         var before = Snapshot(game);
-        Engine().Install(game, delegate { });
+        before.Remove("Tolk.dll"); // An old screen reader file; uninstall leaves it removed.
+        var engine = Engine();
+        engine.Install(game, delegate { });
+        assert(engine.ReplacedLoader, "Another mod's dinput8.dll is reported as replaced");
+        assert(File.ReadAllText(Path.Combine(Directory.GetDirectories(Path.Combine(game, "FFX_SR_Install_Backups"))[0], "INSTALL_REPORT.txt"))
+            .Contains(InstallerEngine.ReplacedLoaderText), "Install report names the replaced dinput8.dll");
         string message = Engine().Uninstall(game, delegate { });
         Unchanged(game, before, "Install then uninstall");
-        assert(message.IndexOf("restored", StringComparison.OrdinalIgnoreCase) >= 0, "Uninstall reports restored files");
+        assert(message.StartsWith("Uninstall complete", StringComparison.Ordinal), "Uninstall reports success");
         Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Second uninstall");
         Unchanged(game, before, "Second uninstall changes nothing");
 
         Engine().Install(game, delegate { });
         Engine().Install(game, delegate { });
         Engine().Uninstall(game, delegate { });
-        foreach (string name in InstallerEngine.PayloadNames)
-            assert(InstallerEngine.Hash(File.ReadAllBytes(Path.Combine(game, name))) == hashes[name], "First uninstall undoes only the repeat install: " + name);
-        Engine().Uninstall(game, delegate { });
-        Unchanged(game, before, "Two installs then two uninstalls");
+        Unchanged(game, before, "Two installs then one uninstall restores the other mod's dinput8.dll");
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "not installed by this setup", "Uninstall after two installs");
 
+        // PRISM stays from an install whose backups and files were removed by hand.
         string prismKept = Game("Uninstall keeps existing PRISM");
+        string keptConfig = Path.Combine(prismKept, "FFX&X-2_LAUNCHER.exe.config");
+        string stockConfig = File.ReadAllText(keptConfig);
         Engine().Install(prismKept, delegate { });
+        System.IO.Directory.Move(Path.Combine(prismKept, "FFX_SR_Install_Backups"), Path.Combine(root, "Spent backups"));
+        foreach (string name in InstallerEngine.PayloadNames) File.Delete(Path.Combine(prismKept, name));
+        File.Delete(keptConfig + ".ffx_sr_original");
+        File.WriteAllText(keptConfig, stockConfig);
         before = Snapshot(prismKept);
-        assert(before.ContainsKey("PrismRuntime\\prism.dll"), "Fixture has PRISM from a previous setup run");
+        assert(before.ContainsKey("PrismRuntime\\prism.dll"), "Fixture has PRISM that this setup did not install");
         Engine().Install(prismKept, delegate { });
         Engine().Uninstall(prismKept, delegate { });
         Unchanged(prismKept, before, "PRISM that setup did not install stays");
+    }
+
+    // A 1.x setup left its payload, Tolk, old Frida files and its saved launcher
+    // configuration, with a backup folder that has no uninstall record.
+    private static void UpgradeFromOlderSetup()
+    {
+        string game = Game("Upgrade from 1.x");
+        string config = Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config");
+        string stock = File.ReadAllText(config);
+        var stockSnapshot = Snapshot(game);
+        stockSnapshot.Remove("dinput8.dll"); // The fixture's dinput8.dll stands in for 1.x below.
+        File.WriteAllText(Path.Combine(game, "dinput8.dll"), "1.x dinput8");
+        foreach (string name in new[] { "MinHook.x86.dll", "SDL3.dll", "FFXLauncherReader.dll", "FFXLauncherNative.dll",
+            "FFX_SR_SDL3_LICENSE.txt", "FFX_SR_Native_Dependencies.md", "Tolk.dll", "frida-gadget.dll", "ffx_sr.js" })
+            File.WriteAllText(Path.Combine(game, name), "1.x " + name);
+        File.WriteAllText(config + ".ffx_sr_original", stock);
+        File.WriteAllText(config, "<configuration><runtime><appDomainManagerAssembly value=\"FFXLauncherReader, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\"/>" +
+            "<appDomainManagerType value=\"FfxLauncher.ReaderDomainManager\"/></runtime><appSettings><add key=\"Kept\" value=\"yes\"/></appSettings></configuration>");
+        string old = Path.Combine(game, "FFX_SR_Install_Backups", "20261021-120000-0123456789abcdef0123456789abcdef");
+        Directory.CreateDirectory(old);
+        File.WriteAllText(Path.Combine(old, "dinput8.dll"), "pre-1.x dinput8");
+
+        var engine = Engine();
+        engine.Install(game, delegate { });
+        assert(!engine.ReplacedLoader, "The 1.x dinput8.dll is not reported as another mod's loader");
+        Engine().Install(game, delegate { });
+        Engine().Uninstall(game, delegate { });
+        Unchanged(game, stockSnapshot, "Uninstall after a 1.x upgrade leaves the stock game");
+        assert(File.ReadAllText(config) == stock, "Uninstall restores the launcher configuration saved by 1.x");
+        assert(File.ReadAllText(Path.Combine(old, "dinput8.dll")) == "pre-1.x dinput8", "1.x backup stays untouched");
+
+        var before = Snapshot(game);
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "not installed by this setup", "Uninstall after the last one");
+        Unchanged(game, before, "Second uninstall after a 1.x upgrade");
+
+        File.WriteAllText(Path.Combine(game, "dinput8.dll"), "1.x dinput8");
+        File.WriteAllText(Path.Combine(game, "FFXLauncherReader.dll"), "1.x reader");
+        Engine().Install(game, delegate { });
+        File.Delete(config + ".ffx_sr_original");
+        File.WriteAllText(config, "<configuration><runtime><appDomainManagerType value=\"FfxLauncher.ReaderDomainManager\"/></runtime></configuration>");
+        before = Snapshot(game);
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Uninstall after the launcher configuration changed");
+        Unchanged(game, before, "Uninstall after the launcher configuration changed");
     }
 
     private static void UninstallRefuses()

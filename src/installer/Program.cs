@@ -152,7 +152,8 @@ namespace FfxScreenReader.Setup
                 if (uninstalling) { e.Result = engine.Uninstall((string)e.Argument, report); return; }
                 string backup = engine.Install((string)e.Argument, report);
                 e.Result = "Installation complete. Original game files verified. Start your screen reader, then launch normally through Steam. Previous files are backed up in: " + backup +
-                    (engine.LeftInPlace.Count == 0 ? "" : ". Left in place: " + String.Join(", ", engine.LeftInPlace.ToArray()));
+                    (engine.LeftInPlace.Count == 0 ? "" : ". Left in place: " + String.Join(", ", engine.LeftInPlace.ToArray())) +
+                    (engine.ReplacedLoader ? ". " + InstallerEngine.ReplacedLoaderText : "");
             };
             worker.ProgressChanged += delegate(object sender, ProgressChangedEventArgs e) { status.Text = e.UserState.ToString(); };
             worker.RunWorkerCompleted += Finished;
@@ -214,7 +215,7 @@ namespace FfxScreenReader.Setup
         private void StartUninstall()
         {
             if (worker.IsBusy || selected.Text.Length == 0) return;
-            if (MessageBox.Show(this, "Uninstall the screen reader from " + selected.Text + "? Setup restores the files its newest installation replaced and removes the files it added. Saves, settings and other mods stay.",
+            if (MessageBox.Show(this, "Uninstall the screen reader from " + selected.Text + "? Setup removes the screen reader files, including those of older versions, and restores the original launcher configuration. Saves, settings and other mods stay.",
                 "Uninstall screen reader", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
             uninstalling = true;
             SetBusy(true);
