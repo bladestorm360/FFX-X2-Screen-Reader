@@ -30,7 +30,7 @@ void announceNode() {
     auto line=planPair(p,TextPlanOp::Or,node.name,planLiteral(p,L"Unnamed node"));const auto character=read<uint8_t>(engine+0x115bc);
     if(character<7 && (node.activated&(1u<<character))) line=planConcat(p,line,planConcat(p,planLiteral(p,L", activated for "),planPlayerName(p,character)));
     else if(node.sphere) {const auto name=planRecordName(p,0x390a40,node.sphere);line=planConcat(p,line,planPair(p,TextPlanOp::IfText,name,planConcat(p,planLiteral(p,L", requires 1 "),name)));}
-    p.headline=planConcat(p,line,planConcat(p,planLiteral(p,L", node "),planInteger(p,index+1)));
+    p.headline=setting(Setting::SphereNodeNumbers)?planConcat(p,line,planConcat(p,planLiteral(p,L", node "),planInteger(p,index+1))):line;
     // Some native nodes use the same text for name and description; do not speak it twice.
     planSelectionDetail(p,planPair(p,TextPlanOp::Distinct,node.description,node.name),setting(Setting::AutoDetail)!=0);previousNode=index;commitTextPlan(p);
 }
@@ -135,7 +135,7 @@ void movementAfter(Event& e) {
     if(destination<0 || destination>=read<int16_t>(engine+2) || destination==e.before[2]) return;
     TextPlan p;prepareTextPlan(p,"sphere-movement");const auto node=planSphereNode(p,destination);if(!node.valid) return;p.gate=node.name;
     auto line=planConcat(p,planPlayerName(p,character),planConcat(p,planLiteral(p,L" moved to "),node.name));
-    line=planConcat(p,line,planConcat(p,planLiteral(p,L", node "),planInteger(p,destination+1)));
+    if(setting(Setting::SphereNodeNumbers)) line=planConcat(p,line,planConcat(p,planLiteral(p,L", node "),planInteger(p,destination+1)));
     using Saved=uintptr_t(__cdecl*)(unsigned);const auto saved=reinterpret_cast<Saved>(address(0x3853f0))(character);
     if(saved && e.before[4]) {const auto levels=read<uint8_t>(saved+0x3b);if(levels!=e.before[3]) {
         line=planConcat(p,line,planConcat(p,planLiteral(p,L". Sphere Levels "),planInteger(p,e.before[3])));

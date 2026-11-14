@@ -86,7 +86,7 @@ characters say Unknown character. F7 toggles Autodetail.
 - **Navigation audio:** beacon, wall and arrival sounds, their volumes, wall
   range, race pickup cues, Jecht Shot cues, Lightning warning and sound previews.
 - **Navigation:** Auto walk, Speak auto walk path, Hide unreachable destinations and Partial steps.
-- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
+- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Sphere Grid node numbers, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
 
 ### Optional minigame completion assistance
 
@@ -720,6 +720,9 @@ are consumed only on the Sphere Grid.
 
 **F6** — at a stationary grid cursor in Browse, Move or Use, open **Node number**.
 Type the spoken node number and press Enter to select that cursor position;
+node-number entry works even when **F8 > Miscellaneous > Sphere Grid node numbers**
+is Off. That setting (default On) controls whether node names and route guidance
+end with ", node N".
 Escape cancels. Close any grid action menu before using it. Move and Use retain
 the game's available-node restrictions and normal confirmations; this changes
 the cursor only. Some crowded branches have no direct arrow combination, so

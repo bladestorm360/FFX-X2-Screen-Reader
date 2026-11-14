@@ -401,7 +401,7 @@ int main() {
     minigameAssistMask=0;
     ModMenuState minigameMenu{};minigameMenu.status=L"Fixture context";minigameMenu.epoch=epoch;
     openMenuForTest(minigameMenu);selectRow(L"Miscellaneous, submenu");menuKeyForTest(VK_RETURN);
-    check(availableMinigameRows(15)==0,"all four minigame assistance rows are individually hidden outside preparation contexts");
+    check(availableMinigameRows(16)==0,"all four minigame assistance rows are individually hidden outside preparation contexts");
     menuKeyForTest(VK_END);check(said.back()==L"Back, 16 of 16","Miscellaneous keeps its updated row count outside preparation contexts");
     menuKeyForTest(VK_ESCAPE);menuKeyForTest(VK_ESCAPE);
     for(unsigned i=0;i<_countof(minigameAssistSettings);++i) {
@@ -410,7 +410,7 @@ int main() {
         openMenuForTest(minigameMenu);selectRow(L"Miscellaneous, submenu");menuKeyForTest(VK_RETURN);
         check(said.back()==L"Miscellaneous. Autodetail: Off, 1 of 17","one available minigame setting adds exactly one Miscellaneous row");
         const std::wstring label=settingInfo(minigameAssistSettings[i]).name;
-        check(availableMinigameRows(16)==(1u<<i),"each minigame preparation flag exposes only its matching setting row");
+        check(availableMinigameRows(17)==(1u<<i),"each minigame preparation flag exposes only its matching setting row");
         selectRow(label+L":");
         check(setting(minigameAssistSettings[i])==0 && settingInfo(minigameAssistSettings[i]).initial==0,
             "available minigame assistance is a visible default-off setting");

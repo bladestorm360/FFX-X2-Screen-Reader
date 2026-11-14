@@ -2,6 +2,7 @@
 #include "navigation_cancel.hpp"
 #include "events.hpp"
 #include "sphere_grid.hpp"
+#include "settings.hpp"
 #include <algorithm>
 #include <limits>
 #include <map>
@@ -63,7 +64,8 @@ unsigned edgeCost(const GridSnapshot& grid,int a,int b,int character) {
 }
 std::wstring sphereNodeLabel(const GridSnapshot& grid,int index) {
     if(index<0 || static_cast<size_t>(index)>=grid.nodes.size()) return L"Unknown node";
-    return (grid.nodes[index].name.empty()?L"Unnamed node":grid.nodes[index].name)+L", node "+std::to_wstring(index+1);
+    const auto& name=grid.nodes[index].name.empty()?std::wstring(L"Unnamed node"):grid.nodes[index].name;
+    return setting(Setting::SphereNodeNumbers)?name+L", node "+std::to_wstring(index+1):name;
 }
 GridRoute sphereRoute(const GridSnapshot& grid,int start,int goal,int character) {
     GridRoute result;
