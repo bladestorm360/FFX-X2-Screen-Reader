@@ -44,5 +44,21 @@ int main() {
     check(corner==L"10 north, 10 west","a real corner stays two turns");
     const auto tiny=routeDirectionsText({{0,0,0},{10,0,0},{10.001,0,0},{20,0,0}},1,false);
     check(tiny==L"20 north","a negligible leg between straight legs does not split the turn");
-    std::puts("PASS: route wording merges near-straight legs into one turn and keeps real corners and curves.");
+    // Clock directions: 12 o'clock is camera forward (+x here), 3 o'clock is right (-z),
+    // 9 o'clock is left (+z). FFX y grows downward, so a smaller y is above the player.
+    const Point ahead{1,0,0};
+    check(destinationClockText({10,0,0},ahead,true)==L"12 o'clock","straight ahead is 12 o'clock");
+    check(destinationClockText({0,0,-10},ahead,true)==L"3 o'clock","right is 3 o'clock");
+    check(destinationClockText({0,0,10},ahead,true)==L"9 o'clock","left is 9 o'clock");
+    check(destinationClockText({-10,0,0},ahead,true)==L"6 o'clock","behind is 6 o'clock");
+    check(destinationClockText({8.66,0,-5},ahead,true)==L"1 o'clock","thirty degrees right is 1 o'clock");
+    check(destinationClockText({5,0,-8.66},ahead,true)==L"2 o'clock","sixty degrees right is 2 o'clock");
+    check(destinationClockText({10,0,-2.5},ahead,true)==L"12 o'clock","fourteen degrees right rounds to 12 o'clock");
+    check(destinationClockText({5,-30,-8.66},ahead,true)==L"2 o'clock, above","a target 30 units up is above");
+    check(destinationClockText({5,30,-8.66},ahead,true)==L"2 o'clock, below","a target 30 units down is below");
+    check(destinationClockText({5,-20,-8.66},ahead,true)==L"2 o'clock","less than two steps of height says nothing");
+    check(destinationClockText({0,-30,0},ahead,true)==L"here, above","a target straight overhead keeps its height");
+    check(destinationClockText({10,0,0},ahead,false)==L"unknown","no camera means unknown direction");
+    check(destinationClockText({0,0,10},{0,0,1},true)==L"12 o'clock","clock turns with the camera");
+    std::puts("PASS: route wording merges near-straight legs into one turn and keeps real corners and curves; camera clock positions with height.");
 }

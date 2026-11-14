@@ -281,7 +281,7 @@ int main() {
     menuKeyForTest(VK_RETURN);
     check(said.back().find(L"Accessibility mod menu. Navigation audio, submenu")==0 && captured,"Back returns to the audio entry without closing settings");
     selectRow(L"Navigation, submenu"); menuKeyForTest(VK_RETURN);
-    check(said.back()==L"Navigation. Auto walk: Off, 1 of 6","Auto walk is first in the named Navigation submenu");
+    check(said.back()==L"Navigation. Auto walk: Off, 1 of 7","Auto walk is first in the named Navigation submenu");
     check(settingInfo(Setting::HiddenAirshipDestinations).initial==0 && !hiddenAirshipMenuAvailable(),"hidden airship picker is unavailable by default");
     selectRow(L"Enable hidden destinations menu for airship map:");
     check(said.back().find(L"Enable hidden destinations menu for airship map: Off")==0,"default-off setting remains visible without exposing its picker action");
@@ -312,6 +312,11 @@ int main() {
     check(setting(Setting::PartialSteps)==1 && said.back().find(L"Partial steps: On")!=std::wstring::npos,"partial distances have an accessible settings toggle");
     drainSettingsForTest();loadSettings(); check(setting(Setting::PartialSteps)==1,"partial-distance choice survives reload");
     menuKeyForTest(VK_LEFT); check(setting(Setting::PartialSteps)==0,"whole distances can be restored");
+    selectRow(L"Clock directions:"); check(said.back().find(L"Clock directions: Off")!=std::wstring::npos,"clock directions default Off and keep compass words");
+    check(said.back().find(L"6 of 8")!=std::wstring::npos,"clock directions is the last Navigation setting, before the airship submenu");
+    menuKeyForTest(VK_RIGHT); check(setting(Setting::ClockDirections)==1 && said.back().find(L"Clock directions: On")!=std::wstring::npos,"F8 exposes the clock directions toggle");
+    drainSettingsForTest();loadSettings(); check(setting(Setting::ClockDirections)==1,"clock directions choice survives reload");
+    menuKeyForTest(VK_LEFT); check(!setting(Setting::ClockDirections),"compass words can be restored");
     selectRow(L"Auto walk:");
     setSetting(Setting::AutoWalk,0); menuKeyForTest(VK_RIGHT);
     check(setting(Setting::AutoWalk)==1 && said.back().find(L"Auto walk: On")!=std::wstring::npos,"F8 exposes the requested auto-walk toggle");

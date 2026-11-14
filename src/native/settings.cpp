@@ -45,7 +45,8 @@ constexpr SettingInfo options[] = {
     {L"Blitzball auto-win",L"Enable at team setup. Any confirmed live Action Commands option triggers a native win; setup, formation and forfeit choices do not. Native standings and prizes are preserved.",L"blitz_assist",0,0,1,1},
     // Append the persistent ID; menu order is independent, so old IDs/keys stay stable.
     {L"Automatically read extra info",L"Read the visible extra-information pane automatically. Independent of Autodetail. U repeats extra information; I repeats the selected description.",L"auto_extra_info",0,0,1,1},
-    {L"Unavailable cue",L"Say Unavailable when the game rejects an action in the Items, Abilities, or battle menus.",L"unavailable_cue",0,0,1,1}
+    {L"Unavailable cue",L"Say Unavailable when the game rejects an action in the Items, Abilities, or battle menus.",L"unavailable_cue",0,0,1,1},
+    {L"Clock directions",L"Give destination directions as a clock position relative to the camera, such as 2 o'clock, and say above or below when the destination is at least two steps higher or lower. Off keeps compass words. Route directions always use compass words.",L"clock_directions",0,0,1,1}
 };
 static_assert(_countof(options)==static_cast<unsigned>(Setting::Count));
 std::atomic<int> values[_countof(options)];
