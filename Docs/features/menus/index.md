@@ -31,6 +31,19 @@ remain silent. The existing English fixed label is shared with Key Items.
 Menu indexing uses the copied cell/count (`+0x94`) or generic row/count (`+0x30`)
 and calls `menuIndex` on the text-plan worker. Trailing blank cells do not receive
 an invalid position. Battle indexing is outside this change.
+Items and Abilities rows read the inventory table usable byte (`+3`, 0 means
+greyed) and append `unavailable`. Ability MP cost is not read: the record byte
+(`+0x25`) ignores One MP Cost and Half MP Cost. Gear and Overdrive lists use
+other row meanings and are left alone. In `field_menus.cpp`, battle
+command-record rows ask the native canUse routine on the game thread, mirroring
+the list drawers: negative is greyed and `-4` rows are not drawn. canUse and the
+battle buzzer are read from call sites inside the profile-matched confirm
+handler (`0x49c870`) and checked byte by byte, so they need no new signature.
+Only the installed build was checked; the reference build offsets are inferred
+from the `+0x90` delta of the surrounding functions. The field buzzer hook
+(`0x486de0`) speaks `Unavailable` for menu sound `0x80000003` outside event
+scripts (parent `0x464180`), and the battle buzzer hook for sound 3 in battle,
+while Unavailable cue is On.
 The field hook compares pre/post selection keys and captures a prepared text plan
 at the native return point; record names/descriptions are resolved through the
 screen's native getter family. Manual I dispatches in context priority order
