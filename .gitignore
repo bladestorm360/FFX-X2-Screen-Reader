@@ -52,3 +52,7 @@ archived/
 
 # Frida gadget — upstream dependency, not our code. See lib/README.md for how to obtain.
 lib/frida-gadget.dll
+
+# Local build inputs and output
+/third_party/
+/build/
