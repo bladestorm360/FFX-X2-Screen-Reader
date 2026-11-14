@@ -6,11 +6,8 @@ releases/
 Docs/Scripts/**/output/
 Docs/Scripts/**/__pycache__/
 
-# frida-compile build output + devDependencies
+# Native build output and staging
 install/
-src/build/node_modules/
-src/build/package-lock.json
-src/package-lock.json
 
 # Runtime logs
 FFX_SR_Latest.log
@@ -49,9 +46,6 @@ Thumbs.db
 
 # Archived / abandoned experiments — development reference only, not shipped
 archived/
-
-# Frida gadget — upstream dependency, not our code. See lib/README.md for how to obtain.
-lib/frida-gadget.dll
 
 # Local build inputs and output
 /third_party/
