@@ -49,6 +49,10 @@ if not "%errorlevel%"=="0" goto failed
 log_history_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--logs" goto success
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:puzzle_guide_progress_fixture.exe "%TEST_SRC%puzzle_guide_progress_fixture.cpp"
+if not "%errorlevel%"=="0" goto failed
+puzzle_guide_progress_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 :speech
 if not exist PrismRuntime mkdir PrismRuntime
 cl /nologo /W4 /EHsc /std:c++17 /MT /LD /Fe:PrismRuntime\prism.dll "%TEST_SRC%fake_prism.cpp" /link /DEF:"%TEST_SRC%fake_prism.def"
