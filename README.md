@@ -8,6 +8,8 @@ The Windows setup gets the mod, README, required x86 PRISM runtime and notices f
 
 See the [player guide](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/master/Docs/controls.md) for controls and features, and the [changelog](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/master/CHANGELOG.md) for release history.
 
+To build or change the mod, see [CONTRIBUTING.md](CONTRIBUTING.md). Design decisions are recorded in [Docs/adr](Docs/adr/README.md).
+
 ## Getting started
 
 After the opening notices, press the spoken keyboard advance key (B in the tested mapping) or controller Menu/Start to reach the title menu.
