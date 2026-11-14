@@ -38,6 +38,8 @@ internal static class InstallerSafetyTests
             { "platform", "windows" }, { "architecture", "x86" }, { "files", files } }));
         OtherModsStay();
         PayloadFailureRollsBack();
+        UninstallRestores();
+        UninstallRefuses();
 
     }
 
@@ -172,4 +174,58 @@ internal static class InstallerSafetyTests
         Unchanged(game, before, "PRISM failure leaves mod files unchanged");
     }
 
+
+    private static void UninstallRestores()
+    {
+        string game = Game("Uninstall");
+        File.WriteAllText(Path.Combine(game, "Tolk.dll"), "legacy Tolk");
+        File.WriteAllText(Path.Combine(game, "dxgi.dll"), "ReShade");
+        var before = Snapshot(game);
+        Engine().Install(game, delegate { });
+        string message = Engine().Uninstall(game, delegate { });
+        Unchanged(game, before, "Install then uninstall");
+        assert(message.IndexOf("restored", StringComparison.OrdinalIgnoreCase) >= 0, "Uninstall reports restored files");
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Second uninstall");
+        Unchanged(game, before, "Second uninstall changes nothing");
+
+        Engine().Install(game, delegate { });
+        Engine().Install(game, delegate { });
+        Engine().Uninstall(game, delegate { });
+        foreach (string name in InstallerEngine.PayloadNames)
+            assert(InstallerEngine.Hash(File.ReadAllBytes(Path.Combine(game, name))) == hashes[name], "First uninstall undoes only the repeat install: " + name);
+        Engine().Uninstall(game, delegate { });
+        Unchanged(game, before, "Two installs then two uninstalls");
+
+        string prismKept = Game("Uninstall keeps existing PRISM");
+        Engine().Install(prismKept, delegate { });
+        before = Snapshot(prismKept);
+        assert(before.ContainsKey("PrismRuntime\\prism.dll"), "Fixture has PRISM from a previous setup run");
+        Engine().Install(prismKept, delegate { });
+        Engine().Uninstall(prismKept, delegate { });
+        Unchanged(prismKept, before, "PRISM that setup did not install stays");
+    }
+
+    private static void UninstallRefuses()
+    {
+        string game = Game("Uninstall refusal");
+        var before = Snapshot(game);
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Uninstall without backups");
+        Unchanged(game, before, "Uninstall without backups");
+
+        Engine().Install(game, delegate { });
+        string backups = Path.Combine(game, "FFX_SR_Install_Backups");
+        string newest = Directory.GetDirectories(backups)[0];
+        string report = Path.Combine(newest, "INSTALL_REPORT.txt");
+        byte[] saved = File.ReadAllBytes(report);
+        File.Delete(report);
+        before = Snapshot(game);
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Uninstall with missing report");
+        Unchanged(game, before, "Uninstall with missing report");
+        File.WriteAllBytes(report, saved);
+
+        File.WriteAllText(Path.Combine(game, "SDL3.dll"), "replaced after setup");
+        before = Snapshot(game);
+        Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Uninstall after a later change");
+        Unchanged(game, before, "Uninstall after a later change");
+    }
 }

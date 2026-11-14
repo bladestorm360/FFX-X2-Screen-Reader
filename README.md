@@ -43,6 +43,7 @@ Normal installation does not edit registry values. Optional launch repair requir
 
 - **Restore launch backup:** undo a launch repair.
 - **Check launch redirection:** check without making changes.
+- **Uninstall:** undo the newest installation. Setup restores the files it replaced and removes the files it added. It stops without changes if any of those files changed since.
 
 If setup reports a missing or modified original file, use Steam **Properties > Installed Files > Verify integrity of game files**.
 

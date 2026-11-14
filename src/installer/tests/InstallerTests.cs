@@ -388,7 +388,7 @@ internal static class InstallerTests
         using (var window = new InstallerForm())
         {
             var all = new List<Control>(); Controls(window, all);
-            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup" })
+            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup", "Uninstall" })
             {
                 Control found = all.Find(delegate(Control c) { return c.AccessibleName == name; });
                 Assert(found != null && found.TabStop, "Missing keyboard-accessible named control: " + name);
@@ -402,6 +402,7 @@ internal static class InstallerTests
             Control install = all.Find(delegate(Control c) { return c.AccessibleName == "Install"; });
             Assert(!install.Enabled, "Install must be disabled before a game folder is selected");
             Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Repair launch redirection"; }).Enabled, "Repair must require selected installation");
+            Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Uninstall"; }).Enabled, "Uninstall must require selected installation");
             Assert(all.Find(delegate(Control c) { return c.AccessibleName == "Restore launch backup"; }) is Button, "Restore uses standard accessible button");
             Assert(window.AcceptButton == install && window.CancelButton != null, "Enter/Escape keyboard controls");
         }
