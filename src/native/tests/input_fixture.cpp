@@ -214,12 +214,36 @@ int main() {
     records[0].dwOfs=DIK_N; records[0].dwData=0;
     records[1].dwOfs=DIK_N; records[1].dwData=0x80; count=2;
     data.args[4]=0; fire(0xfffe0002,data); drain(); check(pressed==6,"buffered keyboard events");
+    // A release whose press reached the game must reach it too, even when a
+    // modal opened while the key was held; otherwise the key sticks down.
+    records[0].dwOfs=DIK_W; records[0].dwData=0x80; count=1;
+    fire(0xfffe0002,data); drain(); check(count==1,"buffered unbound press reaches the game");
+    testModMenu=true; records[0].dwOfs=DIK_W; records[0].dwData=0; count=1;
+    fire(0xfffe0002,data); drain();
+    check(count==1 && records[0].dwOfs==DIK_W && !records[0].dwData,"buffered release of a key the game saw pressed passes while the mod menu is open");
+    records[0].dwOfs=DIK_W; records[0].dwData=0x80; count=1; fire(0xfffe0002,data);
+    check(!count,"mod menu still owns new buffered presses");
+    records[0].dwOfs=DIK_W; records[0].dwData=0; count=1; fire(0xfffe0002,data);
+    check(!count,"mod menu owns the buffered release of its own press");
+    testModMenu=false;
     Event release; release.args[0]=object; fire(0xfffe0003,release);
     msg.message=WM_KEYDOWN;
     fire(0xffff0000,message); drain(); check(pressed==7,"released keyboard restores message fallback");
     msg.message=WM_KEYDOWN; testConsole=true; fire(0xffff0000,message); drain(); check(pressed==7,"typing in utility console cannot invoke game hotkeys");
     msg.message=WM_KEYDOWN; testConsole=false; testModMenu=true; fire(0xffff0000,message); drain(); check(pressed==7,"mod menu input cannot invoke game hotkeys");
     testModMenu=false;
+    const auto boundKey=msg.wParam;
+    msg.wParam='W'; msg.lParam=0; msg.message=WM_KEYDOWN; fire(0xffff0000,message); drain();
+    check(msg.message==WM_KEYDOWN,"unbound message press reaches the game");
+    testModMenu=true; msg.message=WM_KEYDOWN; msg.lParam=1<<30; fire(0xffff0000,message); drain();
+    check(msg.message==WM_NULL,"mod menu eats autorepeat of a key the game saw pressed");
+    msg.lParam=0; msg.message=WM_KEYUP; fire(0xffff0000,message);
+    check(msg.message==WM_KEYUP,"message release of a key the game saw pressed passes while the mod menu is open");
+    msg.message=WM_KEYDOWN; fire(0xffff0000,message); drain();
+    check(msg.message==WM_NULL,"mod menu still owns new message presses");
+    msg.message=WM_KEYUP; fire(0xffff0000,message);
+    check(msg.message==WM_NULL,"mod menu owns the message release of its own press");
+    testModMenu=false; msg.wParam=boundKey;
     uintptr_t padTable[32]{}; for(auto& slot:padTable)slot=0x20000;
     uintptr_t padVtable=reinterpret_cast<uintptr_t>(padTable),padObject=reinterpret_cast<uintptr_t>(&padVtable);
     DIJOYSTATE2 joystick{}; joystick.rgbButtons[0]=0x80;

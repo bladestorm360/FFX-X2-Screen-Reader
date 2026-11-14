@@ -69,9 +69,16 @@ void received(Event& e) {
     const bool repeat=down && (message.lParam & (1u<<30));
     const bool shift=(GetKeyState(VK_SHIFT)&0x8000)!=0;
     const bool control=(GetKeyState(VK_CONTROL)&0x8000)!=0;
-    bool captured=swallowedMessages[vk] || capturesKey(vk,shift,control);
+    // Only a fresh press decides who owns a key. A repeat or release keeps the
+    // owner of the original press, so a release whose press reached the game
+    // reaches it too, even after a menu has opened while the key was held.
+    bool captured=swallowedMessages[vk];
     if(down && !repeat) captured=keyboard?capturesKey(vk,shift,control):consumeKey(vk,shift,control);
-    swallowedMessages[vk]=down && captured;
+    if(!up) swallowedMessages[vk]=captured;
+    else swallowedMessages[vk]=false;
+    // A menu that opened mid-hold still eats repeats of a game-owned key, but
+    // does not take ownership of it.
+    if(repeat && !captured) captured=capturesKey(vk,shift,control);
     if(captured) {
         message.message=WM_NULL; write<MSG>(e.args[0],message);
     }
