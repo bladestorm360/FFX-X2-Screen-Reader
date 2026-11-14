@@ -6,6 +6,9 @@
 #include "esc_details.hpp"
 #include "ready_game_text.hpp"
 #include "naming.hpp"
+#include "text_plan.hpp"
+#include "log_capture.hpp"
+#include <initializer_list>
 #include <algorithm>
 
 namespace ffx {
@@ -43,6 +46,9 @@ Key itemKey(uintptr_t p) {
         auto count = read<uint8_t>(entry + 2);
         k[10] = !count;
         k[7] = read<uint16_t>(entry); k[8] = k[6] == 0 ? count : -1;
+        // Native builders 4C8E60 (Items) and 4C6800 (Abilities) store 1 at +3
+        // for a usable row and 0 for a greyed one.
+        k[12] = count && !read<uint8_t>(entry + 3);
     } else return {};
     k[9] = 1; return k;
 }
@@ -59,6 +65,7 @@ void itemAfter(Event& e) {
     }
     auto name=planRecordName(p,getter,static_cast<unsigned>(k[7]));
     p.headline=k[8]>=0?planCountedName(p,name,k[8]):name;
+    if(k[12]) p.headline=planConcat(p,p.headline,planLiteral(p,L", unavailable"));
     p.headline=planConcat(p,p.headline,planMenuIndex(p,static_cast<unsigned>(k[5]),static_cast<unsigned>(k[11])));
     planSelectionDetail(p,planRecordDescription(p,getter,static_cast<unsigned>(k[7])),setting(Setting::AutoDetail)!=0);
     commitTextPlan(p);
@@ -267,5 +274,57 @@ void installFieldMenus() {
     installFieldDetails();
     installAeonAttributes();
     installFieldTargets();
+}
+}
+namespace ffx {
+// The native error buzzer and greyed battle rows. Field Items and Abilities
+// rows read their usable byte above.
+void announceUnavailable() {
+    // Short and interrupting, so a row already read as unavailable is not
+    // repeated when the player confirms it.
+    if (!setting(Setting::UnavailableCue)) return;
+    TextPlan p;prepareTextPlan(p,"unavailable");p.headline=planLiteral(p,L"Unavailable");commitTextPlan(p);
+}
+namespace {
+// Battle canUse (installed 49ACA0) and buzzer (installed 486BA0) have no
+// verified profile entry. Read both from rel32 calls in the mapped confirm
+// handler 49C870, whose body is individually matched in both profiles.
+using CanUse=int(__cdecl*)(int,int);
+CanUse canUse=nullptr;
+uintptr_t handlerCall(unsigned at,std::initializer_list<uint8_t> prefix) {
+    const auto site=address(0x49c870)+at;
+    auto check=site-prefix.size();
+    for(const auto byte:prefix) if(read<uint8_t>(check++)!=byte) return 0;
+    if(read<uint8_t>(site)!=0xe8) return 0;
+    const auto target=site+5+static_cast<uintptr_t>(read<int32_t>(site+1));
+    // Both targets open with PUSH EBP; MOV EBP,ESP.
+    return read<uint8_t>(target)==0x55 && read<uint8_t>(target+1)==0x8b && read<uint8_t>(target+2)==0xec?target:0;
+}
+void fieldBuzzer(Event& e) {
+    // Field sound 486DE0: menus pass 0x80000003 for the error buzzer. Event
+    // scripts (parent 464180) play their own sounds through the same routine.
+    if (scene && e.args[0] == 0x80000003 && e.parentRva != 0x464180) announceUnavailable();
+}
+void battleBuzzer(Event& e) {
+    if(inBattle() && (e.args[0]&0x7fffffff)==3) announceUnavailable();
+}
+}
+int battleRowUsable(uintptr_t win,int id,int type) {
+    // Native list drawers (49F370, 4A49B0) grey rows where canUse is negative
+    // and skip -4 rows. Only command-record rows are asked: gear (7, 15),
+    // character (10), aeon (5, except command 0x30FF) and amount (0x15, 0x16)
+    // windows hold other ids. Game thread only: callers are native battle
+    // cursor hooks.
+    const bool record=type!=7 && type!=15 && type!=10 && (type!=5 || id==0x30ff) &&
+        type!=0x15 && type!=0x16;
+    return canUse && id!=0xff && record?canUse(read<int16_t>(win+8),id):0;
+}
+void installUnavailable() {
+    hook(0x486de0, fieldBuzzer, nullptr);
+    // Confirm handler 49C870: canUse call at +0x37E, PUSH 3 buzzer call at +0xED.
+    canUse=reinterpret_cast<CanUse>(handlerCall(0x37e,{0x0f,0xbf,0x46,0x08,0x50}));
+    if(const auto sound=handlerCall(0xed,{0x6a,0x03})) hookAddress(sound,0x486b00,battleBuzzer,nullptr);
+    else recordLog("battle buzzer call site not found");
+    if(!canUse) recordLog("battle canUse call site not found");
 }
 }

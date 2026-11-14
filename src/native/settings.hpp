@@ -5,7 +5,7 @@ enum class Setting : unsigned {
     Speech, CombatDetail, AutoDetail, Beacon, BeaconVolume, Walls, WallVolume,
     WallRange, Arrival, ArrivalVolume, OverdriveAssist, VoicedDialogue,HideUnreachable, RaceCues,PartialSteps,AutoWalk,AutoWalkPath,MenuIndex,
     LightningWarning,LightningAutoDodge,ShowMaximumHp,ButterflyCues,OverdriveCues,ShowMaximumMp,PolishText,SpeechBackend,HiddenAirshipDestinations,JechtAssist,JechtCues,GagazetAssist,GagazetCues,SpeakPunctuationNames,SinCollectionAssist,
-    ChocoboAssist,RemiemAssist,ButterflyAssist,BlitzAssist,AutoExtraInfo,Count
+    ChocoboAssist,RemiemAssist,ButterflyAssist,BlitzAssist,AutoExtraInfo,UnavailableCue,Count
 };
 struct SettingInfo {
     const wchar_t* name;

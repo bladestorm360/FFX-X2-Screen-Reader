@@ -44,7 +44,8 @@ constexpr SettingInfo options[] = {
     {L"Butterfly hunt auto-success",L"Enable before starting. Collect seven butterflies in the current course and story phase. The normal timer and chest remain; open the chest and confirm its reward manually.",L"butterfly_assist",0,0,1,1},
     {L"Blitzball auto-win",L"Enable at team setup. Any confirmed live Action Commands option triggers a native win; setup, formation and forfeit choices do not. Native standings and prizes are preserved.",L"blitz_assist",0,0,1,1},
     // Append the persistent ID; menu order is independent, so old IDs/keys stay stable.
-    {L"Automatically read extra info",L"Read the visible extra-information pane automatically. Independent of Autodetail. U repeats extra information; I repeats the selected description.",L"auto_extra_info",0,0,1,1}
+    {L"Automatically read extra info",L"Read the visible extra-information pane automatically. Independent of Autodetail. U repeats extra information; I repeats the selected description.",L"auto_extra_info",0,0,1,1},
+    {L"Unavailable cue",L"Say Unavailable when the game plays its error buzzer in a menu or battle, such as when confirming an item or ability that cannot be used now.",L"unavailable_cue",1,0,1,1}
 };
 static_assert(_countof(options)==static_cast<unsigned>(Setting::Count));
 std::atomic<int> values[_countof(options)];
