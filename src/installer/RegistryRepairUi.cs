@@ -13,6 +13,8 @@ namespace FfxScreenReader.Setup
     {
         private readonly Button repair = new Button();
         private readonly Button restore = new Button();
+        private readonly Button uninstall = new Button();
+        private bool uninstalling;
         private void AddRegistryButtons(FlowLayoutPanel buttons) {
             repair.Text = "&Repair launch redirection";
             restore.Text = "Restore launch bac&kup";
@@ -21,7 +23,12 @@ namespace FfxScreenReader.Setup
             repair.TabIndex = 4; restore.TabIndex = 5;
             repair.AutoSize = restore.AutoSize = true;
             repair.Enabled = false;
-            buttons.Controls.Add(repair); buttons.Controls.Add(restore);
+            uninstall.Text = "&Uninstall";
+            uninstall.AccessibleName = "Uninstall";
+            uninstall.TabIndex = 6;
+            uninstall.AutoSize = true;
+            buttons.Controls.Add(repair); buttons.Controls.Add(restore); buttons.Controls.Add(uninstall);
+            uninstall.Click += delegate { StartUninstall(); };
             repair.Click += delegate { RepairRedirects(); };
             restore.Click += delegate { RestoreRedirects(); };
         }

@@ -22,6 +22,7 @@ namespace FfxScreenReader.Setup
                 if (args[i] == "--game" && i + 1 < args.Length) preferred = args[++i];
                 else if (args[i] == "--preview-repair") action = "repair";
                 else if (args[i] == "--preview-restore") action = "restore";
+                else if (args[i] == "--uninstall") action = "uninstall";
             }
             Application.Run(new InstallerForm(preferred, action));
         }
@@ -93,7 +94,7 @@ namespace FfxScreenReader.Setup
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             var intro = new Label { AutoSize = true, MaximumSize = new Size(700, 0), Text =
                 "Install the screen reader and original launcher speech, including PRISM, SDL3 and their licenses. Tolk is backed up and removed. Close the game, launcher, and mod manager first. " +
-                "Settings and saves are preserved. Other added DLL/ASI mods and old Frida files are backed up and removed. Original game files are checked first. Select a detected installation or browse to a Steam folder, library, or game folder. Repair launch redirection is optional and changes the registry only after confirmation and backup." };
+                "Settings and saves are preserved. Old Frida files are backed up and removed; other added DLL/ASI mods stay in place. Original game files are checked first. Select a detected installation or browse to a Steam folder, library, or game folder. Repair launch redirection is optional and changes the registry only after confirmation and backup." };
             layout.Controls.Add(intro);
             layout.Controls.Add(new Label { Text = "Detected &game installation:", AutoSize = true });
             games.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -102,7 +103,7 @@ namespace FfxScreenReader.Setup
             games.TabIndex = 0;
             games.SelectedIndexChanged += delegate {
                 selected.Text = games.SelectedItem == null ? "" : games.SelectedItem.ToString();
-                install.Enabled = repair.Enabled = !worker.IsBusy && selected.Text.Length != 0;
+                install.Enabled = repair.Enabled = uninstall.Enabled = !worker.IsBusy && selected.Text.Length != 0;
             };
             layout.Controls.Add(games);
             layout.Controls.Add(new Label { Text = "Selected game &folder:", AutoSize = true });
@@ -134,7 +135,7 @@ namespace FfxScreenReader.Setup
             Controls.Add(layout);
             AcceptButton = install;
             CancelButton = cancel;
-            install.Enabled = false;
+            install.Enabled = uninstall.Enabled = false;
             diagnose.Click += delegate {
                 try { status.Text = LaunchRedirects.Describe(selected.Text); status.Focus(); status.SelectAll(); }
                 catch (Exception ex) { ShowMessage("Could not read launch redirection entries. " + ex.Message + ". No registry values were changed.", true); }
@@ -143,10 +144,16 @@ namespace FfxScreenReader.Setup
             install.Click += StartInstall;
             cancel.Click += delegate { Close(); };
             FormClosing += delegate(object sender, FormClosingEventArgs e) {
-                if (worker.IsBusy) { e.Cancel = true; ShowMessage("Please wait while installation finishes or restores previous files.", false); }
+                if (worker.IsBusy) { e.Cancel = true; ShowMessage("Please wait while setup finishes or restores previous files.", false); }
             };
             worker.DoWork += delegate(object sender, DoWorkEventArgs e) {
-                e.Result = Program.Engine().Install((string)e.Argument, delegate(string text) { worker.ReportProgress(0, text); });
+                InstallerEngine engine = Program.Engine();
+                Action<string> report = delegate(string text) { worker.ReportProgress(0, text); };
+                if (uninstalling) { e.Result = engine.Uninstall((string)e.Argument, report); return; }
+                string backup = engine.Install((string)e.Argument, report);
+                e.Result = "Installation complete. Original game files verified. Start your screen reader, then launch normally through Steam. Previous files are backed up in: " + backup +
+                    (engine.LeftInPlace.Count == 0 ? "" : ". Left in place: " + String.Join(", ", engine.LeftInPlace.ToArray())) +
+                    (engine.ReplacedLoader ? ". " + InstallerEngine.ReplacedLoaderText : "");
             };
             worker.ProgressChanged += delegate(object sender, ProgressChangedEventArgs e) { status.Text = e.UserState.ToString(); };
             worker.RunWorkerCompleted += Finished;
@@ -164,6 +171,7 @@ namespace FfxScreenReader.Setup
                 if (games.Items.Count == 0) browse.Focus(); else games.Focus();
                 if (action == "repair" && selected.Text.Length != 0) BeginInvoke(new Action(RepairRedirects));
                 else if (action == "restore") BeginInvoke(new Action(RestoreRedirects));
+                else if (action == "uninstall" && selected.Text.Length != 0) BeginInvoke(new Action(StartUninstall));
             };
         }
 
@@ -198,14 +206,31 @@ namespace FfxScreenReader.Setup
         private void StartInstall(object sender, EventArgs e)
         {
             if (worker.IsBusy || selected.Text.Length == 0) return;
-            browse.Enabled = games.Enabled = install.Enabled = cancel.Enabled = diagnose.Enabled = repair.Enabled = restore.Enabled = false;
+            uninstalling = false;
+            SetBusy(true);
             status.Text = "Checking installer files, original game files, and other DLL/ASI mods.";
             worker.RunWorkerAsync(selected.Text);
         }
 
+        private void StartUninstall()
+        {
+            if (worker.IsBusy || selected.Text.Length == 0) return;
+            if (MessageBox.Show(this, "Uninstall the screen reader from " + selected.Text + "? Setup removes the screen reader files, including those of older versions, and restores the original launcher configuration. Saves, settings and other mods stay.",
+                "Uninstall screen reader", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
+            uninstalling = true;
+            SetBusy(true);
+            status.Text = "Checking the newest setup backup.";
+            worker.RunWorkerAsync(selected.Text);
+        }
+
+        private void SetBusy(bool busy)
+        {
+            browse.Enabled = games.Enabled = install.Enabled = cancel.Enabled = diagnose.Enabled = repair.Enabled = restore.Enabled = uninstall.Enabled = !busy;
+        }
+
         private void Finished(object sender, RunWorkerCompletedEventArgs e)
         {
-            browse.Enabled = games.Enabled = install.Enabled = cancel.Enabled = diagnose.Enabled = repair.Enabled = restore.Enabled = true;
+            SetBusy(false);
             if (e.Error != null)
             {
                 string message = e.Error.Message;
@@ -216,7 +241,7 @@ namespace FfxScreenReader.Setup
             }
             cancel.Text = "&Close";
             cancel.AccessibleName = "Close";
-            ShowMessage("Installation complete. Original game files verified; other added DLL/ASI mods removed. Start your screen reader, then launch normally through Steam. Previous files are backed up in: " + e.Result, false);
+            ShowMessage((string)e.Result, false);
         }
 
         private void ShowMessage(string text, bool error)

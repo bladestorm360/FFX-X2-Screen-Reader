@@ -25,6 +25,13 @@ namespace FfxScreenReader.Setup
         public static void Copy(string source, string target) { Copy(source, target, false); }
         public static void Copy(string source, string target, bool overwrite) { File.Copy(InstallerPaths.Native(source), InstallerPaths.Native(target), overwrite); }
         public static void Delete(string path) { File.Delete(InstallerPaths.Native(path)); }
+        public static string[] ReadAllLines(string path) { return File.ReadAllLines(InstallerPaths.Native(path)); }
+        public static void AppendAllLines(string path, IEnumerable<string> value) { File.AppendAllLines(InstallerPaths.Native(path), value); }
+        // Replaces target with source in one rename; target is deleted first if present.
+        public static void Move(string source, string target) {
+            if (Exists(target)) Delete(target);
+            File.Move(InstallerPaths.Native(source), InstallerPaths.Native(target));
+        }
     }
     internal static class InstallerDirectories
     {

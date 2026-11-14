@@ -35,7 +35,7 @@ Four independent preparation options assist Calm Lands Chocobo training, the Rem
 3. If setup detects an old launch redirect, choose **Repair launch redirection**, review and confirm its listed changes, and save the backup. Then choose **Install**.
 4. Wait for **Installation complete**, close setup, start your screen reader and launch through Steam.
 
-The installer checks supported original game files, backs up and removes added DLL/ASI mods and known old Frida files, and preserves settings, saves and unrelated launcher XML.
+The installer checks supported original game files, backs up and removes known old Frida and Tolk files, and preserves settings, saves, unrelated launcher XML and other DLL/ASI mods.
 
 File backups are stored in `FFX_SR_Install_Backups`.
 
@@ -43,6 +43,7 @@ Normal installation does not edit registry values. Optional launch repair requir
 
 - **Restore launch backup:** undo a launch repair.
 - **Check launch redirection:** check without making changes.
+- **Uninstall:** remove the screen reader, including files from older versions, and restore the original launcher configuration. Files that setup replaced from other mods are restored. It stops without changes if any of those files changed since the newest installation.
 
 If setup reports a missing or modified original file, use Steam **Properties > Installed Files > Verify integrity of game files**.
 

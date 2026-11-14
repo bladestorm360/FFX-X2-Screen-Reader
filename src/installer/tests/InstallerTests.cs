@@ -168,7 +168,7 @@ internal static class InstallerTests
         Assert(File.ReadAllText(config + ".ffx_sr_original") == original, "Original XML backup preserved across repeat");
         foreach (string name in new[] { "FFXAccessibility.ini" })
             Assert(File.ReadAllText(Path.Combine(game, name)) == "original-" + name, "Unrelated file/settings changed");
-        Assert(!File.Exists(Path.Combine(game, "OtherMod.dll")) && File.Exists(Path.Combine(firstBackup, "OtherMod.dll")), "Other added DLL must be backed up and removed");
+        Assert(File.ReadAllText(Path.Combine(game, "OtherMod.dll")) == "original-OtherMod.dll" && !File.Exists(Path.Combine(firstBackup, "OtherMod.dll")), "Other added DLL stays in place");
         var xml = new XmlDocument(); xml.Load(config);
         Assert(xml.SelectNodes("/configuration/runtime/appDomainManagerType").Count == 1, "Repeat duplicated manager");
         Assert(xml.SelectSingleNode("/configuration/appSettings/add").Attributes["value"].Value == "yes", "Unrelated XML changed");
@@ -278,7 +278,7 @@ internal static class InstallerTests
         File.WriteAllText(config, "<configuration><appSettings><add key=\"Kept\" value=\"yes\"/></appSettings></configuration>");
         string backup = Engine().Install(game, delegate { });
         Assert(Path.Combine(backup, added).Length > 500, "Nested backup exercises paths well beyond MAX_PATH");
-        Assert(!File.Exists(Path.Combine(game, added)) && File.ReadAllText(Path.Combine(backup, added)) == "old nested mod", "Long nested module is backed up before cleanup");
+        Assert(File.ReadAllText(Path.Combine(game, added)) == "old nested mod" && File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains(added), "Long nested module stays in place and is reported");
         foreach (string name in InstallerEngine.PayloadNames)
             Assert(InstallerEngine.Hash(File.ReadAllBytes(Path.Combine(game, name))) == hashes[name], "Long-path payload hash: " + name);
         Assert(File.ReadAllText(Path.Combine(game, "FFXAccessibility.ini")) == "long-path settings", "Long-path settings preserved");
@@ -292,7 +292,7 @@ internal static class InstallerTests
             if (text == "Configuring launcher speech") throw new IOException("long-path rollback fixture");
         }); }, "Previous files were restored");
         Unchanged(game, before);
-        Assert(File.ReadAllText(Path.Combine(game, added)) == "rollback nested mod", "Long-path rollback restores removed nested module");
+        Assert(File.ReadAllText(Path.Combine(game, added)) == "rollback nested mod", "Long-path rollback leaves nested module alone");
         Reject(delegate { InstallerPaths.InGame(game, "..\\outside.dll"); }, "Invalid relative installation path");
         string unc = "\\\\server\\share\\" + new string('u', 80) + "\\" + new string('v', 80) + "\\" + new string('w', 80);
         Assert(Path.GetFullPath(unc) == unc, "Long UNC paths normalize without accessing the network");
@@ -311,12 +311,16 @@ internal static class InstallerTests
         File.WriteAllText(Path.Combine(game, "mods", "reader", "settings.ini"), "preserve");
         File.WriteAllText(Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config"), "<configuration><runtime><appDomainManagerAssembly value=\"ForeignReader, Version=1.0.0.0\"/><appDomainManagerType value=\"Foreign.Manager\"/><gcConcurrent enabled=\"true\"/></runtime></configuration>");
         File.WriteAllText(Path.Combine(game, "ForeignReader.dll"), "foreign reader");
+        var foreignBefore = Snapshot(game);
+        Reject(delegate { Engine().Install(game, delegate { }); }, "another AppDomainManager");
+        Unchanged(game, foreignBefore);
+        File.WriteAllText(Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config"), "<configuration><runtime><gcConcurrent enabled=\"true\"/></runtime></configuration>");
         string backup = Engine().Install(game, delegate { });
         foreach (string name in new[] { "dxgi.dll", "version.DLL", "mods/reader/foreign.dll", "mods/reader/plugin.asi", "ForeignReader.dll" })
-            Assert(!File.Exists(InstallerPaths.InGame(game, name)) && File.Exists(InstallerPaths.InGame(backup, name)), "Added module cleanup: " + name);
+            Assert(File.Exists(InstallerPaths.InGame(game, name)) && !File.Exists(InstallerPaths.InGame(backup, name)), "Added module stays in place: " + name);
         Assert(File.ReadAllText(Path.Combine(game, "mods", "reader", "settings.ini")) == "preserve", "Mod settings preserved");
         Assert(File.Exists(Path.Combine(game, "magicFiles", "stock", "original.dll")), "Stock nested DLL preserved");
-        Assert(File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains("mods\\reader\\foreign.dll"), "Relative removal report");
+        Assert(File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains("mods\\reader\\foreign.dll"), "Relative left-in-place report");
         var oldPayload = new Dictionary<string, byte[]>(payload);
         var oldHashes = new Dictionary<string, string>(hashes);
         const string savedAssistance = "; Upgrade must preserve both On and Off\r\n[Accessibility]\r\noverdrive_assist=1\r\njecht_assist=0\r\nlightning_auto_dodge=1\r\n[Controller]\r\nrepeat=7\r\n";
@@ -342,9 +346,9 @@ internal static class InstallerTests
         }
         Reject(delegate { InstallerPaths.InGame(game, "../outside.dll"); }, "Invalid relative");
         Reject(delegate { InstallerPaths.InGame(game, "C:/outside.dll"); }, "Invalid relative");
-        File.WriteAllText(Path.Combine(game, "late.dll"), "before"); before = Snapshot(game);
+        before = Snapshot(game);
         Reject(delegate { Engine().Install(game, delegate(string message) {
-            if (message == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "late.dll"), "changed during setup");
+            if (message == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "Tolk.dll"), "restored during setup");
         }); }, "appeared during setup");
         Unchanged(game, before);
         string linked = Game("Linked folder refusal");
@@ -384,7 +388,7 @@ internal static class InstallerTests
         using (var window = new InstallerForm())
         {
             var all = new List<Control>(); Controls(window, all);
-            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup" })
+            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup", "Uninstall" })
             {
                 Control found = all.Find(delegate(Control c) { return c.AccessibleName == name; });
                 Assert(found != null && found.TabStop, "Missing keyboard-accessible named control: " + name);
@@ -398,6 +402,7 @@ internal static class InstallerTests
             Control install = all.Find(delegate(Control c) { return c.AccessibleName == "Install"; });
             Assert(!install.Enabled, "Install must be disabled before a game folder is selected");
             Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Repair launch redirection"; }).Enabled, "Repair must require selected installation");
+            Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Uninstall"; }).Enabled, "Uninstall must require selected installation");
             Assert(all.Find(delegate(Control c) { return c.AccessibleName == "Restore launch backup"; }) is Button, "Restore uses standard accessible button");
             Assert(window.AcceptButton == install && window.CancelButton != null, "Enter/Escape keyboard controls");
         }
@@ -431,6 +436,7 @@ internal static class InstallerTests
             if (args[0] == "--embedded") return EmbeddedInstallerTests.Run(args[1], args[2]);
             fixture = Path.GetFullPath(args[0]); Directory.CreateDirectory(fixture);
             InstallerSecurityTests.Run(fixture, Assert);
+            InstallerSafetyTests.Run(fixture, Assert);
             foreach (string name in InstallerEngine.PayloadNames) {
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));
