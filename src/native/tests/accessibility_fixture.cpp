@@ -319,6 +319,21 @@ int main() {
     menuKeyForTest(VK_RETURN); check(setting(Setting::AutoDetail),"settings row changes same autodetail option as F7");
     drainSettingsForTest();
     check(GetPrivateProfileIntW(L"Accessibility",L"auto_detail",999,settingsPath().c_str())==1,"autodetail persists");
+    {
+        // The INI is replaced as a whole file: other sections survive, no
+        // temporary file is left behind, and an unchanged value writes nothing.
+        WritePrivateProfileStringW(L"Fixture",L"kept",L"1",settingsPath().c_str());
+        static unsigned writes=0;
+        setSettingsWriteSinkForTest([](const std::wstring&,const int*,size_t) { ++writes; return true; });
+        setSetting(Setting::AutoDetail,1); drainSettingsForTest();
+        check(!writes,"setting an unchanged value does not rewrite the settings file");
+        setSettingsWriteSinkForTest(nullptr);
+        setSetting(Setting::AutoDetail,0); drainSettingsForTest();
+        check(GetPrivateProfileIntW(L"Accessibility",L"auto_detail",999,settingsPath().c_str())==0 &&
+            GetPrivateProfileIntW(L"Fixture",L"kept",0,settingsPath().c_str())==1,"settings save keeps other sections");
+        check(GetFileAttributesW((settingsPath()+L".tmp").c_str())==INVALID_FILE_ATTRIBUTES,"settings save leaves no temporary file");
+        setSetting(Setting::AutoDetail,1); drainSettingsForTest();
+    }
     menuKeyForTest(VK_ESCAPE);
     menuKeyForTest(VK_HOME);
     menuKeyForTest(VK_LEFT); check(!setting(Setting::Speech),"boolean setting changes");
