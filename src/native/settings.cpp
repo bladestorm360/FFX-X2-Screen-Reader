@@ -65,14 +65,26 @@ bool writeOwned(const int* snapshot) {
 #ifdef FFX_READER_TEST
     if(testSink) return testSink(workerPath(),snapshot,_countof(options));
 #endif
-    bool success=true;
+    // Write a complete copy beside the INI, then swap it in with one rename.
+    // A crash or power loss mid-save leaves either the old or the new
+    // [Accessibility] keys, never only some of them. Other sections are carried
+    // over. Extension writers (the [Controller] section) still write the INI in
+    // place after the swap, so their section is not covered by this guarantee.
+    const auto& path=workerPath();
+    const auto temporary=path+L".tmp";
+    if(!CopyFileW(path.c_str(),temporary.c_str(),FALSE) && GetLastError()!=ERROR_FILE_NOT_FOUND) {
+        recordLog("settings copy failed error=%lu",GetLastError());return false;
+    }
     for(unsigned i=0;i<_countof(options);++i) {
         const auto value=std::to_wstring(snapshot[i]);
-        if(!WritePrivateProfileStringW(L"Accessibility",options[i].key,value.c_str(),workerPath().c_str())) {
-            success=false;recordLog("settings write failed error=%lu",GetLastError());
+        if(!WritePrivateProfileStringW(L"Accessibility",options[i].key,value.c_str(),temporary.c_str())) {
+            recordLog("settings write failed error=%lu",GetLastError());DeleteFileW(temporary.c_str());return false;
         }
     }
-    return success;
+    if(!MoveFileExW(temporary.c_str(),path.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)) {
+        recordLog("settings replace failed error=%lu",GetLastError());DeleteFileW(temporary.c_str());return false;
+    }
+    return true;
 }
 bool drainOwned() {
     const auto captured=dirtyRevision.load();
@@ -148,7 +160,9 @@ unsigned settingRevision(Setting id) {return revisions[static_cast<unsigned>(id)
 void setSetting(Setting id,int value) {
     const auto& option=settingInfo(id);
     const auto next=std::clamp(value,option.minimum,option.maximum);
-    if(values[static_cast<unsigned>(id)].exchange(next)!=next) revisions[static_cast<unsigned>(id)].fetch_add(1,std::memory_order_release);
+    // Repeated presses at a limit or re-applying the current value need no disk write.
+    if(values[static_cast<unsigned>(id)].exchange(next)==next) return;
+    revisions[static_cast<unsigned>(id)].fetch_add(1,std::memory_order_release);
     saveSettings();
 }
 void adjustSetting(Setting id,int delta) {

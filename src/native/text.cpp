@@ -19,10 +19,28 @@ uintptr_t address(unsigned rva) {
 }
 #endif
 
+namespace {
+// Touching a guard page clears its guard bit before the exception is raised.
+// When the page is another thread's stack guard, losing that bit means the
+// thread can no longer grow its stack and later crashes far from here.
+// Passing the exception on would not help: production builds use /EHa, so the
+// reader's catch(...) would still swallow it. Re-arm the guard and fail the
+// read instead, which leaves the page exactly as the copy found it.
+int copyFault(const EXCEPTION_RECORD* record) {
+    if (record->ExceptionCode == STATUS_GUARD_PAGE_VIOLATION && record->NumberParameters >= 2) {
+        const auto page = reinterpret_cast<void*>(record->ExceptionInformation[1]);
+        MEMORY_BASIC_INFORMATION info{}; DWORD previous;
+        if (VirtualQuery(page, &info, sizeof(info)) && info.State == MEM_COMMIT && !(info.Protect & PAGE_GUARD))
+            VirtualProtect(page, 1, info.Protect | PAGE_GUARD, &previous);
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+}
+
 bool copy(uintptr_t source, void* destination, size_t length) {
     if (source < 0x10000 || length > 0x10000) return false;
     __try { memcpy(destination, reinterpret_cast<void*>(source), length); return true; }
-    __except(EXCEPTION_EXECUTE_HANDLER) { return false; }
+    __except(copyFault(GetExceptionInformation()->ExceptionRecord)) { return false; }
 }
 
 namespace {

@@ -12,6 +12,7 @@ namespace ffx {
 void directInputStateForTest(Event&,bool);
 void directInputDataForTest(Event&,bool);
 void directInputReleaseForTest(Event&);
+void directInputKeyboardTypeForTest(int);
 bool testForeground=true;
 bool testInputDialog=false;
 bool inputDialogActive() {return testInputDialog;}
@@ -93,6 +94,9 @@ static bool consoleContext() { return fieldConsole; }
 static unsigned consolePresses=0;
 static void consoleKey(bool shift) { (void)shift; if(!scene) ++consolePresses; }
 static void key(bool shift) { ++pressed; if(shift)++shifted; }
+static unsigned punctuation=0;
+static void scanKey(bool) { punctuation=VK_OEM_3; }
+static void nextKey(bool) { punctuation=VK_OEM_6; }
 static unsigned functionKeyCalls=0;
 static bool guideKeyContext=false;
 static bool guideContext() {return guideKeyContext;}
@@ -112,7 +116,10 @@ int main() {
     // the user's desktop are unchanged while GetKeyState becomes deterministic.
     BYTE fixtureModifiers[256]{};
     check(SetKeyboardState(fixtureModifiers)!=0,"isolate synthetic message modifiers");
-    installInput(); hotkey('N',key); hotkey(VK_OEM_4,key);
+    // This machine may report a Japanese keyboard type. Pin the US mapping
+    // here; the Japanese DirectInput codes are checked at the end.
+    directInputKeyboardTypeForTest(4);
+    installInput(); hotkey('N',key); hotkey(VK_OEM_4,key); hotkey(VK_OEM_3,scanKey); hotkey(VK_OEM_6,nextKey);
     // The actual mod_menu fixture checks production registrations. Exercise
     // that ownership layout through the production native input adapters too.
     for(unsigned vk=VK_F2;vk<=VK_F5;++vk) hotkeyWhen(vk,functionKey,gridContext);
@@ -173,7 +180,8 @@ int main() {
     // Nested A/W forwarding has one message owner.
     Event outer=message; outer.rva=0xffff0000;
     events.at(0xffff0000).enter(outer);
-    fire(0xffff0001,message); events.at(0xffff0000).leave(outer); drain();
+    Event forwarded=message; forwarded.parentRva=0xffff0000;
+    fire(0xffff0001,forwarded); events.at(0xffff0000).leave(outer); drain();
     check(pressed==2,"nested Windows message produces one event");
     uintptr_t table[32]{}; for(auto& slot:table)slot=0x10000;
     uintptr_t device=reinterpret_cast<uintptr_t>(table), object=reinterpret_cast<uintptr_t>(&device);
@@ -213,12 +221,36 @@ int main() {
     records[0].dwOfs=DIK_N; records[0].dwData=0;
     records[1].dwOfs=DIK_N; records[1].dwData=0x80; count=2;
     data.args[4]=0; fire(0xfffe0002,data); drain(); check(pressed==6,"buffered keyboard events");
+    // A release whose press reached the game must reach it too, even when a
+    // modal opened while the key was held; otherwise the key sticks down.
+    records[0].dwOfs=DIK_W; records[0].dwData=0x80; count=1;
+    fire(0xfffe0002,data); drain(); check(count==1,"buffered unbound press reaches the game");
+    testModMenu=true; records[0].dwOfs=DIK_W; records[0].dwData=0; count=1;
+    fire(0xfffe0002,data); drain();
+    check(count==1 && records[0].dwOfs==DIK_W && !records[0].dwData,"buffered release of a key the game saw pressed passes while the mod menu is open");
+    records[0].dwOfs=DIK_W; records[0].dwData=0x80; count=1; fire(0xfffe0002,data);
+    check(!count,"mod menu still owns new buffered presses");
+    records[0].dwOfs=DIK_W; records[0].dwData=0; count=1; fire(0xfffe0002,data);
+    check(!count,"mod menu owns the buffered release of its own press");
+    testModMenu=false;
     Event release; release.args[0]=object; fire(0xfffe0003,release);
     msg.message=WM_KEYDOWN;
     fire(0xffff0000,message); drain(); check(pressed==7,"released keyboard restores message fallback");
     msg.message=WM_KEYDOWN; testConsole=true; fire(0xffff0000,message); drain(); check(pressed==7,"typing in utility console cannot invoke game hotkeys");
     msg.message=WM_KEYDOWN; testConsole=false; testModMenu=true; fire(0xffff0000,message); drain(); check(pressed==7,"mod menu input cannot invoke game hotkeys");
     testModMenu=false;
+    const auto boundKey=msg.wParam;
+    msg.wParam='W'; msg.lParam=0; msg.message=WM_KEYDOWN; fire(0xffff0000,message); drain();
+    check(msg.message==WM_KEYDOWN,"unbound message press reaches the game");
+    testModMenu=true; msg.message=WM_KEYDOWN; msg.lParam=1<<30; fire(0xffff0000,message); drain();
+    check(msg.message==WM_NULL,"mod menu eats autorepeat of a key the game saw pressed");
+    msg.lParam=0; msg.message=WM_KEYUP; fire(0xffff0000,message);
+    check(msg.message==WM_KEYUP,"message release of a key the game saw pressed passes while the mod menu is open");
+    msg.message=WM_KEYDOWN; fire(0xffff0000,message); drain();
+    check(msg.message==WM_NULL,"mod menu still owns new message presses");
+    msg.message=WM_KEYUP; fire(0xffff0000,message);
+    check(msg.message==WM_NULL,"mod menu owns the message release of its own press");
+    testModMenu=false; msg.wParam=boundKey;
     uintptr_t padTable[32]{}; for(auto& slot:padTable)slot=0x20000;
     uintptr_t padVtable=reinterpret_cast<uintptr_t>(padTable),padObject=reinterpret_cast<uintptr_t>(&padVtable);
     DIJOYSTATE2 joystick{}; joystick.rgbButtons[0]=0x80;
@@ -398,5 +430,25 @@ int main() {
     check(!keys[DIK_N]&&pressed==beforeDialog,"dialog's held shortcut drains after closing");
     keys.fill(0);fire(0xfffe0001,state);keys[DIK_N]=0x80;fire(0xfffe0001,state);drain();
     check(pressed==beforeDialog+1,"fresh shortcut works again after dialog key release");
+    // The hook layer skips a return reader whose call began during loading or
+    // in an older generation. That skipped return must not mute later messages.
+    MSG skipped{};skipped.message=WM_KEYDOWN;skipped.wParam='N';
+    Event pending;pending.rva=0xffff0000;pending.result=1;pending.args[0]=reinterpret_cast<uintptr_t>(&skipped);
+    pending.args[4]=PM_REMOVE;
+    events.at(0xffff0000).enter(pending);
+    Event inner=pending;inner.parentRva=0xffff0000;fire(0xffff0001,inner);
+    check(skipped.message==WM_KEYDOWN,"a call nested in a pending message call is not a second message owner");
+    fire(0xffff0000,pending);drain();
+    check(skipped.message==WM_NULL,"the next message call is processed after a skipped return");
+    skipped.message=WM_KEYUP;fire(0xffff0000,pending);drain();
+    directInputKeyboardTypeForTest(7);
+    const auto beforeJapanese=pressed;
+    keys.fill(0);fire(0xfffe0001,state);keys[DIK_AT]=0x80;fire(0xfffe0001,state);drain();
+    check(pressed==beforeJapanese+1 && !keys[DIK_AT],"Japanese keyboard type: physical [ reaches the [ hotkey");
+    keys.fill(0);fire(0xfffe0001,state);keys[DIK_KANJI]=0x80;fire(0xfffe0001,state);drain();
+    check(punctuation==VK_OEM_3 && !keys[DIK_KANJI],"Japanese keyboard type: physical ` reaches the ` hotkey");
+    punctuation=0;keys.fill(0);fire(0xfffe0001,state);keys[DIK_LBRACKET]=0x80;fire(0xfffe0001,state);drain();
+    check(punctuation==VK_OEM_6 && pressed==beforeJapanese+1,"Japanese keyboard type: physical ] reaches ], not [");
+    directInputKeyboardTypeForTest(4);
     std::puts("PASS: native keyboard, Escape PInput manual help/retirement, exclusive Shift-F1 under queue pressure/console focus, plain F1 and NVDA F12 passthrough, modifier/context shortcuts, exclusive menus, buffered Peek, focus, generation and SDL isolation.");
 }

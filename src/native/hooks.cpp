@@ -26,7 +26,21 @@ std::vector<std::unique_ptr<Hook>> hooks;
 std::mutex registryMutex;
 std::atomic<unsigned> resourceDepth{0};
 thread_local NativeCallStack calls;
-std::atomic<bool> callOverflow{false};
+// A resource call that finds no free call record gets no return adapter, so
+// its end is inferred from the stack instead. While any thread has such a
+// call outstanding, readers stay paused as they would for a tracked load.
+thread_local uintptr_t overflowStack=0,overflowReturn=0;
+std::atomic<unsigned> overflowThreads{0};
+// The first few episodes are logged; a flapping overflow must not flood the log.
+constexpr unsigned OverflowLogLimit=8;
+std::atomic<unsigned> overflowLogs{0};
+bool logOverflow() { return overflowLogs.load(std::memory_order_relaxed)<OverflowLogLimit; }
+// A thread that exits while latched can never return through the latched
+// frame, so its share of the count is released with the thread.
+struct OverflowRelease {
+    ~OverflowRelease() { if(overflowStack) overflowThreads.fetch_sub(1,std::memory_order_acq_rel); }
+};
+thread_local OverflowRelease overflowRelease;
 thread_local bool inReader = false;
 thread_local bool draining = false;
 thread_local NativeActionQueue actions;
@@ -37,6 +51,26 @@ struct NativeErrorState {
 };
 bool failed = false;
 bool resourceCall(unsigned rva) { return rva==0x46fed0 || rva==0x5093b0 || rva==map_transition::Initialize; }
+void latchCallOverflow(uintptr_t stack,uintptr_t returnAddress,unsigned rva) {
+    if(overflowStack) return; // The outermost untracked call decides recovery.
+    overflowStack=stack;overflowReturn=returnAddress;
+    (void)&overflowRelease; // Construct the thread's release guard.
+    overflowThreads.fetch_add(1,std::memory_order_acq_rel);
+    if(logOverflow()) recordLog("native call overflow latched rva=%x owner=%lu",rva,GetCurrentThreadId());
+}
+// The untracked call's return-address slot sits at overflowStack. A later
+// hooked entry above it, or one at the same slot with a different return
+// address, proves that frame has returned. A tail jump reuses the slot with the
+// same return address and is still inside the call. A tracked call returning
+// from at or above the slot also encloses, or is, the untracked call.
+void clearCallOverflow(uintptr_t stack,uintptr_t returnAddress,bool returning) {
+    if(!overflowStack || stack<overflowStack) return;
+    if(stack==overflowStack && !returning && returnAddress==overflowReturn) return;
+    overflowStack=0;overflowReturn=0;
+    overflowThreads.fetch_sub(1,std::memory_order_acq_rel);
+    if(overflowLogs.fetch_add(1,std::memory_order_relaxed)<OverflowLogLimit)
+        recordLog("native call overflow recovered owner=%lu",GetCurrentThreadId());
+}
 
 void dispatch(Handler fn, Event& event) {
     if (!fn || (nativeResourceLoading() && !resourceCall(event.rva) && !event.captureOnly)) return;
@@ -130,9 +164,10 @@ extern "C" void __cdecl enterBridge(uintptr_t* r) {
             }
             calls.pop();
         }
+        clearCallOverflow(stack,r[10],false);
         if(calls.full() || !(pending=claimNativeCall())) {
             if(resourceCall(h->rva)) {
-                callOverflow.store(true,std::memory_order_release);
+                latchCallOverflow(stack,r[10],h->rva);
                 Event event;event.rva=h->rva;event.epoch=generation();
                 copy(reinterpret_cast<uintptr_t>(&r[11]),event.args.data(),sizeof(event.args));
                 inReader=true;for(unsigned i=0;i<listenerCount;++i) dispatch(h->listeners[i].enter,event);inReader=false;
@@ -206,6 +241,7 @@ extern "C" void __cdecl leaveBridge(uintptr_t* r) {
     {
     // A return adapter exists only after its context has been stored.
     finished=calls.take();auto& call=*finished;auto* h=static_cast<Hook*>(call.hook);
+    clearCallOverflow(call.stack,call.returnAddress,true);
     if(call.loading) {
         --resourceDepth;call.loading=false;
         recordLog("native reader resource scope end rva=%x depth=%u owner=%lu",h->rva,resourceDepth.load(),GetCurrentThreadId());
@@ -244,7 +280,7 @@ bool observeGameThread() {
     return nativeGameThread();
 }
 bool nativeGameThread() { return gameOwner.load()==GetCurrentThreadId(); }
-bool nativeResourceLoading() noexcept {return callOverflow.load(std::memory_order_acquire) || resourceDepth.load(std::memory_order_acquire)!=0;}
+bool nativeResourceLoading() noexcept {return overflowThreads.load(std::memory_order_acquire)!=0 || resourceDepth.load(std::memory_order_acquire)!=0;}
 bool nativeReaderResourcesReady() noexcept {return !nativeResourceLoading() && ownerResetReady();}
 bool tryNativeReaderAccess() noexcept {
     NativeErrorState errorState;
@@ -257,6 +293,14 @@ bool deferNativeAction(NativeAction action) {
     if(!nativeGameThread() || actions.size()>=8 || !action.prepare || !action.invoke) return false;
     return actions.push(action);
 }
+// A target that cannot be installed is skipped so the rest of the batch still
+// runs. A resource scope hook is the exception: readers rely on it to pause
+// during loads, so the batch must not run without it.
+bool skipTarget(unsigned id,const char* cause) {
+    if(resourceCall(id)) failed=true;
+    recordLog("hook target skipped id=%x resource=%d: %s",id,resourceCall(id),cause);
+    return false;
+}
 bool hookAddressKind(uintptr_t target,unsigned id,Handler before,Handler after,bool snapshot) {
     // Production registrations are all bootstrap calls. Native callbacks may
     // never enter registry allocation, VirtualAlloc or MinHook operations.
@@ -265,19 +309,21 @@ bool hookAddressKind(uintptr_t target,unsigned id,Handler before,Handler after,b
     for (auto& h : hooks) if (h->target == target) {
         const auto count=h->count.load(std::memory_order_acquire);
         for(unsigned i=0;i<count;++i) if(h->listeners[i].enter==before && h->listeners[i].leave==after) return true;
-        if(count==NativeListenerLimit) {failed=true;return false;}
+        // A full listener table is a code error, not a bad address, so it
+        // still refuses the batch and is caught on the first run.
+        if(count==NativeListenerLimit) {failed=true;recordLog("hook listener limit id=%x",id);return false;}
         if(!snapshot) h->snapshotOnly.store(false,std::memory_order_release);
         h->listeners[count]={before,after};h->count.store(count+1,std::memory_order_release);return true;
     }
     MEMORY_BASIC_INFORMATION info{};
     if (!VirtualQuery(reinterpret_cast<void*>(target), &info, sizeof(info)) ||
         info.State != MEM_COMMIT || !(info.Protect & 0xf0)) {
-        failed = true; recordLog("hook target unavailable id=%x", id); return false;
+        return skipTarget(id,"target unavailable");
     }
     auto h = std::make_unique<Hook>(); h->target = target; h->rva = id;
     h->listeners[0]={before,after};h->snapshotOnly.store(snapshot);h->count.store(1,std::memory_order_release);
     h->stub = VirtualAlloc(nullptr, 16, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    if (!h->stub) { failed = true; return false; }
+    if (!h->stub) return skipTarget(id,"stub allocation failed");
     auto bytes = static_cast<uint8_t*>(h->stub);
     bytes[0] = 0x68; *reinterpret_cast<uintptr_t*>(bytes + 1) = reinterpret_cast<uintptr_t>(h.get());
     bytes[5] = 0xe9; *reinterpret_cast<int32_t*>(bytes + 6) =
@@ -285,15 +331,27 @@ bool hookAddressKind(uintptr_t target,unsigned id,Handler before,Handler after,b
     DWORD protection; VirtualProtect(bytes, 16, PAGE_EXECUTE_READ, &protection);
     FlushInstructionCache(GetCurrentProcess(), bytes, 16);
     auto result = MH_CreateHook(reinterpret_cast<void*>(target), h->stub, reinterpret_cast<void**>(&h->original));
-    if (result != MH_OK) { failed = true; recordLog("hook create id=%x: %s", id, MH_StatusToString(result)); }
-    else if (MH_QueueEnableHook(reinterpret_cast<void*>(target)) != MH_OK) failed = true;
-    hooks.push_back(std::move(h)); return !failed;
+    if (result == MH_OK && (result = MH_QueueEnableHook(reinterpret_cast<void*>(target))) != MH_OK)
+        MH_RemoveHook(reinterpret_cast<void*>(target));
+    if (result != MH_OK) {
+        // Nothing is patched yet, so no thread can be running this stub.
+        VirtualFree(h->stub, 0, MEM_RELEASE); return skipTarget(id,MH_StatusToString(result));
+    }
+    hooks.push_back(std::move(h)); return true;
 }
 bool hookAddress(uintptr_t target,unsigned id,Handler before,Handler after) {return hookAddressKind(target,id,before,after,false);}
 bool hook(unsigned rva, Handler before, Handler after) { return hookAddress(address(rva), rva, before, after); }
 bool hookSnapshot(unsigned rva,Handler before,Handler after) {return hookAddressKind(address(rva),rva,before,after,true);}
 bool enableHooks() {
-    if (failed || MH_ApplyQueued() != MH_OK) { discardHooks(); return false; }
+    if (failed) { discardHooks(); return false; }
+    if (const auto status = MH_ApplyQueued(); status != MH_OK) {
+        // Part of the batch may already be live, and a game thread may be
+        // inside a bridge that will return through a trampoline. Disable
+        // everything, but leave MinHook initialized and keep the stubs and
+        // hook records: MH_Uninitialize would free those trampolines.
+        MH_DisableHook(MH_ALL_HOOKS);
+        recordLog("native hook batch apply failed: %s", MH_StatusToString(status)); return false;
+    }
     recordLog("native hook batch enabled targets=%u", static_cast<unsigned>(hooks.size())); return true;
 }
 bool applyAddedHooks() {
@@ -306,6 +364,6 @@ bool applyAddedHooks() {
 void discardHooks() {
     MH_DisableHook(MH_ALL_HOOKS); MH_Uninitialize();
     for (auto& h : hooks) if (h->stub) VirtualFree(h->stub, 0, MEM_RELEASE);
-    hooks.clear();
+    hooks.clear(); failed=false;
 }
 }
