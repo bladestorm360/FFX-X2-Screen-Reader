@@ -48,6 +48,7 @@ std::wstring render(TextRef root) {
             continue;
         }
         if(n.op==TextPlanOp::Integer) {out=std::to_wstring(n.value);continue;}
+        if(n.op==TextPlanOp::MenuIndex) {out=menuIndex(static_cast<unsigned>(n.value),n.offset);continue;}
         if(n.op==TextPlanOp::OrderedRows) {
             // Sort copied presentation coordinates on preparation, never on
             // the native render/input owner. Repeated turns stay separate.
@@ -163,6 +164,10 @@ TextRef planLiteral(TextPlan& p,const wchar_t* value) {
 TextRef planPrimaryDodgeName(TextPlan& p) {TextPlanNode n;n.op=TextPlanOp::PrimaryDodgeName;return node(p,n);}
 TextRef planNativeButtonMask(TextPlan& p,uint16_t value) {TextPlanNode n;n.op=TextPlanOp::NativeButtonMask;n.value=value;return node(p,n);}
 TextRef planInteger(TextPlan& p,int64_t value) {TextPlanNode n;n.op=TextPlanOp::Integer;n.value=value;return node(p,n);}
+TextRef planMenuIndex(TextPlan& p,unsigned selected,unsigned count) {
+    if(!count || selected>=count) return 0;
+    TextPlanNode n;n.op=TextPlanOp::MenuIndex;n.value=selected;n.offset=count;return node(p,n);
+}
 TextRef planSettingValue(TextPlan& p,int value,unsigned style) {TextPlanNode n;n.op=TextPlanOp::SettingValue;n.value=value;n.offset=style;return node(p,n);}
 TextRef planBattleTarget(TextPlan& p,TextRef name,int current,int maximum,unsigned kind) {
     TextPlanNode n;n.op=TextPlanOp::BattleTarget;n.left=name;n.value=current;n.offset=static_cast<unsigned>(maximum);n.length=kind;return node(p,n);

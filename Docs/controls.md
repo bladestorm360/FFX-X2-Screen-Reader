@@ -134,7 +134,9 @@ the existing inferred-step guidance. Both puzzles and their controls are confirm
 **T** repeats the current dialogue page while its window or event is active.
 It uses dialogue text independently of other mod announcements and expires
 when dialogue closes. Native TK Al Bhed glyphs follow collected Primers.
-**Menu indexing** defaults Off in F8 > Miscellaneous.
+**Menu indexing** defaults Off in F8 > Miscellaneous. It reads positions in mod
+menus and native field Items, Key Items, Abilities, equipment, Customize and
+Overdrive lists when their counts are known. Battle lists are not covered.
 
 The post-game audio drama also reads its localized timed captions. Choose its
 output mode in FFX's F8 menu before opening the audio drama; the saved setting
