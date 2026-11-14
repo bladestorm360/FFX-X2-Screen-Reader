@@ -57,6 +57,7 @@ bool output(const std::wstring& text,bool,const char*) { speech.push_back(text);
 void log(const char*,...) {}
 bool outputDialogue(const std::wstring& text,bool interrupt,const char* producer,bool) {return output(text,interrupt,producer);}
 int setting(Setting s) {return s==Setting::Speech?1:0;}
+std::wstring menuIndex(unsigned,unsigned) {return {};}
 bool hook(unsigned,Handler,Handler) {return false;}
 void emitSelectionDetailOwned(std::wstring,SelectionDetailToken,bool,const speechq::Header&) {}
 void appendSelectionDetailOwned(std::wstring,SelectionDetailToken) {}

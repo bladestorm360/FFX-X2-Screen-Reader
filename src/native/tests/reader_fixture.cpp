@@ -457,7 +457,11 @@ int main(int argc, char** argv) {
     polishTextFixtures();
     setSetting(Setting::MenuIndex,1);
     installFieldMenus(); installMessages(); installSystemMenus(); installSphereGrid(); installBattle(); installNavigation();
-    maintenanceReaderFixtures(); airshipRuntimeFixtures(); baajNavigationFixtures(); airshipCidFixtures(); sinNativeFixtures(); sinPlatformFixtures(); airshipDestinationFixtures(); reportedEventRuntimeFixtures(); arenaCaptureFixtures(); helpCaptureFixtures();
+    setSetting(Setting::MenuIndex,0); // Indexed native lists have a separate synthetic fixture.
+    maintenanceReaderFixtures();
+    setSetting(Setting::MenuIndex,1);
+    airshipRuntimeFixtures(); baajNavigationFixtures(); airshipCidFixtures(); sinNativeFixtures(); sinPlatformFixtures(); airshipDestinationFixtures(); reportedEventRuntimeFixtures(); arenaCaptureFixtures(); helpCaptureFixtures();
+    setSetting(Setting::MenuIndex,0);
     set<int>(win+0x28,1); set<uint16_t>(win+0x30,2); set<int8_t>(win+0x45,0);
     set<uint8_t>(win+0x42,1); set<uint8_t>(win+0x43,0); set<int>(win+0x94,4);
     set<uint16_t>(0x1197730,1); set<uint8_t>(0x1197732,3);
@@ -707,6 +711,15 @@ int main(int argc, char** argv) {
     event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,1);}); expect(L"Ether","battle command move");
     protectSpeech(false);
     event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);set<uint16_t>(0x2120606,8);set<uint8_t>(0x212060a,2);set<uint8_t>(0x2120613,3);});
+    expect(L"Tidus: MP 17/30, poison, darkness","target names visible ailments but not buffs");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);set<uint16_t>(0x2120616,0x4000);set<uint8_t>(0x21205c8,3);});
+    expect(L"Tidus: MP 17/30, poison, darkness, doom, 3 turns","target doom counter");
+    set<uint16_t>(0x2120606,0);set<uint8_t>(0x212060a,0);set<uint8_t>(0x2120613,0);set<uint16_t>(0x2120616,0);set<uint8_t>(0x21205c8,0);
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","target without ailments has no status suffix");
     check(said.back().second,"target movement interrupts after deliberate input, including held menu navigation");
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,8);}); expect(L"Tidus: poison","first application status");
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,0);}); expect(L"Tidus: poison cured","status cured");
@@ -733,6 +746,7 @@ int main(int argc, char** argv) {
     check(keys.count('N') && keys.count('H') && keys.count('S') && keys.count(VK_OEM_COMMA) && keys.count(VK_OEM_PERIOD),"all review hotkeys");
     set<uint8_t>(0xd2a8e0,0); resetNavigation();
     keys[VK_OEM_5](false); expect(L"No entity selected","navigation empty selection feedback");
+    setSetting(Setting::MenuIndex,1);
     constexpr unsigned actors=0x2240000, npc=actors+0x880;
     set<uintptr_t>(0x1fc44e4,address(actors)); set<unsigned>(0x1fc44e0,2);
     set<uint16_t>(actors+2,1); set<uint16_t>(npc,0x2002); set<uint16_t>(npc+2,1);
@@ -844,7 +858,9 @@ int main(int argc, char** argv) {
     sphereOwnedFixtures();
     messageFixtures();
     followupFixtures();
+    setSetting(Setting::MenuIndex,0);
     fieldMenuFixtures();
+    setSetting(Setting::MenuIndex,1);
     swimmingFixtures();
     buttonGlyphFixtures();
     swimmingProgressionFixtures();

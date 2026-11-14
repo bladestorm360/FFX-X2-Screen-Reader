@@ -27,7 +27,10 @@ Key itemKey(uintptr_t p) {
     auto col = read<int>(p + 0x58 + k[3] * 4, -1);
     if (col < 0 || col > 1) return {};
     k[5] = k[1] * 2 + col; k[6] = read<uint8_t>(p + 0x43);
-    if (k[5] < 0 || k[5] >= 512 || k[5] >= read<int>(p + 0x94)) return {};
+    k[11] = read<int>(p + 0x94, -1);
+    if (k[5] < 0 || k[5] >= 512 || k[11] < 0) return {};
+    if (k[6] > 2) return {};
+    if (k[5] >= k[11]) { k[10] = k[9] = 1; return k; }
     if (k[6] == 1) {
         k[7] = read<uint16_t>(address(0x1196f30) + k[5] * 2); k[8] = -1;
         // Native 8C7C00 draws only a nonzero, currently owned key item.
@@ -38,7 +41,7 @@ Key itemKey(uintptr_t p) {
     else if (k[6] == 0 || k[6] == 2) {
         auto entry = address(0x1197730) + k[5] * 4;
         auto count = read<uint8_t>(entry + 2);
-        if (!count) return {};
+        k[10] = !count;
         k[7] = read<uint16_t>(entry); k[8] = k[6] == 0 ? count : -1;
     } else return {};
     k[9] = 1; return k;
@@ -51,10 +54,12 @@ void itemAfter(Event& e) {
     const auto getter = k[6] == 1 ? 0x3908f0 : k[6] == 2 ? 0x39a4c0 : 0x390a40;
     TextPlan p;prepareTextPlan(p,"items");
     if(k[10]) {
-        p.headline=planLiteral(p,L"Empty");planSelectionDetail(p,0,false);commitTextPlan(p);return;
+        p.headline=planConcat(p,planLiteral(p,L"Empty"),planMenuIndex(p,static_cast<unsigned>(k[5]),static_cast<unsigned>(k[11])));
+        planSelectionDetail(p,0,false);commitTextPlan(p);return;
     }
     auto name=planRecordName(p,getter,static_cast<unsigned>(k[7]));
     p.headline=k[8]>=0?planCountedName(p,name,k[8]):name;
+    p.headline=planConcat(p,p.headline,planMenuIndex(p,static_cast<unsigned>(k[5]),static_cast<unsigned>(k[11])));
     planSelectionDetail(p,planRecordDescription(p,getter,static_cast<unsigned>(k[7])),setting(Setting::AutoDetail)!=0);
     commitTextPlan(p);
 }
@@ -89,13 +94,15 @@ void listAfter(Event& e) {
     const bool unequip=k[4]==0x4cf9c0 && k[5]==0;
     TextPlan p;prepareTextPlan(p,"field-list");
     if(k[7]) {
-        p.headline=planLiteral(p,L"Empty");planSelectionDetail(p,0,false);commitTextPlan(p);return;
+        p.headline=planConcat(p,planLiteral(p,L"Empty"),planMenuIndex(p,static_cast<unsigned>(k[1]),static_cast<unsigned>(k[2])));
+        planSelectionDetail(p,0,false);commitTextPlan(p);return;
     }
     if(unequip) p.headline=planLiteral(p,L"Unequip armor");
     else if (k[6] == -1 || k[4] == 0x4cf9c0) p.headline=planNativeText(p,0x3abe10,static_cast<unsigned>(k[5]));
     else if (k[4] == 0x4d16c0 && k[6] == 2) p.headline=planNativeText(p,0x473af0,static_cast<unsigned>(k[5]));
     else if (k[4] == 0x4d16c0 && k[6] == 3) p.headline=planNativeText(p,0x4ddfa0,static_cast<unsigned>(k[5]) + 0x1033);
     else p.headline=planRecordName(p,0x39a4c0,static_cast<unsigned>(k[5]));
+    p.headline=planConcat(p,p.headline,planMenuIndex(p,static_cast<unsigned>(k[1]),static_cast<unsigned>(k[2])));
     if(unequip) {
         planSelectionDetail(p,planLiteral(p,L"Remove the selected character's armor."),setting(Setting::AutoDetail)!=0);
     } else if(k[6]==-1 || k[4]==0x4cf9c0) {

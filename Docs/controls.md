@@ -134,7 +134,9 @@ the existing inferred-step guidance. Both puzzles and their controls are confirm
 **T** repeats the current dialogue page while its window or event is active.
 It uses dialogue text independently of other mod announcements and expires
 when dialogue closes. Native TK Al Bhed glyphs follow collected Primers.
-**Menu indexing** defaults Off in F8 > Miscellaneous.
+**Menu indexing** defaults Off in F8 > Miscellaneous. It reads positions in mod
+menus and native field Items, Key Items, Abilities, equipment, Customize and
+Overdrive lists when their counts are known. Battle lists are not covered.
 
 The post-game audio drama also reads its localized timed captions. Choose its
 output mode in FFX's F8 menu before opening the audio drama; the saved setting
@@ -265,6 +267,13 @@ HP reads as current HP followed by its bar percentage, such as **HP 321 (64%)**.
 Turn **Show maximum HP** On in **F8 > Miscellaneous** for **HP 321/500** instead.
 This applies to Change, Summon and H. The Change rows display current HP/MP and
 an HP bar; they do not display numeric maximum HP or status-effect labels.
+
+When you choose a battle target, any current ailment is read after the target's
+HP or MP, for example **Kimahri: HP 340/340, poison, darkness**. Ailments are KO, zombie,
+petrify, poison, the four breaks, confuse, berserk, provoke, threaten, sleep,
+silence, darkness, slow, curse and doom with its turn count. Positive effects
+such as Protect, Haste or Auto-Life are not added to targets; H still reads the
+turn owner's full status.
 
 When the game reveals **Sensor** information for a highlighted enemy, its
 exact current and maximum HP are read directly. **Ctrl+Left** selects the first
