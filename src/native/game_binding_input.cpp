@@ -23,6 +23,13 @@ std::array<unsigned,2> configuredActionKeyboardScans(unsigned action) {
     return {configuredKeyboardScan(read<unsigned>(config+0x60+action*4,128)),
         configuredKeyboardScan(read<unsigned>(config+0x60+(action+49)*4,128))};
 }
+bool gameKeyboardUsesScan(unsigned scan) {
+    const auto config=read<uintptr_t>(address(0x1efb504)); if(!scan || !config) return false;
+    for(const auto& binding:keyboard)
+        for(const auto slot:{binding.first,binding.second})
+            if(configuredKeyboardScan(read<unsigned>(config+0x60+slot*4,128))==scan) return true;
+    return false;
+}
 int configuredActionControllerButton(unsigned action) {
     if(action>=14) return -1;
     const auto config=read<uintptr_t>(address(0x1efb504));

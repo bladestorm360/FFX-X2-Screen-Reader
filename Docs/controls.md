@@ -118,6 +118,12 @@ Ordinary field F11 is passed through to the game. **F9/F10** select the
 previous/next step only while a supported guide is active; Shift+F11 reads the
 step inferred from game state when identifiable.
 
+**L** repeats the last speech everywhere, including the ordinary field, and
+interrupts current speech. It replays the last game or navigation line, not
+F8 menu or setting announcements. If you bind L to an action in the game's
+keyboard settings, L goes to the game instead and F11 keeps its menu, battle
+and Escape menu repeat.
+
 In Zanarkand, interact with a pattern display and let its animation finish.
 Autodetail reads the displayed glyphs. To review them, use **F8 > Miscellaneous >
 Cloister of Trials > Review displayed glyph sequence**. Up/Down select a glyph;

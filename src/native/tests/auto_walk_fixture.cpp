@@ -3,6 +3,8 @@
 #include "../auto_walk.hpp"
 #include "../nav_audio.hpp"
 #include "../movement_keys.hpp"
+// game_bindings.hpp's keyboard[] table clashes with this fixture's keyboard().
+namespace ffx { bool gameKeyboardUsesScan(unsigned scan); }
 #include "../settings.hpp"
 #include "../text_plan.hpp"
 #include "../field_controls.hpp"
@@ -263,6 +265,7 @@ int main() {
     config[0x60/4+49]=101; *reinterpret_cast<uint8_t*>(address(0x830e90)+73)=0x4f;
     begin(); check(keyboard()[0x4f]==0x80 && !keyboard()[0xc8],"alternate numpad movement binding replaces default arrows");
     keys={}; keys[0x4f]=0x80; autoWalkKeyboard(keys.data()); check(!keys[0xc8],"remapped physical movement cancels in the same poll");
+    check(gameKeyboardUsesScan(0x4f) && !gameKeyboardUsesScan(0x26) && !gameKeyboardUsesScan(0),"game keyboard ownership covers alternate bindings and leaves unbound L free");
     begin(); leg.target.butterfly=true; startAutoWalk();
     check(!autoWalkActive(),"timed butterfly routes retain manual steering rather than unsafe octant detours");
     config[0x60/4+5]=102; config[0x60/4+6]=103; config[0x60/4+19]=13;
