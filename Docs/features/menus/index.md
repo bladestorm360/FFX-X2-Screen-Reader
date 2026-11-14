@@ -183,7 +183,10 @@ Standard character sections are qualified against the preserved full layout;
 Expert uses its separate layout/stat focus. Ability planning belongs to the active
 character and preserves independent destinations. Movement costs retain native
 quarter-level travel history, locks split rounded movement commits, and key
-requirements are cumulative. Directions use the recovered native selection
+requirements are cumulative. The movement prompt appends the previewed cost
+that native A44F35 stores at engine+1161C (and 656160 Yes spends) plus the
+focused character's remaining Sphere Levels; an unknown or unaffordable value
+leaves the native prompt alone. Directions use the recovered native selection
 rules, distinguishing a required diagonal from alternative single-arrow choices.
 Do not replace these with a simple angle rounding or relabel working links.
 
