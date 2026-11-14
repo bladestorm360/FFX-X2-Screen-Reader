@@ -194,7 +194,11 @@ namespace FfxScreenReader.Setup
                 {
                     status("Installing " + name);
                     InstallerPaths.CheckOrdinaryFile(game, name);
-                    File.Move(Path.Combine(stage, name), Path.Combine(game, name));
+                    // Replace only a file that setup backed up; any other file is not ours to delete.
+                    bool planned = before.ContainsKey(name);
+                    if (!planned && File.Exists(Path.Combine(game, name)))
+                        throw new IOException(name + " appeared during setup. Close the program that created it and try again.");
+                    File.Move(Path.Combine(stage, name), Path.Combine(game, name), planned);
                 }
                 status("Configuring launcher speech");
                 string pending = config + ".ffx_sr_pending";

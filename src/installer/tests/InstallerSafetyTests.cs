@@ -187,6 +187,14 @@ internal static class InstallerSafetyTests
         }); }, "Staged file checksum failed: SDL3.dll", "Staged write failure");
         sdl[0] = (byte)'S';
         Unchanged(game, before, "Staged write failure leaves live files and no stage folder");
+
+        // A payload file that was absent when setup planned must not be replaced.
+        string appeared = Game("Payload appears during setup");
+        before = Snapshot(appeared);
+        Reject(delegate { Engine().Install(appeared, delegate(string text) {
+            if (text == "Installing SDL3.dll") File.WriteAllText(Path.Combine(appeared, "SDL3.dll"), "another program's SDL3");
+        }); }, "SDL3.dll appeared during setup", "Payload appears during setup");
+        Unchanged(appeared, before, "Payload that appeared during setup is rolled back");
     }
 
 

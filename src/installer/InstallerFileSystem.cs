@@ -27,9 +27,10 @@ namespace FfxScreenReader.Setup
         public static void Delete(string path) { File.Delete(InstallerPaths.Native(path)); }
         public static string[] ReadAllLines(string path) { return File.ReadAllLines(InstallerPaths.Native(path)); }
         public static void AppendAllLines(string path, IEnumerable<string> value) { File.AppendAllLines(InstallerPaths.Native(path), value); }
-        // Replaces target with source in one rename; target is deleted first if present.
-        public static void Move(string source, string target) {
-            if (Exists(target)) Delete(target);
+        // Renames source to target. With replace, an existing target is deleted first;
+        // without it, the rename fails if target exists.
+        public static void Move(string source, string target, bool replace) {
+            if (replace && Exists(target)) Delete(target);
             File.Move(InstallerPaths.Native(source), InstallerPaths.Native(target));
         }
     }
