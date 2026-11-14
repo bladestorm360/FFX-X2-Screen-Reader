@@ -275,6 +275,21 @@ void utilityWarp(unsigned room, unsigned spawn,bool force,bool macalaniaTest,boo
     };
     action.invoke=[room,spawn,gagazetTest](NativeAction& command) {
         auto data=command.data<WarpData>();
+        // Prepare added the forced-jump bit 0x80. The native jump clears it
+        // before it returns. Every exit clears it here as well: a Gagazet
+        // setup refusal, a story setter fault, a jump fault, and a normal
+        // return, where it is a no-op unless the controller pointer switched
+        // around the native clear. complete cannot: the
+        // jump's map-request hook starts a new generation, and a concurrent
+        // resource scope also skips complete. Only the controller that is
+        // still current is touched, and only if this command added the bit.
+        struct ForcedJumpFlag {
+            uintptr_t controller;
+            ~ForcedJumpFlag() {
+                if(controller && read<uintptr_t>(address(0xf26ae8))==controller)
+                    write<uint8_t>(controller,static_cast<uint8_t>(read<uint8_t>(controller)&~0x80));
+            }
+        } added{data.addedFlag?data.controller:0};
         // Explicit developer tests only. Preparation and mutation share this
         // native owner; a cancelled/stale command never changes test progress.
         if(gagazetTest && !write<std::array<uint8_t,3>>(data.globals+0xd8,{})) {
@@ -290,13 +305,7 @@ void utilityWarp(unsigned room, unsigned spawn,bool force,bool macalaniaTest,boo
     };
     action.complete=[](NativeAction& command,bool success) {
         const auto data=command.data<WarpData>();
-        // Completion is called only in the original generation. A successful
-        // load resets the generation, so its old controller is never touched.
-        if(data.controller && data.addedFlag &&
-            read<uintptr_t>(address(0xf26ae8))==data.controller) {
-            const auto flags=read<uint8_t>(data.controller);
-            write<uint8_t>(data.controller,flags&~0x80);
-        }
+        // invoke already cleared any forced-jump bit the jump did not consume.
         if(!success || data.setupFailed) utilityReply(data.refusal?data.refusal:L"The field transition was cancelled or failed.");
     };
     if(!deferNativeAction(std::move(action))) throw std::runtime_error("Native action owner or queue unavailable");
