@@ -13,6 +13,11 @@
 #include <map>
 namespace ffx {
 bool captureControllerBinding(uint64_t);
+using RawPad=DWORD(WINAPI*)(DWORD,XINPUT_STATE*);
+RawPad swapControllerNativeStateForTest(RawPad);
+unsigned rawReads=0;
+WORD rawButtons=XINPUT_GAMEPAD_Y|XINPUT_GAMEPAD_A;
+DWORD WINAPI rawPad(DWORD,XINPUT_STATE* state) {++rawReads;*state={};state->Gamepad.wButtons=rawButtons;return ERROR_SUCCESS;}
 bool testForeground=true,fixtureMenu=false,fixtureGrid=false,fixtureGuidance=false;
 bool nativeGameThread() {return true;}
 bool nativeReaderResourcesReady() noexcept {return true;}
@@ -111,11 +116,23 @@ int main() {
     check(lastPhysical.held&pad::bit(pad::North),"pedestal cancellation precedes consumed button filtering");
     check(actions==1 && lastVk=='M' && !readGame(),"mod Y reads native map and consumes game controls");
     pumpController(); check(actions==1 && !readGame(),"held action is drained");
+    // A stale filtered frame falls back to the original XInput import. That
+    // fallback must not hand the game a button the mod consumed.
+    const auto realPad=swapControllerNativeStateForTest(rawPad);
+    Sleep(20); readGame(); swapControllerNativeStateForTest(realPad);
+    check(rawReads && !(game.Gamepad.wButtons&XINPUT_GAMEPAD_Y),"stale filtered frame masks the consumed button in the raw fallback");
+    check(game.Gamepad.wButtons&XINPUT_GAMEPAD_A,"stale fallback keeps unconsumed raw buttons");
     button(pad::North,false); button(pad::South,true); check(readGame()&XINPUT_GAMEPAD_A,"native controls resume after release");
     button(pad::South,false); button(pad::View,true); button(pad::View,false); button(pad::Menu,true);
     check(fixtureMenu && !readGame(),"settings chord captures native Start");
     button(pad::Menu,false); button(pad::Up,true); check(menuKeys==1 && !readGame(),"controller navigates mod menu exclusively");
-    button(pad::Up,false);fixtureGuidance=true;button(pad::LB,true);
+    button(pad::Up,false); button(pad::South,true); check(!readGame(),"mod menu owns South");
+    // The mod menu owns every control. A stale fallback must hide what it
+    // holds, not only the buttons a bound command consumed.
+    rawButtons=XINPUT_GAMEPAD_A; const auto heldPad=swapControllerNativeStateForTest(rawPad);
+    Sleep(20); readGame(); swapControllerNativeStateForTest(heldPad);
+    check(!(game.Gamepad.wButtons&XINPUT_GAMEPAD_A),"stale fallback masks a button the mod menu holds");
+    button(pad::South,false);fixtureGuidance=true;button(pad::LB,true);
     check(lastMenuVk==VK_HOME && !readGame(),"F8 retains L1 Home even when a guide is available underneath");
     button(pad::LB,false);fixtureGuidance=false;fixtureMenu=false;pumpController();pumpController();
     auto modCommand=[&](int control,unsigned vk) {
