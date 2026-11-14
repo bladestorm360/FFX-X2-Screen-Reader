@@ -4,7 +4,7 @@
 namespace ffx {
 using TextRef=unsigned;
 constexpr unsigned TextPlanNodeLimit=128,TextPlanByteLimit=98304+16384;
-enum class TextPlanOp : unsigned {Literal,Integer,First,Lines,Description,Concat,Join,SpaceJoin,Periods,IfText,Or,Hp,Mp,EquipmentName,MessagePrompt,MessageRows,BattleTarget,SettingValue,NativeButtonMask,PrimaryDodgeName,LineBreaks,OrderedRows,MenuIndex};
+enum class TextPlanOp : unsigned {Literal,Integer,First,Lines,Description,Concat,Join,SpaceJoin,Periods,IfText,Or,Hp,Mp,EquipmentName,MessagePrompt,MessageRows,BattleTarget,SettingValue,NativeButtonMask,PrimaryDodgeName,LineBreaks,OrderedRows,MenuIndex,BattleAilments};
 struct TextPlanNode {
     TextPlanOp op=TextPlanOp::Literal;
     unsigned left=0,right=0,offset=0,length=0;
@@ -38,6 +38,8 @@ TextRef planNativeButtonMask(TextPlan&,uint16_t);
 TextRef planPrimaryDodgeName(TextPlan&);
 TextRef planSettingValue(TextPlan&,int value,unsigned style); // 0=toggle,1=voiced,2=combat,3=Polish,4=steps,5=percent.
 TextRef planBattleTarget(TextPlan&,TextRef name,int current,int maximum,unsigned kind);
+// Copied actor status words; returns 0 and adds no node without a target ailment.
+TextRef planBattleAilments(TextPlan&,uint16_t permanent,uint16_t temporal,uint16_t extra,unsigned doomTurns);
 TextRef planVitals(TextPlan&,int64_t current,int64_t maximum,bool mp,bool showMaximumHp);
 TextRef planEquipmentFallback(TextPlan&,TextRef name,unsigned character,bool armor,unsigned id);
 TextRef planEncoded(TextPlan&,uintptr_t,unsigned limit=256,TextPlanOp=TextPlanOp::First,

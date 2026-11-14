@@ -268,6 +268,13 @@ Turn **Show maximum HP** On in **F8 > Miscellaneous** for **HP 321/500** instead
 This applies to Change, Summon and H. The Change rows display current HP/MP and
 an HP bar; they do not display numeric maximum HP or status-effect labels.
 
+When you choose a battle target, any current ailment is read after the target's
+HP or MP, for example **Kimahri: HP 340/340, poison, darkness**. Ailments are KO, zombie,
+petrify, poison, the four breaks, confuse, berserk, provoke, threaten, sleep,
+silence, darkness, slow, curse and doom with its turn count. Positive effects
+such as Protect, Haste or Auto-Life are not added to targets; H still reads the
+turn owner's full status.
+
 When the game reveals **Sensor** information for a highlighted enemy, its
 exact current and maximum HP are read directly. **Ctrl+Left** selects the first
 information line, **Ctrl+Up/Down** browse elemental weaknesses, absorption,

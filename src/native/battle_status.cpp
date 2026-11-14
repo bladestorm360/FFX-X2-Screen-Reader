@@ -2,15 +2,16 @@
 #include "status_animation.hpp"
 #include "ready_game_text.hpp"
 #include "settings.hpp"
+#include "battle_status_names.hpp"
 #include <array>
 #include <algorithm>
 #include <cstring>
 namespace ffx {
 namespace {
-constexpr const wchar_t* permanent[]={L"KO",L"zombie",L"petrify",L"poison",L"power break",L"magic break",L"armor break",L"mental break",L"confuse",L"berserk",L"provoke",L"threaten"};
-constexpr const wchar_t* temporal[]={L"sleep",L"silence",L"darkness",L"shell",L"protect",L"reflect",L"NulTide",L"NulBlaze",L"NulShock",L"NulFrost",L"regen",L"haste",L"slow"};
-constexpr const wchar_t* extra[]={L"scan",L"distill power",L"distill mana",L"distill speed",L"distill move",L"distill ability",L"shield",L"boost",L"eject",L"auto-life",L"curse",L"defend",L"guard",L"sentinel",L"doom"};
-constexpr const wchar_t* buffs[]={L"Cheer",L"Aim",L"Focus",L"Reflex",L"Luck",L"Jinx"};
+constexpr auto& permanent=battlePermanentStatus;
+constexpr auto& temporal=battleTemporalStatus;
+constexpr auto& extra=battleExtraStatus;
+constexpr auto& buffs=battleBuffStatus;
 using Snapshot=std::array<intptr_t,32>;
 struct Calculated {
     unsigned epoch=0,id=0,source=0,serial=0,revision=0;

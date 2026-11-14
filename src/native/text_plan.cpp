@@ -2,6 +2,7 @@
 #include "events.hpp"
 #include "settings.hpp"
 #include "owned_message_decoder.hpp"
+#include "battle_status_names.hpp"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -83,6 +84,15 @@ std::wstring render(TextRef root) {
             out=left+L": ";const auto maximum=static_cast<int>(n.offset);
             if(!n.length) out+=std::to_wstring(maximum>0?static_cast<int>(std::floor(static_cast<double>(n.value)/maximum*100+.5)):0)+L"%";
             else out+=(n.length==2?L"MP ":L"HP ")+std::to_wstring(n.value)+L"/"+std::to_wstring(maximum);
+            continue;
+        }
+        if(n.op==TextPlanOp::BattleAilments) {
+            const auto bits=static_cast<uint64_t>(n.value);
+            const auto add=[&out](const std::wstring& name) {if(!out.empty()) out+=L", ";out+=name;};
+            for(unsigned bit=0;bit<_countof(battlePermanentStatus);++bit) if((bits&battleAilmentPermanent)&(1ull<<bit)) add(battlePermanentStatus[bit]);
+            for(unsigned bit=0;bit<_countof(battleTemporalStatus);++bit) if(((bits>>16)&battleAilmentTemporal)&(1ull<<bit)) add(battleTemporalStatus[bit]);
+            for(unsigned bit=0;bit<_countof(battleExtraStatus);++bit) if(((bits>>32)&battleAilmentExtra)&(1ull<<bit))
+                add(std::wstring(battleExtraStatus[bit])+(bit==14?L", "+std::to_wstring(n.offset)+L" turns":L""));
             continue;
         }
         if(n.op==TextPlanOp::EquipmentName) {
@@ -171,6 +181,11 @@ TextRef planMenuIndex(TextPlan& p,unsigned selected,unsigned count) {
 TextRef planSettingValue(TextPlan& p,int value,unsigned style) {TextPlanNode n;n.op=TextPlanOp::SettingValue;n.value=value;n.offset=style;return node(p,n);}
 TextRef planBattleTarget(TextPlan& p,TextRef name,int current,int maximum,unsigned kind) {
     TextPlanNode n;n.op=TextPlanOp::BattleTarget;n.left=name;n.value=current;n.offset=static_cast<unsigned>(maximum);n.length=kind;return node(p,n);
+}
+TextRef planBattleAilments(TextPlan& p,uint16_t permanent,uint16_t temporal,uint16_t extra,unsigned doomTurns) {
+    if(!(permanent&battleAilmentPermanent) && !(temporal&battleAilmentTemporal) && !(extra&battleAilmentExtra)) return 0;
+    TextPlanNode n;n.op=TextPlanOp::BattleAilments;n.offset=doomTurns;
+    n.value=static_cast<int64_t>(permanent|static_cast<uint64_t>(temporal)<<16|static_cast<uint64_t>(extra)<<32);return node(p,n);
 }
 TextRef planVitals(TextPlan& p,int64_t current,int64_t maximum,bool mp,bool showMaximumHp) {
     TextPlanNode n;n.op=mp?TextPlanOp::Mp:TextPlanOp::Hp;n.value=current;n.offset=static_cast<unsigned>(maximum);n.length=showMaximumHp;return node(p,n);

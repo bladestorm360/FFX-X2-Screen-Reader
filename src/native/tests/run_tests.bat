@@ -288,6 +288,10 @@ cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:blitz_review_fixture.exe "%TEST_SRC%blit
 if not "%errorlevel%"=="0" goto failed
 blitz_review_fixture.exe
 if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:battle_target_text_fixture.exe "%TEST_SRC%battle_target_text_fixture.cpp" "%TEST_SRC%..\text_plan.cpp"
+if not "%errorlevel%"=="0" goto failed
+battle_target_text_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--review" goto success
 :input
 cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:input_fixture.exe "%TEST_SRC%input_fixture.cpp" "%TEST_SRC%..\input.cpp" "%TEST_SRC%..\direct_input.cpp" /link user32.lib dxguid.lib
