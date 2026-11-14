@@ -22,6 +22,7 @@
 namespace ffx {
 namespace {
 constexpr unsigned Domain=11,Slots=4,PointLimit=65536,Writing=0x80000000u;
+constexpr unsigned MissingObservations=2;constexpr ULONGLONG MissingMs=500;
 struct RouteCapture {OwnedNavTarget target;std::array<Point,PointLimit> points;unsigned count=0,epoch=0,revision=0,collisionSerial=0;};
 enum : unsigned {RoutePacket,TargetPacket,CameraPacket};
 struct Packet {unsigned kind=RoutePacket,slot=0,ticket=0;};
@@ -47,6 +48,9 @@ struct State {
     unsigned epoch=0,revision=0,routeEpoch=0,audioContext=0,collisionSerial=0,routeCollisionSerial=0;
     nav::CollisionSnapshot copiedCollision,routeCollision;
     bool arrived=false,allowed=false,ready=false;
+    // Consecutive observations without the route's destination, and when the
+    // first of them was captured.
+    unsigned missing=0;ULONGLONG missingSince=0;
     speechq::Header header{};
     nav::CopiedCamera camera;
 } ;
@@ -85,7 +89,7 @@ bool sameTarget(const Entity& a,const Entity& b) {
         a.inactive==b.inactive && distanceXZ(a.position,b.position)<.1 && std::abs(a.position.y-b.position.y)<.1;
 }
 void setRoute(const std::vector<Point>& points,const Entity& target,bool newRoute=false) {
-    reconcile();auto& s=owned();s.epoch=generation();s.legs=points;s.nextLeg=1;s.routeEpoch=s.epoch;s.arrived=false;
+    reconcile();auto& s=owned();s.epoch=generation();s.legs=points;s.nextLeg=1;s.routeEpoch=s.epoch;s.arrived=false;s.missing=0;
     s.routeCollisionSerial=s.collisionSerial;s.routeCollision=s.copiedCollision;
     s.destination=target.name.empty()?target.category:target.name;s.target=target;known=!s.destination.empty();publishLeg();
     if(newRoute) navRouteStopReported=false;
@@ -227,7 +231,14 @@ void updateOwnedNavAudio(const nav::Scene& observation,const Mesh& mesh,const st
     if(s.routeEpoch==s.epoch) {
         const auto target=std::find_if(targets.begin(),targets.end(),[&](const Entity& e) {return e.actor==s.target.actor && e.worker==s.target.worker && e.id==s.target.id && e.pushControl==s.target.pushControl && e.pushLocal==s.target.pushLocal;});
         // Guide point routes have no entity owner; they retain their copied goal.
-        if(s.target.worker>=0) {if(target==targets.end()) {loseNavRoute(L"destination gone");return;}updateNavTarget(*target);if(!s.routeEpoch) {advance();return;}}
+        // The field list rebuilt after a battle or scene can lack the destination
+        // for a frame. Lose the route only after two observations spanning half a second.
+        if(s.target.worker>=0 && target==targets.end()) {
+            if(!s.missing++) s.missingSince=observation.capturedAt;
+            if(s.missing>=MissingObservations && observation.capturedAt-s.missingSince>=MissingMs) loseNavRoute(L"destination gone");
+            return;
+        }
+        if(s.target.worker>=0) {s.missing=0;updateNavTarget(*target);if(!s.routeEpoch) {advance();return;}}
         // A native ledge sequence may relocate the player or change crossing
         // ownership without moving the destination. Retire/replan the actual
         // remaining legs; never keep steering back across a returning ledge.

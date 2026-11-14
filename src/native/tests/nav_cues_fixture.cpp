@@ -145,8 +145,16 @@ void feedbackFixtures() {
     cameraForward={1,0,0};fixtureRouteNavAudio({player,target.position},target);said.clear();
     const auto stops=autoWalkStops,previews=previewStops;
     nativeOwner=true;routeNavAudio({player,target.position},target);nativeOwner=false;
-    updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
-    updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    // The field list rebuilt after a battle or scene can lack the destination for
+    // a frame. A short gap keeps the route; only a sustained absence loses it.
+    sceneFacts.capturedAt=1000;updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    sceneFacts.capturedAt=1016;updateOwnedNavAudio(sceneFacts,fixtureFloor,{target},sceneHeader,L"");
+    check(said.empty() && autoWalkStops==stops && navRouteKnown(),"a one-frame destination gap after a battle or scene keeps the route");
+    sceneFacts.capturedAt=2000;updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    sceneFacts.capturedAt=2400;updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    check(said.empty() && autoWalkStops==stops && navRouteKnown(),"a destination missing for less than half a second keeps the route");
+    sceneFacts.capturedAt=2500;updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");
+    sceneFacts.capturedAt=2516;updateOwnedNavAudio(sceneFacts,fixtureFloor,{},sceneHeader,L"");sceneFacts.capturedAt=0;
     check(said.size()==1 && said.back()==L"Route lost: destination gone" && autoWalkStops==stops+1,"missing destination speaks once and cancels Auto walk");
     drainSpeechDomainsForTest();NavLeg retired;
     check(previewStops>previews && !navRouteKnown() && !navLeg(retired),"route loss cancels preview and invalidates previously queued route captures");
