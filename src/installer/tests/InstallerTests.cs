@@ -418,6 +418,18 @@ internal static class InstallerTests
         }
     }
 
+    private static bool PrismPresent { get { return !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FFX_PRISM_TEST_PACKAGE")); } }
+
+    private static void RunPrismCases()
+    {
+        if (!PrismPresent) {
+            foreach (string name in new[] { "Discovery", "LongPaths", "Installation", "Migration", "ProcessRefusal" })
+                Console.WriteLine("SKIP: " + name + " needs the PRISM runtime (FFX_PRISM_TEST_PACKAGE).");
+            return;
+        }
+        Discovery(); LongPaths(); Installation(); Migration(); ProcessRefusal();
+    }
+
     [STAThread]
     private static int Main(string[] args)
     {
@@ -435,8 +447,10 @@ internal static class InstallerTests
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));
             }
-            SteamAppManifestTests.Run(fixture, Assert); LaunchRedirectRepairTests.Run(fixture, Assert); LargeAddressIdentity(); Discovery(); LongPaths(); Installation(); Migration(); ProcessRefusal(); AccessibleControls(); RegistryConfirmation();
-            Console.WriteLine("PASS: " + checks + " synthetic installer assertions; discovery/case dedup, 7 payload hashes, Prism preflight/runtime preservation, XML/settings/repeat, legacy backups, refusals and rollback.");
+            SteamAppManifestTests.Run(fixture, Assert); LaunchRedirectRepairTests.Run(fixture, Assert); LargeAddressIdentity(); RunPrismCases(); AccessibleControls(); RegistryConfirmation();
+            Console.WriteLine(PrismPresent
+                ? "PASS: " + checks + " synthetic installer assertions; discovery/case dedup, 7 payload hashes, Prism preflight/runtime preservation, XML/settings/repeat, legacy backups, refusals and rollback."
+                : "PASS: " + checks + " synthetic installer assertions that do not need PRISM (PRISM-dependent cases skipped).");
             Console.WriteLine("Fixtures retained: " + fixture);
             return 0;
         }
