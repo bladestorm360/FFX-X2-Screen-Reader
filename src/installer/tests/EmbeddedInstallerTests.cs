@@ -59,9 +59,10 @@ internal static class EmbeddedInstallerTests
             using (var sha = SHA256.Create())
                 if (BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(Path.Combine(game, entry.Key)))).Replace("-", "").ToLowerInvariant() != entry.Value.ToLowerInvariant()) throw new Exception("Actual packaged payload mismatch: " + entry.Key);
         }
-        if (File.Exists(Path.Combine(game, "mods", "foreign.dll")) || File.ReadAllText(Path.Combine(backup, "mods", "foreign.dll")) != "foreign mod" ||
-            File.ReadAllText(Path.Combine(game, "FFXAccessibility.ini")) != savedSettings) throw new Exception("Packaged cleanup/preservation failed");
-        Console.WriteLine("PASS: actual packaged EXE validates both pinned inventories, refuses non-stock files, and installs 7 verified payloads twice with synthetic stock validation and module cleanup; Prism runtime preserved.");
+        // Other mods stay in place and are not backed up.
+        if (File.ReadAllText(Path.Combine(game, "mods", "foreign.dll")) != "foreign mod" || File.Exists(Path.Combine(backup, "mods", "foreign.dll")) ||
+            File.ReadAllText(Path.Combine(game, "FFXAccessibility.ini")) != savedSettings) throw new Exception("Packaged preservation failed");
+        Console.WriteLine("PASS: actual packaged EXE validates both pinned inventories, refuses non-stock files, and installs 7 verified payloads twice with synthetic stock validation, other mods kept; Prism runtime preserved.");
         return 0;
     }
 }
