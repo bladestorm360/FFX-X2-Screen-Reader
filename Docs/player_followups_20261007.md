@@ -64,7 +64,7 @@ Exact signatures/operand-derived globals, complete feature dependency validation
 exception containment and16-bit input accesses now have focused regressions.
 Both compiled profiles/dependencies, launcher and 13 hashes pass; game startup
 recovery and pedestal gameplay remain unconfirmed. Current evidence:
-[runtime repair](debug.md#vc-runtime-termination-after-pedestal-build--2026-10-07).
+[runtime repair](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md#vc-runtime-termination-after-pedestal-build--2026-10-07).
 
 The user authorizes ordinary in-mod assistance while holding configured Confirm.
 This follow-up supersedes the earlier Besaid/Kilika-only push limitation below.
@@ -292,4 +292,4 @@ cause of the reported swimming softlock remains unproven offline.
 Checks use synthetic x86 boundaries and existing extraction/decompilation only.
 Deployment was verified without game launch, runtime probe or player movement.
 Production C++ modules remain at or below 500 lines. Final logs/hashes are in
-`install/review-20261007/`; [debug.md](debug.md) records final build status.
+`install/review-20261007/`; [debug.md](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/d63277653437682234ccfe1f569a4b13dd558ace/Docs/debug.md) records final build status.
