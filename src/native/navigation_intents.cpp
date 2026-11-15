@@ -9,6 +9,7 @@
 #include "nonblocking_snapshots.hpp"
 #include "process_storage.hpp"
 #include "auto_walk.hpp"
+#include "log_capture.hpp"
 #include "nav_audio.hpp"
 #include "pedestal_rvas.hpp"
 #include "settings.hpp"
@@ -38,48 +39,57 @@ bool scriptFor(const Frame& f,UtilityScript& script) {
     script.controller=f.controller;script.chunk=f.span.chunk;script.worker=worker;script.header=f.span.chunk+f.zeroHeader;script.name=f.script.name;
     script.length=f.script.length;script.codeOffset=f.script.codeOffset;script.workers=f.script.workers;script.allocationSerial=f.span.serial;return true;
 }
+// Log the first failed check so a canceled action can be traced. recordLog
+// copies scalars and literals only; nothing is allocated on the game thread.
+bool rejected(const char* check,unsigned had=0,unsigned now=0) {
+    recordLog("navigation action rejected: %s (%u, %u)",check,had,now);return false;
+}
 bool qualify(unsigned slot,unsigned token) {
-    if(slot>=Slots || tickets[slot].load(std::memory_order_acquire)!=(token|Held)) return false;
-    auto& f=frames.get()[slot];if(f.epoch!=generation() || f.revision!=revision.load(std::memory_order_acquire) || f.manual!=autoWalkInputRevision() ||
-        f.capturedAt>GetTickCount64() || GetTickCount64()-f.capturedAt>250 || !nativeReaderResourcesReady() || !gameFocused() || scene || inBattle() || modMenuActive() || utilityConsoleActive()) return false;
+    if(slot>=Slots || tickets[slot].load(std::memory_order_acquire)!=(token|Held)) return rejected("action ticket");
+    auto& f=frames.get()[slot];const auto now=GetTickCount64();
+    if(f.epoch!=generation()) return rejected("map generation",f.epoch,generation());
+    if(f.revision!=revision.load(std::memory_order_acquire)) return rejected("navigation command revision",f.revision,revision.load(std::memory_order_acquire));
+    if(f.manual!=autoWalkInputRevision()) return rejected("manual input revision",f.manual,autoWalkInputRevision());
+    if(f.capturedAt>now || now-f.capturedAt>250) return rejected("observation age ms",static_cast<unsigned>(now-f.capturedAt),250u);
+    if(!nativeReaderResourcesReady() || !gameFocused() || scene || inBattle() || modMenuActive() || utilityConsoleActive()) return rejected("field context");
     const auto controller=read<uintptr_t>(address(0xf26ae8)),player=playerActor();
-    if(controller!=f.controller || read<uintptr_t>(controller+0x48)!=f.primary || !(read<uint8_t>(controller)&2) || player!=read<uintptr_t>(address(0xf00740))) return false;
-    const auto count=read<uint16_t>(controller+0xc);if(!count || count>SceneWorkers || (!f.pointOnly && f.global>=count)) return false;
-    AtelSpan current;if(!nativeAtelSpan(f.span.chunk,current) || current.serial!=f.span.serial || current.size!=f.span.size) return false;
+    if(controller!=f.controller || read<uintptr_t>(controller+0x48)!=f.primary || !(read<uint8_t>(controller)&2) || player!=read<uintptr_t>(address(0xf00740))) return rejected("field controller or player");
+    const auto count=read<uint16_t>(controller+0xc);if(!count || count>SceneWorkers || (!f.pointOnly && f.global>=count)) return rejected("worker count");
+    AtelSpan current;if(!nativeAtelSpan(f.span.chunk,current) || current.serial!=f.span.serial || current.size!=f.span.size) return rejected("script allocation");
     if(f.pointOnly) {
-        if(f.kind!=Intent::Start || f.target.pushControl || f.span.chunk!=f.primary || distanceXZ(playerPosition(),f.player)>.1 || std::abs(playerPosition().y-f.player.y)>.1) return false;
+        if(f.kind!=Intent::Start || f.target.pushControl || f.span.chunk!=f.primary || distanceXZ(playerPosition(),f.player)>.1 || std::abs(playerPosition().y-f.player.y)>.1) return rejected("player moved or point target changed");
     }else {
     using Getter=uintptr_t(__cdecl*)(int);const auto worker=reinterpret_cast<Getter>(address(0x46a7c0))(static_cast<int>(f.global));
-    if(read<uintptr_t>(worker+4)!=f.span.chunk || read<uintptr_t>(worker)!=f.span.chunk+f.header || read<uint16_t>(worker+0x2e,0xffff)!=f.local || read<uint8_t>(f.span.chunk+f.header)!=f.type) return false;
-    std::array<uint8_t,0x4c> geometry;if(!copy(worker+(f.type==5 || f.type==6?0x284:0x558),geometry.data(),geometry.size()) || geometry!=f.geometry) return false;
+    if(read<uintptr_t>(worker+4)!=f.span.chunk || read<uintptr_t>(worker)!=f.span.chunk+f.header || read<uint16_t>(worker+0x2e,0xffff)!=f.local || read<uint8_t>(f.span.chunk+f.header)!=f.type) return rejected("destination worker");
+    std::array<uint8_t,0x4c> geometry;if(!copy(worker+(f.type==5 || f.type==6?0x284:0x558),geometry.data(),geometry.size()) || geometry!=f.geometry) return rejected("destination geometry");
     if(f.target.actor>=0) {
         const auto actors=read<uintptr_t>(address(0x1fc44e4));const auto capacity=read<unsigned>(address(0x1fc44e0));
-        if(!actors || !capacity || capacity>SceneActors || static_cast<unsigned>(f.target.actor)>=capacity) return false;
+        if(!actors || !capacity || capacity>SceneActors || static_cast<unsigned>(f.target.actor)>=capacity) return rejected("actor table");
         const auto actor=actors+f.target.actor*0x880;const auto enabled=read<uint16_t>(actor+2);
         const Point position{read<float>(actor+0xc),read<float>(actor+0x10),read<float>(actor+0x14)};
-        if(read<uint16_t>(actor)!=f.model || !enabled || enabled>255 || !validNativePoint(position) || distanceXZ(position,f.actorPose)>.1 || std::abs(position.y-f.actorPose.y)>.1) return false;
+        if(read<uint16_t>(actor)!=f.model || !enabled || enabled>255 || !validNativePoint(position) || distanceXZ(position,f.actorPose)>.1 || std::abs(position.y-f.actorPose.y)>.1) return rejected("destination actor moved");
     }
     }
     // Gate-affecting saved state must still match the observation. A changed
     // puzzle/story flag makes the route intention obsolete even in the same map.
     const auto saved=address(0xd2ca90)+0x1ec;
-    if(!f.saved.valid || read<uintptr_t>(controller+0x2c)!=saved || !copy(saved,f.currentSaved.data(),f.currentSaved.size()) || f.currentSaved!=f.saved.bytes) return false;
+    if(!f.saved.valid || read<uintptr_t>(controller+0x2c)!=saved || !copy(saved,f.currentSaved.data(),f.currentSaved.size()) || f.currentSaved!=f.saved.bytes) return rejected("saved story state");
     if(f.kind==Intent::ArmAndStart || f.kind==Intent::ArmAndFace || f.kind==Intent::UpdatePedestal) {
-        if(f.zeroGlobal>=count || f.bindings.count>f.bindings.rows.size()) return false;
-        AtelIdentity identity;if(!readyAtelIdentity(f.span.chunk,identity) || identity.span.serial!=f.span.serial || identity.checksum!=f.script.checksum || identity.length!=f.script.length) return false;
-        UtilityScript script;if(!scriptFor(f,script)) return false;
-        for(unsigned i=0;i<f.bindings.count;++i) {int value=0;const auto& row=f.bindings.rows[i];if(!captureUtilityValue(script,row.binding,row.high,row.element,value) || value!=row.value) return false;}
+        if(f.zeroGlobal>=count || f.bindings.count>f.bindings.rows.size()) return rejected("pedestal bindings");
+        AtelIdentity identity;if(!readyAtelIdentity(f.span.chunk,identity) || identity.span.serial!=f.span.serial || identity.checksum!=f.script.checksum || identity.length!=f.script.length) return rejected("pedestal script");
+        UtilityScript script;if(!scriptFor(f,script)) return rejected("pedestal script worker");
+        for(unsigned i=0;i<f.bindings.count;++i) {int value=0;const auto& row=f.bindings.rows[i];if(!captureUtilityValue(script,row.binding,row.high,row.element,value) || value!=row.value) return rejected("pedestal binding value");}
     }
     if(f.kind==Intent::AssistStart) {
         const auto active=capturePedestalNavigationState();
-        if(!active.armed || !active.held || active.epoch!=f.epoch || active.worker!=f.target.worker || active.id!=f.target.id || active.control!=f.target.pushControl || active.local!=f.target.pushLocal) return false;
+        if(!active.armed || !active.held || active.epoch!=f.epoch || active.worker!=f.target.worker || active.id!=f.target.id || active.control!=f.target.pushControl || active.local!=f.target.pushLocal) return rejected("pedestal assistance");
     }
     if(f.kind==Intent::Start || f.kind==Intent::AssistStart || f.kind==Intent::ArmAndStart) {
         // A callback may change after worker preparation but before native
         // movement starts. Never start a route against obsolete ledge facts.
-        if(f.collisionSerial!=navCollisionSerial() || !f.events.ready || !sameRouteEvents(f.events,captureRouteEvents(controller))) return false;
-        NavLeg leg;if(!navLeg(leg) || leg.pendingCollision || leg.target.worker!=f.target.worker || leg.target.id!=f.target.id || leg.target.pushControl!=f.target.pushControl || leg.target.pushLocal!=f.target.pushLocal) return false;
-        if(f.pointOnly && distanceXZ(leg.final,f.target.position)>.1) return false;
+        if(f.collisionSerial!=navCollisionSerial() || !f.events.ready || !sameRouteEvents(f.events,captureRouteEvents(controller))) return rejected("collision serial or route events",f.collisionSerial,navCollisionSerial());
+        NavLeg leg;if(!navLeg(leg) || leg.pendingCollision || leg.target.worker!=f.target.worker || leg.target.id!=f.target.id || leg.target.pushControl!=f.target.pushControl || leg.target.pushLocal!=f.target.pushLocal) return rejected("route leg");
+        if(f.pointOnly && distanceXZ(leg.final,f.target.position)>.1) return rejected("route end");
     }
     return true;
 }
