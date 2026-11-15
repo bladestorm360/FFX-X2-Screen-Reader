@@ -334,11 +334,11 @@ bool readKeyAvailable() {
 // step with Docs/controls.md. Context checks only read already-published state.
 const wchar_t* contextHelpText() {
     if(active) return L"Mod menu keys: Up and Down select, Left and Right change, Enter activates, I describes, Home and End jump to first and last, Escape goes back, F8 closes.";
-    if(inBattle()) return L"Battle keys: T turn, H HP and status, O Overdrive, Shift T turn order, Shift H party HP, Shift O Overdrive meters, I details, Control arrows Sensor info, F11 repeat.";
-    if(sphereGridOpen()) return L"Sphere Grid keys: F2 path planner, Shift F2 clear plans, F3 ability planner, F4 and F5 guidance from character, Backslash and Shift Backslash guidance from cursor, O orientation, S Sphere Levels, F6 node number, I description, F7 Autodetail.";
-    if(scene || escMenuActive()) return L"Menu keys: I details, Shift I footer controls, U extra info, comma and period review lines, F7 Autodetail, F11 repeat, F8 mod menu.";
-    if(guideKeysAvailable()) return L"Trial keys: F9 and F10 previous and next step, Shift F10 selected step, F11 current step, Shift F11 inferred step, Backslash route, F8 Cloister submenu.";
-    return L"Field keys: backtick rescans, right and left bracket next and previous destination, Shift brackets change category, P repeats destination, Backslash routes, U unreachable filter, G gil, M map name, T repeats dialogue, F6 beacon, F7 Autodetail, F8 mod menu.";
+    if(inBattle()) return L"Battle keys: T turn, H HP and status, O Overdrive, Shift T turn order, Shift H party HP, Shift O Overdrive meters, I details, Control arrows Sensor info, F11 repeat, L last speech.";
+    if(sphereGridOpen()) return L"Sphere Grid keys: F2 path planner, Shift F2 clear plans, F3 ability planner, F4 and F5 guidance from character, Backslash and Shift Backslash guidance from cursor, O orientation, S Sphere Levels, F6 node number, I description, F7 Autodetail, L last speech.";
+    if(scene || escMenuActive()) return L"Menu keys: I details, Shift I footer controls, U extra info, comma and period review lines, F7 Autodetail, F11 repeat, L last speech, F8 mod menu.";
+    if(guideKeysAvailable()) return L"Trial keys: F9 and F10 previous and next step, Shift F10 selected step, F11 current step, Shift F11 inferred step, Backslash route, L last speech, F8 Cloister submenu.";
+    return L"Field keys: backtick rescans, right and left bracket next and previous destination, Shift brackets change category, P repeats destination, Backslash routes, U unreachable filter, G gil, M map name, T repeats dialogue, L repeats last speech, F6 beacon, F7 Autodetail, F8 mod menu.";
 }
 void contextHelpKey(bool) { emitReady(contextHelpText(),"mod-context-help"); }
 void readPuzzleKey(bool shift) {

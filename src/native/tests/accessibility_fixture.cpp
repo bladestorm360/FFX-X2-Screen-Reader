@@ -197,11 +197,22 @@ int main() {
     fixtureEsc=true;check(contextHelpForTest().find(L"Menu keys: I")==0,"Shift+Slash lists Escape menu keys");fixtureEsc=false;
     scene=6;check(contextHelpForTest().find(L"Menu keys: I")==0,"Shift+Slash lists native menu keys");scene=0;
     fixtureBattle=true;check(contextHelpForTest().find(L"Battle keys: T")==0,"Shift+Slash lists battle keys");fixtureBattle=false;
+    {
+        auto listsL=[](const wchar_t* phrase){ return contextHelpForTest().find(phrase)!=std::wstring::npos; };
+        bool all=listsL(L"L repeats last speech");
+        trialPresent=true;all=all&&listsL(L"L last speech");trialPresent=false;
+        fixtureGrid=true;all=all&&listsL(L"L last speech");fixtureGrid=false;
+        fixtureEsc=true;all=all&&listsL(L"L last speech");fixtureEsc=false;
+        scene=6;all=all&&listsL(L"L last speech");scene=0;
+        fixtureBattle=true;all=all&&listsL(L"L last speech");fixtureBattle=false;
+        check(all,"Shift+Slash lists L in every context where L repeats speech");
+    }
     pressForTest(VK_F8,false);
     check(modMenuActive() && captured,"spoken menu captures game narration");
     check(said.back()==L"Accessibility mod menu. Speech: On, 1 of 6","main menu keeps Speech, Speech options and existing grouped submenus plus Close");
     menuKeyForTest(VK_OEM_2,true);
     check(said.back().find(L"Mod menu keys: Up and Down")==0 && modMenuActive(),"Shift+Slash inside the mod menu lists its keys");
+    check(said.back().find(L"last speech")==std::wstring::npos,"mod menu help leaves out L, which the menu does not route");
     menuKeyForTest(VK_F6); menuKeyForTest(VK_F7);
     check(!setting(Setting::Beacon) && !setting(Setting::AutoDetail),"toggles remain available inside settings");
     check(navPaused,"F6 inside settings keeps route audio paused");
