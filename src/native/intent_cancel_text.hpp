@@ -17,6 +17,15 @@ inline const wchar_t* intentCancelText(IntentRejection reason) {
 // controlled-actor pointer is not inside the table. The route can still be read
 // from that entry, but the native start requires the controlled actor, so an
 // action from such an observation could never run.
+inline const wchar_t* intentRefusalText(bool controlled);
+// Checked before a route is read, so a refused walk is not preceded by route speech.
+// fieldOpen: no window, scene, battle or menu; control: the field controller allows
+// player input. Scenes clear field control and the controlled actor together.
+inline const wchar_t* routeStartRefusal(bool autoWalk,bool fieldOpen,bool control,bool controlled) {
+    if(!autoWalk) return nullptr;
+    if(!fieldOpen || !control) return L"Auto walk unavailable during a scene.";
+    return intentRefusalText(controlled);
+}
 inline const wchar_t* intentRefusalText(bool controlled) {
     return controlled?nullptr:L"Auto walk unavailable: the game is not reporting the controlled character. Walk manually or try again after moving.";
 }

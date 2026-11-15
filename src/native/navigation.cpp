@@ -140,6 +140,10 @@ void pathfind(const Pending& event,bool assist=false) {
     if(!selected) {if(!assist) emit(event,L"No entity selected","navigation-path");return;}
     const auto target=*selected;const auto player=s.observation.player;
     if(!s.mesh.events.ready) {resetNavAudio();emit(event,L"Navigation data is unavailable. Waiting for the field to become ready.","navigation-data-unavailable");return;}
+    if(!assist) {
+        const auto& o=s.observation;
+        if(const auto refusal=nav::routeStartRefusal(setting(Setting::AutoWalk)!=0,o.allowed,o.control,o.controlled)) {emit(event,refusal,"navigation-action-refused");return;}
+    }
     if(!assist) lockSelected();if(target.hazardous) {emit(event,label(target)+L": avoid this butterfly","navigation-path");return;}
     if(target.swimDepth) {
         const auto points=navigationRouteOwned(s.mesh,player,target,s.entities);auto text=nav::sceneSwimmingInstruction(s.observation);

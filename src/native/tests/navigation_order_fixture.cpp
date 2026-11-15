@@ -108,6 +108,12 @@ int main() {
         const std::wstring refusal=ffx::nav::intentRefusalText(false)?ffx::nav::intentRefusalText(false):L"";
         check(refusal.find(L"controlled character")!=std::wstring::npos,"an observation without the controlled character refuses Auto walk before queueing it");
         check(ffx::nav::intentRefusalText(true)==nullptr,"an observation of the controlled character queues Auto walk");
+        // Backslash during a scene read the route and then refused. Refuse first, truthfully.
+        using ffx::nav::routeStartRefusal;
+        const auto during=[](const wchar_t* text) {return text && std::wstring(text)==L"Auto walk unavailable during a scene.";};
+        check(during(routeStartRefusal(true,false,true,true)) && during(routeStartRefusal(true,true,false,false)),"a route request during a scene or with field control off refuses before any route, saying a scene is playing");
+        check(routeStartRefusal(true,true,true,false)==ffx::nav::intentRefusalText(false),"a field without the controlled character refuses before any route");
+        check(!routeStartRefusal(true,true,true,true) && !routeStartRefusal(false,false,false,false),"an open field, or Auto walk off, reads the route as before");
         // Turning Hide unreachable on starts a check; until verdicts arrive the visible count is the
         // unfiltered one, so "6 of 35" would later become "6 of 10". Speak the row without "N of M".
         check(!ffx::nav::rowCountSettled(true,true),"turning Hide unreachable on omits N of M while reachability is checked");
