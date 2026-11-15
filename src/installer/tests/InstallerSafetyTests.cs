@@ -41,6 +41,7 @@ internal static class InstallerSafetyTests
         UninstallRestores();
         UpgradeFromOlderSetup();
         UpgradeFromFridaBuild();
+        BackupFailureKeepsUninstall();
         UninstallRefuses();
         UninstallFailureKeepsLauncher();
     }
@@ -297,6 +298,18 @@ internal static class InstallerSafetyTests
         assert(!engine.ReplacedLoader, "The 0.x dinput8.dll is not reported as another mod's loader");
         Engine().Uninstall(game, delegate { });
         Unchanged(game, stockSnapshot, "Uninstall after a 0.x upgrade leaves the stock game");
+    }
+
+    // A reinstall that fails while copying backups must not hide the earlier install from uninstall.
+    private static void BackupFailureKeepsUninstall()
+    {
+        string game = Game("Backup copy failure");
+        var before = Snapshot(game);
+        Engine().Install(game, delegate { });
+        using (new FileStream(Path.Combine(game, "SDL3.dll"), FileMode.Open, FileAccess.Read, FileShare.None))
+            Reject(delegate { Engine().Install(game, delegate { }); }, "SDL3.dll", "Backup copy failure");
+        Engine().Uninstall(game, delegate { });
+        Unchanged(game, before, "Uninstall after a failed backup copy restores the game");
     }
 
     private static void UninstallRefuses()

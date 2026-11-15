@@ -144,19 +144,28 @@ namespace FfxScreenReader.Setup
             string backup = Path.Combine(backupRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss-fffffff") + "-" + Guid.NewGuid().ToString("N"));
             // Complete every backup before changing any file, including PRISM and nested files.
             Directory.CreateDirectory(backup);
-            var before = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string name in affected)
-            {
-                string target = Path.Combine(game, name);
-                if (File.Exists(target)) {
-                    string old = InstallerPaths.InGame(backup, name);
-                    Directory.CreateDirectory(Path.GetDirectoryName(old));
-                    File.Copy(target, old);
-                    before[name] = Hash(File.ReadAllBytes(old));
-                }
-            }
             plan.WriteReport(game, backup);
             string report = Path.Combine(backup, "INSTALL_REPORT.txt");
+            var before = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                foreach (string name in affected)
+                {
+                    string target = Path.Combine(game, name);
+                    if (File.Exists(target)) {
+                        string old = InstallerPaths.InGame(backup, name);
+                        Directory.CreateDirectory(Path.GetDirectoryName(old));
+                        File.Copy(target, old);
+                        before[name] = Hash(File.ReadAllBytes(old));
+                    }
+                }
+            }
+            catch
+            {
+                // Nothing was changed yet; mark the backup so uninstall skips it.
+                File.AppendAllLines(report, new[] { RolledBackLine });
+                throw;
+            }
             if (LeftInPlace.Count != 0) status("Left in place: " + String.Join(", ", LeftInPlace.ToArray()));
             ReplacedLoader = before.ContainsKey("dinput8.dll") && !PreviousInstallWasOurs(before.Keys) &&
                 !String.Equals(before["dinput8.dll"], hashes["dinput8.dll"], StringComparison.OrdinalIgnoreCase);
