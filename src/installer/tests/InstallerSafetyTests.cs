@@ -42,6 +42,7 @@ internal static class InstallerSafetyTests
         UpgradeFromOlderSetup();
         UpgradeFromFridaBuild();
         BackupFailureKeepsUninstall();
+        LeftoverLauncherConfiguration();
         UninstallRefuses();
         UninstallFailureKeepsLauncher();
     }
@@ -310,6 +311,34 @@ internal static class InstallerSafetyTests
             Reject(delegate { Engine().Install(game, delegate { }); }, "SDL3.dll", "Backup copy failure");
         Engine().Uninstall(game, delegate { });
         Unchanged(game, before, "Uninstall after a failed backup copy restores the game");
+    }
+
+    // A 1.x install whose DLLs were removed by hand left its launcher configuration
+    // and the saved original. Uninstall must not put back a configuration that loads
+    // the removed reader.
+    private static void LeftoverLauncherConfiguration()
+    {
+        string game = Game("Leftover 1.x launcher configuration");
+        string config = Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config");
+        string stock = File.ReadAllText(config);
+        var stockSnapshot = Snapshot(game);
+        string reader = "<configuration><runtime><appDomainManagerType value=\"FfxLauncher.ReaderDomainManager\"/></runtime>" +
+            "<appSettings><add key=\"Kept\" value=\"yes\"/></appSettings></configuration>";
+        File.WriteAllText(config + ".ffx_sr_original", stock);
+        File.WriteAllText(config, reader);
+        Engine().Install(game, delegate { });
+        Engine().Uninstall(game, delegate { });
+        assert(File.ReadAllText(config) == stock, "Uninstall restores the saved original, not a configuration that loads the removed reader");
+        Unchanged(game, stockSnapshot, "Uninstall after a hand-removed 1.x install leaves the stock game");
+
+        string unusable = Game("Leftover 1.x launcher configuration without a usable original");
+        config = Path.Combine(unusable, "FFX&X-2_LAUNCHER.exe.config");
+        File.WriteAllText(config + ".ffx_sr_original", reader);
+        File.WriteAllText(config, reader);
+        Engine().Install(unusable, delegate { });
+        var before = Snapshot(unusable);
+        Reject(delegate { Engine().Uninstall(unusable, delegate { }); }, "still loads the screen reader", "Leftover original that loads the reader");
+        Unchanged(unusable, before, "Leftover original that loads the reader");
     }
 
     private static void UninstallRefuses()

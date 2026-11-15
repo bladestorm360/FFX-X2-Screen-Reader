@@ -317,8 +317,12 @@ namespace FfxScreenReader.Setup
                     throw UninstallRefused("The backup of " + file[1] + " is missing or changed.");
             }
             // After an upgrade the backed-up config loads the old reader; the saved original does not.
+            // A hand-removed 1.x install leaves no marker, but its config still loads the reader.
+            string savedConfig = InstallerPaths.InGame(backup, ConfigName);
+            bool configLoadsReader = File.Exists(savedConfig) &&
+                Encoding.UTF8.GetString(File.ReadAllBytes(savedConfig)).IndexOf(ManagerType, StringComparison.Ordinal) >= 0;
             byte[] stockConfig = null;
-            if (previousOurs)
+            if (previousOurs || configLoadsReader)
             {
                 if (originalHash == null) throw UninstallRefused("The original launcher configuration " + original + " was not found.");
                 stockConfig = File.ReadAllBytes(InstallerPaths.InGame(game, original));
