@@ -398,6 +398,15 @@ int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std:
 
     setValue(0x5c0000dc,1,1);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 7 of")!=std::wstring::npos,"durable checkpoint recovers expected step past emptied carried sphere");
+    // Route order up to the Besaid Sphere in the pedestal, then take it back
+    // out. The pedestal flag is not a checkpoint, so only the placement
+    // tracking can move the expected step back to the pedestal.
+    setValue(0x5c0000d4,1,1); setValue(0x5c0000d8,1,1); setValue(0x5c0000e4,1,1); setValue(0x5c0000ac,1,1);
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 10 of")!=std::wstring::npos,"pedestal placement expects the Destruction Sphere");
+    setValue(0x5c0000cc,1,0);
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 9 of")!=std::wstring::npos,"taking the Besaid Sphere back out of the pedestal expects the pedestal again");
+    setValue(0x5c0000cc,1,1);
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 10 of")!=std::wstring::npos,"reinserting the Besaid Sphere resumes after the pedestal");
     resetOwnedPuzzleGuide();
     // Both Kilika entry sphere/recess choices activate the same full native
     // destruction insertion. Only its one owned window1 choice is automatic.
