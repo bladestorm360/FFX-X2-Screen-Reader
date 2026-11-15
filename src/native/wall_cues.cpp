@@ -106,7 +106,9 @@ void captureWallCues() {
     const auto serial=latest.fetch_add(1,std::memory_order_acq_rel)+1;
     const auto slot=claim();
     if(slot==Slots) {
-        ++pressure;if(!pressureEpisode) {pressureEpisode=true;output(L"Wall cues are busy. Move again when they recover.",false,"wall-cue-pressure");}return;
+        // Every slot is still held by the worker. It catches up within a few frames and the
+        // next capture succeeds, so this is logged, not spoken. claim() never waits.
+        ++pressure;if(!pressureEpisode) {pressureEpisode=true;recordLog("wall cues busy: all %u capture slots held, pressure=%u",Slots,pressure.load());}return;
     }
     pressureEpisode=false;auto& frame=snapshots.get()[slot];frame.context=context;frame.forward=forward;frame.right=right;
     frame.range=setting(Setting::WallRange)*11.13;frame.serial=serial;frame.cancellation=cancellation.load(std::memory_order_acquire);

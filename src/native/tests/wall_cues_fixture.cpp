@@ -74,7 +74,8 @@ bool inBattle() {check(nativeGameThread(),"battle getter retained on Native");re
 int setting(Setting s) {check(nativeGameThread(),"settings captured on Native");return s==Setting::Walls?1:s==Setting::WallRange?20:0;}
 bool hookSnapshot(unsigned rva,Handler first,Handler) {before[rva]=first;return true;}
 void log(const char*,...) {}
-bool output(const wchar_t*,bool,const char*) {check(nativeGameThread(),"pressure literal comes from Native");return true;}
+unsigned wallSpeech=0;
+bool output(const wchar_t*,bool,const char*) {check(nativeGameThread(),"wall cue literal comes from Native");++wallSpeech;return true;}
 void setButtonGlyphReader(ButtonGlyphReader) {}
 unsigned fixtureWallRays(const Mesh&,Point,Point,Point,double);
 unsigned nearbyWalls(const Mesh& mesh,Point p,Point f,Point r,double range) {
@@ -109,6 +110,8 @@ int main() {
     hold=true;ResetEvent(entered);ResetEvent(resume);capture();check(WaitForSingleObject(entered,5000)==WAIT_OBJECT_0,"actual Worker computation held");
     double maximum=0;for(unsigned i=0;i<12;++i) maximum=(std::max)(maximum,capture());
     check(wallCuePressureForTest()>0 && !copiedWallCues(),"held Worker has bounded pressure, no Native wait and no stale wall result");
+    // A slow worker catches up on its own; pressure is logged, never spoken.
+    check(!wallSpeech,"wall cue pressure is not spoken");
     cancelWallCues();SetEvent(resume);Sleep(20);check(!copiedWallCues(),"cancel invalidates late held results");
     capture();ready();check(copiedWallCues()==expected,"capacity recovers after held Worker retirement");
     put<int>(0xf01a48,32768);capture();check(!wallCuesReadyForTest() && !copiedWallCues(),"oversized Native mesh cancels cues without reading a guessed region");
