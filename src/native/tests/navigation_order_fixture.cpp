@@ -136,6 +136,16 @@ int main() {
         check(!ffx::nav::selectionLossSpoken(true,false),"a selection hidden while the game holds player control stays silent");
         check(!ffx::nav::selectionLossSpoken(false,true),"a selection hidden during a scene or window stays silent");
         check(ffx::nav::selectionLossSpoken(true,true),"a selection hidden while the player has the field is still spoken");
+        // Djose: after the Destruction Sphere insert, "Sphere, 11.7 steps west, currently inactive"
+        // was listed four times in a row (19 to 22 of 33). Inactive rows with the same name at the same
+        // spot are one destination; active rows and rows a step apart stay separate.
+        {
+            const auto sphere=[](int worker,double x,bool inactive) {ffx::Entity e;e.name=L"Sphere";e.category=L"Objects";e.worker=worker;e.position={x,0,0};e.inactive=inactive;return e;};
+            std::vector<ffx::Entity> spheres{sphere(1,0,true),sphere(2,.2,true),sphere(3,.1,true),sphere(4,0,false),sphere(5,11.13,true),sphere(6,0,true)};
+            spheres[5].name=L"Hidden glyph";
+            ffx::nav::collapseInactiveDuplicates(spheres);
+            check(spheres.size()==4 && spheres[0].worker==1 && spheres[1].worker==4 && spheres[2].worker==5 && spheres[3].worker==6,"inactive rows with one name at one spot collapse to the first; active, distant and differently named rows stay");
+        }
         ffx::nav::ListStability list;
         list.observe(7,11,10000);check(!list.settled(10000),"the first scan in a new room omits N of M");
         list.observe(7,23,10400);check(!list.settled(10400),"a destination count that changed omits N of M");

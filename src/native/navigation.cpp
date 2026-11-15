@@ -298,7 +298,7 @@ void receiveScene(const speechq::Header& header,const nav::SceneObservation& cap
         s.meshContext.collision.remaps==geometry.collision.remaps && (!geometry.swimming || (s.meshContext.floor==geometry.floor && s.meshContext.player.y==geometry.player.y));
     if(!sameMesh) {s.mesh=nav::decodeNavigationSceneMesh(observation);s.haveMesh=true;}
     s.mesh.player=geometry.player;s.mesh.playerTriangle=geometry.floor;
-    nav::stageAirshipPassages(observation,s.mesh,found);
+    nav::stageAirshipPassages(observation,s.mesh,found);nav::collapseInactiveDuplicates(found);
     nav::orderEntities(found,s.entities,key,s.selection.valid);nav::keepVerdicts(found,s.entities,key);
     s.entities=std::move(found);s.selected=0;s.list.observe(generation(),s.entities.size(),GetTickCount64());
     s.meshContext=geometry;requestOwnedReachability(observation,s.entities,true);

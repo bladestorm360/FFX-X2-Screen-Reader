@@ -1,6 +1,7 @@
 #pragma once
 #include "navigation.hpp"
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <set>
 
@@ -42,6 +43,21 @@ inline bool rowCountSettled(bool hideUnreachable,bool checking) {return !hideUnr
 // must not take the totals away again, so settling is latched per map generation and the current
 // count is spoken. Turning Hide unreachable on, by U or the mod menu, waits for its first check again.
 constexpr unsigned long long ListSettleMs=1500;
+// The Destruction Sphere area in Djose lists several "Sphere ... currently inactive" rows at one
+// spot: separate script workers for the same dormant object. An inactive row with the same name
+// and category as an earlier inactive row within half a unit (and two units of height) adds
+// nothing to walk to, so only the first is kept. Active rows and pedestals are never merged.
+inline void collapseInactiveDuplicates(std::vector<Entity>& entities) {
+    std::vector<Entity> kept;kept.reserve(entities.size());
+    for(auto& e:entities) {
+        const bool duplicate=e.inactive && !e.pushControl && std::any_of(kept.begin(),kept.end(),[&](const Entity& k) {
+            return k.inactive && !k.pushControl && k.name==e.name && k.category==e.category &&
+                std::hypot(k.position.x-e.position.x,k.position.z-e.position.z)<=.5 && std::abs(k.position.y-e.position.y)<=2;
+        });
+        if(!duplicate) kept.push_back(std::move(e));
+    }
+    entities=std::move(kept);
+}
 // Whether losing the selected row (hidden as unreachable, or gone from a rescan) is handled and
 // spoken now. While a scene, window or scripted animation holds the field (a pedestal dropping,
 // a lift riding), verdicts describe a moving player, so the selection is kept and nothing is said;
