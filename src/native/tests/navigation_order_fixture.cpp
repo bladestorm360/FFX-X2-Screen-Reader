@@ -123,6 +123,13 @@ int main() {
         check(ffx::nav::rowCountSettled(true,false) && ffx::nav::rowCountSettled(false,true) && ffx::nav::rowCountSettled(false,false),"a settled or unfiltered list keeps N of M");
         // Entering Macalania - Trials, ] said "2 of 11", "5 of 23", "4 of 13" while the room loaded.
         // A total is spoken only after the destination count has held for ListSettleMs in this room.
+        // Djose: while a pushed pedestal dropped and while the central lift rode, verdicts computed
+        // mid-animation hid the selected row and the mod said "Pedestal is unreachable" and the next
+        // row, unprompted. A loss is spoken only while the player holds the field; otherwise the
+        // selection is kept and the next command after control returns reports it.
+        check(!ffx::nav::selectionLossSpoken(true,false),"a selection hidden while the game holds player control stays silent");
+        check(!ffx::nav::selectionLossSpoken(false,true),"a selection hidden during a scene or window stays silent");
+        check(ffx::nav::selectionLossSpoken(true,true),"a selection hidden while the player has the field is still spoken");
         ffx::nav::ListStability list;
         list.observe(7,11,10000);check(!list.settled(10000),"the first scan in a new room omits N of M");
         list.observe(7,23,10400);check(!list.settled(10400),"a destination count that changed omits N of M");

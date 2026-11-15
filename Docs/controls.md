@@ -556,7 +556,10 @@ The announcement queues behind existing speech.
 
 **U** — toggle the saved unreachable-destination filter. It hides destinations
 with no connected collision route or reachable interaction zone. Destinations
-with unknown collision data remain listed. This option is also in F8.
+with unknown collision data remain listed. This option is also in F8. While a
+scene, message or scripted movement such as a pedestal dropping or a lift ride
+holds the field, a selected destination that becomes unreachable stays selected
+and nothing is announced; the next navigation command reports it.
 
 ### FFX Makalania butterfly hunt
 

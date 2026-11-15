@@ -300,7 +300,7 @@ void receiveScene(const speechq::Header& header,const nav::SceneObservation& cap
     s.entities=std::move(found);s.selected=0;s.list.observe(generation(),s.entities.size(),GetTickCount64());
     s.meshContext=geometry;requestOwnedReachability(observation,s.entities,true);
     auto rows=filtered();bool kept=false;for(unsigned i=0;i<rows.size();++i) if(s.selection.valid && key(*rows[i])==s.selection) {s.selected=i;kept=true;break;}
-    const bool lostSelection=s.selection.valid && !kept;
+    const bool lostSelection=s.selection.valid && !kept && nav::selectionLossSpoken(observation.allowed,observation.control);
     if(lostSelection) {
         s.selection={};nav::orderEntities(s.entities,{},key,false);requestOwnedReachability(observation,s.entities,true);rows=filtered();
     }
@@ -319,7 +319,8 @@ void maintenance() {
     if(!storage.ready()) return;auto& s=owned();if(s.revision && s.revision!=nav::navigationObservationRevision()) {resetOwned(generation());return;}
     if(s.ready && applyOwnedReachability(s.observation,s.entities)) {
         const auto rows=filtered();s.selected=0;bool kept=false;for(unsigned i=0;i<rows.size();++i) if(s.selection.valid && key(*rows[i])==s.selection) {s.selected=i;kept=true;break;}
-        if(s.selection.valid && !kept) {
+        if(s.selection.valid && !kept && !nav::selectionLossSpoken(s.observation.allowed,s.observation.control)) recordLog("navigation selection hidden while the game holds the field; kept until control returns");
+        else if(s.selection.valid && !kept) {
             // Keep the list order so the verdict stays matched to its row, and move to the neighbour in the direction of travel.
             std::wstring name;for(const auto& e:s.entities) if(key(e)==s.selection) {name=label(e);break;}
             const int next=nav::rowAfterLoss(s.entities,s.selection,key,visible,s.step);s.selection={};

@@ -42,6 +42,11 @@ inline bool rowCountSettled(bool hideUnreachable,bool checking) {return !hideUnr
 // must not take the totals away again, so settling is latched per map generation and the current
 // count is spoken. Turning Hide unreachable on, by U or the mod menu, waits for its first check again.
 constexpr unsigned long long ListSettleMs=1500;
+// Whether losing the selected row (hidden as unreachable, or gone from a rescan) is handled and
+// spoken now. While a scene, window or scripted animation holds the field (a pedestal dropping,
+// a lift riding), verdicts describe a moving player, so the selection is kept and nothing is said;
+// the first command after control returns rescans and reports any real loss.
+inline bool selectionLossSpoken(bool fieldOpen,bool control) {return fieldOpen && control;}
 struct ListStability {
     unsigned epoch=0;size_t count=0;unsigned long long since=0;bool counted=false,checked=false,hidden=false;
     void observe(unsigned scanEpoch,size_t found,unsigned long long at) {
