@@ -200,6 +200,28 @@ int main() {
     swimmingHud=false; hooks.at(0x4b8980)(e);
     check(!keyboard()[0xc8],"real swimming dialogue still cancels the same route");
     begin(); hooks.at(0x471980)(e); check(!keyboard()[0xc8],"native silent cutscene control-disable event cancels immediately");
+    {
+        // Exits and events take control while the walk is still steering. That is the game's own
+        // takeover and stays silent; only control that stays off with nothing following is spoken.
+        auto* control=reinterpret_cast<uint8_t*>(address(0x1000000));
+        const std::wstring stuck=L"Auto walk stopped: player control disabled";
+        const auto spokeStuck=[&] {for(const auto& s:speech) if(s==stuck) return true;return false;};
+        begin();speech.clear();*control=0;hooks.at(0x471980)(e);updateAutoWalk();
+        check(speech.empty(),"control taken by the game is not spoken at once");
+        ++epoch;clockValue+=4000;updateAutoWalk();check(!spokeStuck(),"control taken before a room change stays silent");
+        begin();speech.clear();*control=0;hooks.at(0x471980)(e);clockValue+=1000;scene=3;updateAutoWalk();clockValue+=3000;updateAutoWalk();
+        check(!spokeStuck(),"control taken before a scene or message stays silent");scene=0;
+        begin();speech.clear();*control=0;hooks.at(0x471980)(e);clockValue+=1000;*control=2;updateAutoWalk();clockValue+=3000;updateAutoWalk();
+        check(!spokeStuck(),"control given back within the window stays silent");
+        begin({0,0,20});speech.clear();*control=0;hooks.at(0x471980)(e);clockValue+=3500;updateAutoWalk();
+        check(!spokeStuck(),"control taken near the destination is an arrival and stays silent");
+        begin();speech.clear();*control=0;updateAutoWalk();
+        check(speech.empty(),"a takeover noticed by the frame check is not spoken at once");
+        ++epoch;clockValue+=4000;updateAutoWalk();check(!spokeStuck(),"a frame-check takeover before a room change stays silent");*control=2;
+        begin();speech.clear();*control=0;hooks.at(0x471980)(e);clockValue+=3500;updateAutoWalk();
+        check(spokeStuck(),"control still off three seconds later away from the destination, with no scene or room change, is spoken");
+        *control=2;
+    }
     begin(); *reinterpret_cast<uint8_t*>(address(0x1000000))=0;
     check(!keyboard()[0xc8],"already disabled native field control cannot receive synthetic input");
     for(unsigned context=0;context<7;++context) {

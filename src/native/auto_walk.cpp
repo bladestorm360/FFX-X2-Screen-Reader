@@ -1,3 +1,4 @@
+#include <cwchar>
 #include "input_device.hpp"
 // Port of the user's FFXII navigation/auto_walk.cpp: camera-relative input,
 // same-poll manual priority, 250 ms stale mask, 600 ms interrupted field gap,
@@ -58,16 +59,40 @@ const wchar_t* unsafeReason() {
     return nativeFieldControlReason();
 }
 bool safe() {return !unsafeReason();}
+void announceStop(const wchar_t* spokenReason) {
+    TextPlan announcement;prepareTextPlan(announcement,"auto-walk",false);
+    announcement.headline=planConcat(announcement,planLiteral(announcement,L"Auto walk stopped: "),planLiteral(announcement,spokenReason));
+    commitTextPlan(announcement);
+}
 void stop(const char* reason,const wchar_t* spokenReason=nullptr,bool routeFailure=false) {
     const bool was=engaged.exchange(false); mask=0; cancel=false; stamp=0;messageGuard={};
     if(was) {
         recordLog("auto walk stopped: %s",reason);
-        if(spokenReason && epoch==generation() && (!routeFailure || claimNavRouteStopSpeech())) {
-            TextPlan announcement;prepareTextPlan(announcement,"auto-walk",false);
-            announcement.headline=planConcat(announcement,planLiteral(announcement,L"Auto walk stopped: "),planLiteral(announcement,spokenReason));
-            commitTextPlan(announcement);
-        }
+        if(spokenReason && epoch==generation() && (!routeFailure || claimNavRouteStopSpeech())) announceStop(spokenReason);
     }
+}
+// Exits, events and cutscenes take player control while the walk is still steering, so
+// control loss is usually the game's own takeover. Stop silently and speak it only if,
+// ControlTakeoverMs later, control is still off in the same room with no scene, message,
+// dialogue or battle following, and the walk was not already near its destination.
+constexpr uint64_t ControlTakeoverMs=3000;
+constexpr double NearDestinationUnits=33.39; // three walking steps
+struct ControlTakeover {unsigned epoch=0;uint64_t at=0;bool armed=false;} takeover;
+const wchar_t* const ControlDisabled=L"player control disabled";
+void controlTaken() {
+    if(!engaged) return;
+    NavLeg leg;const bool arriving=navLeg(leg) && distanceXZ(playerPosition(),leg.final)<=NearDestinationUnits;
+    stop(arriving?"player control disabled near the destination":"player control disabled");
+    takeover={};if(!arriving) takeover={epoch,nowMs(),true};
+}
+void serviceTakeover() {
+    if(!takeover.armed) return;
+    const auto reason=nativeFieldControlReason();
+    if(takeover.epoch!=generation() || scene || inBattle() || !reason || std::wcscmp(reason,ControlDisabled)!=0) {
+        recordLog("auto walk control takeover was scripted");takeover={};return;
+    }
+    if(nowMs()-takeover.at<ControlTakeoverMs) return;
+    takeover={};recordLog("auto walk control still disabled");announceStop(ControlDisabled);
 }
 bool messageAllowsAssist() {
     if(!messageGuard.candidate) return true;
@@ -90,16 +115,16 @@ void textOpened(Event& e) {
         messageGuard=fieldControlsForSource(slot,read<uintptr_t>(window+0x94));
         if(messageGuard.candidate) {messageAllowsAssist();return;}
     }
-    stop("dialogue",L"dialogue");
+    takeover={};stop("dialogue",L"dialogue");
 }
-void controlDisabled(Event&) { stop("player control disabled",L"player control disabled"); }
+void controlDisabled(Event&) { controlTaken(); }
 }
 void setNavigationInputAssist(NavigationKeyboardAssist keyAssist,NavigationControllerAssist padAssist) { keyboardAssist=keyAssist;controllerAssist=padAssist; }
-void stopAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("cancelled");else {engaged=false;cancel=true;mask=0;stamp=0;}}
+void stopAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) {takeover={};stop("cancelled");}else {engaged=false;cancel=true;mask=0;stamp=0;}}
 unsigned autoWalkInputRevision() {return manualRevision.load(std::memory_order_acquire);}
 bool autoWalkActive() { return engaged && !cancel; }
 void startAutoWalk() {
-    stop("new route");
+    stop("new route");takeover={};
     NavLeg leg;
     if(!safe() || !navLeg(leg) || leg.pendingCollision || leg.arrived || leg.target.inactive) return;
     // Ordinary octant/hysteresis steering can leave a narrow butterfly detour.
@@ -124,6 +149,7 @@ void startAutoWalk() {
     updateAutoWalk();
 }
 void updateAutoWalk() {
+    serviceTakeover();
     // The map announcement owns transition speech, including stale dialogue guards.
     if(engaged && epoch!=generation()) {stop("map changed");return;}
     if(!messageAllowsAssist()) {mask=0;return;}
@@ -131,6 +157,7 @@ void updateAutoWalk() {
     const auto now=nowMs();
     if(cancel) {stop("player input");return;}
     if(const auto reason=unsafeReason()) {
+        if(std::wcscmp(reason,ControlDisabled)==0) {controlTaken();return;}
         const bool explicitStop=!setting(Setting::AutoWalk) || modMenuActive() || utilityConsoleActive();
         stop("context",explicitStop?nullptr:reason);return;
     }
