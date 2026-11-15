@@ -85,6 +85,8 @@ std::vector<Point> interactionAnchors(const InteractionZone& zone,Point player) 
         for(const auto side:sides) anchors.push_back({zone.center.x+side.x*radius,zone.center.y,zone.center.z+side.z*radius});
         return anchors;
     }
+    if(distanceXZ(zone.approach,{})>.1)
+        return {{zone.center.x+zone.approach.x*std::max(0.0,zone.range-.5),zone.center.y,zone.center.z+zone.approach.z*std::max(0.0,zone.range-.5)}};
     const auto closest=onShape(zone,player);
     const double d=distanceXZ(player,closest),radius=std::max(0.0,zone.range-.25);
     Point desired=closest;
@@ -202,6 +204,11 @@ template<class Zone> static bool interactionEndpoint(const Zone& zone,Point p,bo
         return std::min(std::abs(x),std::abs(z))<=.65;
     }
     if(!insideShape(zone,p,true,horizontal)) return false;
+    // A guide sphere step names one face of a talk zone (Djose pedestal).
+    if(distanceXZ(zone.approach,{})>.1) {
+        const double x=p.x-zone.center.x,z=p.z-zone.center.z,along=x*zone.approach.x+z*zone.approach.z;
+        if(along<=0 || std::abs(x*zone.approach.z-z*zone.approach.x)>.65) return false;
+    }
     if(!zone.talk) return true;
     if(zone.viewAngle<=0) return false;
     const double facing=std::atan2(zone.center.z-p.z,zone.center.x-p.x);

@@ -48,6 +48,13 @@ void zoneFixtures() {
     check(!insert.empty() && inInteractionZone(slot,insert.back()) && !inInteractionZone(pedestal,insert.back()),
         "pedestal and recess have distinct actionable route endpoints");
     check(!inInteractionZone(pedestal,{50,0,30}),"equally scored overlapping controls cannot claim arrival");
+    // A guide sphere step names one pedestal face, so the route ends on it.
+    InteractionZone face; face.valid=true; face.shape=1; face.center={50,0,40}; face.range=6; face.height=5; face.talk=true; face.worker=7;
+    face.approach={1,0,0};
+    check(!inInteractionZone(face,{45,0,40}),"socket face zone refuses the opposite face");
+    check(!inInteractionZone(face,{50,0,45}),"socket face zone refuses a side face");
+    const auto east=interactionRoute(room,{20,0,40},face);
+    check(!east.empty() && inInteractionZone(face,east.back()) && east.back().x>53,"socket face route ends on the named face");
     pedestal.competing[0].viewAngle=.05;
     check(inInteractionZone(pedestal,{50,0,30}),"native facing cone excludes a competing control outside the facing direction");
     pedestal.competing[0].center=pedestal.center; pedestal.competing[0].range=100;

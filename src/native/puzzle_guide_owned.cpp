@@ -160,6 +160,19 @@ std::wstring ownedGuidePedestalStep(const nav::Scene& observation,const Entity& 
     if(!text.compare(0,tag.size(),tag)) text.erase(0,tag.size());
     return L"Guide step "+std::to_wstring(state.step-state.begin+1)+L": "+text;
 }
+bool ownedGuidePedestalFace(const nav::Scene& observation,const Entity& pedestal,Point& face) {
+    if(pedestal.pushControl!=3 || ownedGuidePedestalStep(observation,pedestal).empty()) return false;
+    const auto& state=storage.get();if(std::string_view(state.route->script)!="djyt0600") return false;
+    try {
+        // Djose W15 owns the east socket (0x9d) and W16 the west socket (0x9e).
+        // An insert goes to an empty socket, a take to a loaded one; east first.
+        const auto& step=state.route->steps[state.step];
+        const bool insert=step.done.low==0x0c000094 && step.done.value==0;
+        const int east=value(observation,state,0x0c00009d),west=value(observation,state,0x0c00009e);
+        const bool useEast=insert?east==0 || west!=0:east!=0 || west==0;
+        face={useEast?1.0:-1.0,0,0};return true;
+    } catch(...) {return false;}
+}
 void resetOwnedPuzzleGuide() {enabled=false;refreshPending=false;revision.fetch_add(1,std::memory_order_acq_rel);}
 bool ownedPuzzleGuideActive() {return enabled.load(std::memory_order_acquire);}
 unsigned ownedPuzzleGuideRevision() {return revision.load(std::memory_order_acquire);}

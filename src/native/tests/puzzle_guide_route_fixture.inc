@@ -144,13 +144,17 @@ std::wstring guidePedestalStep(const Entity& pedestal) {
     const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;
     auto text=ownedGuidePedestalStep(*fixtureGuideScene,pedestal);fixtureNativeOwner=previous;return text;
 }
+double guidePedestalFace(const Entity& pedestal) {
+    const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;Point face{};
+    const bool found=ownedGuidePedestalFace(*fixtureGuideScene,pedestal,face);fixtureNativeOwner=previous;return found?face.x:0;
+}
 // The guide holds its last exact step while a scene or an assisted push owns
 // the player, because the script is part-way through its writes. Manual F9 and
 // F10 selection starts from the last exact step, and pedestal arrival text
 // follows a selected step that is not a push.
 void guideSelectionFixture() {
     const std::vector<GuideStage> stages={
-        {"entry",{{0x0c000095,1},{0x0c000096,1},{0x0c00009b,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10}},0},
+        {"entry",{{0x0c000095,1},{0x0c000096,1},{0x0c00009b,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009e,0},{0x0c00009f,10}},0},
         {"door",{{0x0c000097,1},{0x0c000098,1},{0x0000028e,1},{0x0c0000a1,1}},0}};
     loadGuideRoute("djyt0600",stages);
     for(const auto& write:stages[0].writes) setValue(write.low,write.high,write.value,write.element);
@@ -183,6 +187,11 @@ void guideSelectionFixture() {
     const auto text=guidePedestalStep(pedestal);
     if(text.find(L"Guide step 11: Stand centred on the east face")!=0) std::fprintf(stderr,"pedestal arrival: %ls\n",text.c_str());
     check(text.find(L"Guide step 11: Stand centred on the east face")==0,"pedestal arrival follows the selected sphere step");
+    // W15 owns the east socket (0x9d), which holds the charged sphere.
+    setValue(0x0c00009d,1,3);fixturePuzzleGuideSync(OwnedGuideAction::Completed);
+    check(guidePedestalFace(pedestal)==1,"take step routes to the east socket face");
+    setValue(0x0c00009d,1,0);setValue(0x0c00009e,1,1);fixturePuzzleGuideSync(OwnedGuideAction::Completed);
+    check(guidePedestalFace(pedestal)==-1,"take step routes to the loaded west socket face");
     guideSays(OwnedGuideAction::Previous,L"Step 10 of","manual previous to the reset tile");
     guideSays(OwnedGuideAction::Previous,L"Step 9 of","manual previous to the push step");
     check(guidePedestalStep(pedestal).empty(),"pedestal arrival keeps push text for a push step");

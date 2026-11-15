@@ -99,7 +99,18 @@ void emit(const Pending& event,std::wstring text,const char* producer,bool inter
 void lockSelected() {
     auto& s=owned();const auto rows=filtered();s.selection=s.selected<rows.size()?key(*rows[s.selected]):EntityKey{};interested.store(true,std::memory_order_release);
 }
+// A selected guide sphere step routes the pedestal to the socket face it
+// names, using the sphere recess zone, instead of to a push position.
+void guideTargets(const nav::Scene& observation,std::vector<Entity>& found) {
+    for(auto& e:found) {
+        Point face;if(!e.pushControl || !ownedGuidePedestalFace(observation,e,face)) continue;
+        const auto recess=std::find_if(found.begin(),found.end(),[&](const Entity& r) {return r.worker==e.worker && !r.pushControl && r.name==L"Pedestal sphere recess";});
+        if(recess==found.end() || !recess->zone.valid) continue;
+        recess->zone.approach=face;e.zone=recess->zone;e.inactive=recess->inactive;
+    }
+}
 std::wstring instruction(const Entity& target) {
+    if(auto guided=ownedGuidePedestalStep(owned().observation,target);!guided.empty()) return guided;
     auto& s=owned();PedestalPlan plan;if(!nav::scenePedestalPlan(s.observation,target,plan)) return L"The current pedestal state is unavailable.";
     auto controls=s.observation.controls;controls.swap=false;const auto context=copiedControlContext(controls);
     const bool single=!plan.moves.empty() && plan.moves.front().mode==PushMode::Single;
@@ -268,6 +279,7 @@ void receiveScene(const speechq::Header& header,const nav::SceneObservation& cap
     if(!ready) {nav::navigationWaitingForData(true);return;}
     if(overflow) {for(const auto& event:s.pending) emit(event,L"Navigation names exceed the supported observation capacity. The command is unavailable.","navigation-data-unavailable",false);s.pending.clear();nav::navigationWaitingForData(false);return;}
     if(missing) {if(names.count!=s.names.count) {s.names=names;nav::requestNavigationAreaNames(names);}nav::navigationWaitingForData(true);return;}
+    guideTargets(observation,found);
     const auto& geometry=observation.geometry;
     const bool sameMesh=s.haveMesh && reach::sameGeometry(s.meshContext.geometry,geometry.geometry) && s.meshContext.swimming==geometry.swimming && s.meshContext.waterBake==geometry.waterBake && s.meshContext.waterCrossings==geometry.waterCrossings && nav::sameRouteEvents(s.meshContext.events,geometry.events) &&
         s.meshContext.collision.actorFlags==geometry.collision.actorFlags && s.meshContext.collision.actorIsControlled==geometry.collision.actorIsControlled &&
