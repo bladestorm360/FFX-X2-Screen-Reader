@@ -417,6 +417,7 @@ internal static class InstallerTests
     [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
     private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string title);
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
 
     // Screen readers must hear '&' in result text such as a backup folder under
     // "FFX&X-2 HD Remaster". The dialog opens on a hidden desktop, so the test
@@ -424,32 +425,56 @@ internal static class InstallerTests
     private static void ResultMessageKeepsAmpersand()
     {
         const string text = @"Backup: C:\Games\FINAL FANTASY FFX&FFX-2 HD Remaster\FFX_SR_Install_Backups";
+        var names = new List<string>();
+        OnHiddenDesktop("Screen reader setup", "ShowMessage", new object[] { text, false }, 1, names);
+        Assert(names.Contains(text), "Screen readers hear the exact result text, including '&'");
+    }
+
+    // The uninstall question names the game folder, so it must keep '&' too, and No stays the default.
+    private static void UninstallConfirmationKeepsAmpersand()
+    {
+        const string folder = @"C:\Games\FINAL FANTASY FFX&FFX-2 HD Remaster";
+        var names = new List<string>();
+        object confirmed = OnHiddenDesktop("Uninstall screen reader", "ConfirmUninstall", new object[] { folder }, 7, names);
+        Assert(names.Exists(delegate(string name) { return name.StartsWith("Uninstall the screen reader from " + folder + "?", StringComparison.Ordinal); }),
+            "Screen readers hear the exact folder in the uninstall question, including '&'");
+        Assert(names.Contains("Default button: No"), "No is the default answer to the uninstall question");
+        Assert(confirmed is bool && !(bool)confirmed, "Answering No does not confirm uninstall");
+    }
+
+    // Opens an InstallerForm dialog on a hidden desktop, so the test never takes focus
+    // from the user's desktop. Collects its UI Automation names and the default button
+    // id, then presses the button with the given id. Returns the method's result.
+    private static object OnHiddenDesktop(string title, string method, object[] arguments, int press, List<string> names)
+    {
         IntPtr desktop = CreateDesktop("ffx-sr-tests-" + Guid.NewGuid().ToString("N"), IntPtr.Zero, IntPtr.Zero, 0, 0x10000000, IntPtr.Zero);
         Assert(desktop != IntPtr.Zero, "Hidden test desktop is created");
         Exception failure = null;
-        var names = new List<string>();
+        object result = null;
         var show = new Thread(delegate() {
             try {
                 SetThreadDesktop(desktop);
                 using (var window = new InstallerForm())
-                    typeof(InstallerForm).GetMethod("ShowMessage", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(window, new object[] { text, false });
+                    result = typeof(InstallerForm).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(window, arguments);
             } catch (Exception ex) { failure = ex; }
         });
         var read = new Thread(delegate() {
             try {
                 SetThreadDesktop(desktop);
                 IntPtr box = IntPtr.Zero;
-                for (int i = 0; i < 200 && box == IntPtr.Zero; i++) { Thread.Sleep(50); box = FindWindow("#32770", "Screen reader setup"); }
-                if (box == IntPtr.Zero) throw new InvalidOperationException("Result message did not open");
+                for (int i = 0; i < 200 && box == IntPtr.Zero; i++) { Thread.Sleep(50); box = FindWindow("#32770", title); }
+                if (box == IntPtr.Zero) throw new InvalidOperationException(title + " did not open");
                 Thread.Sleep(300);
                 foreach (System.Windows.Automation.AutomationElement element in System.Windows.Automation.AutomationElement.FromHandle(box).FindAll(
                     System.Windows.Automation.TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition))
                     names.Add(element.Current.Name);
+                names.Add("Default button: " + DefaultButton(box));
                 // UI Automation Invoke needs keyboard input, which a hidden desktop has not.
-                // Press OK with TDM_CLICK_BUTTON (task dialog) or BM_CLICK (message box button).
-                PostMessage(box, 0x0466, new IntPtr(1), IntPtr.Zero);
-                IntPtr button = FindWindowEx(box, IntPtr.Zero, "Button", null);
-                if (button != IntPtr.Zero) PostMessage(button, 0x00F5, IntPtr.Zero, IntPtr.Zero);            } catch (Exception ex) { failure = failure ?? ex; }
+                // Press with TDM_CLICK_BUTTON (task dialog) or BM_CLICK (message box button).
+                PostMessage(box, 0x0466, new IntPtr(press), IntPtr.Zero);
+                IntPtr button = GetDlgItem(box, press);
+                if (button != IntPtr.Zero) PostMessage(button, 0x00F5, IntPtr.Zero, IntPtr.Zero);
+            } catch (Exception ex) { failure = failure ?? ex; }
         });
         show.SetApartmentState(ApartmentState.STA);
         read.SetApartmentState(ApartmentState.MTA);
@@ -457,9 +482,27 @@ internal static class InstallerTests
         show.Start(); read.Start();
         bool closed = read.Join(30000) && show.Join(10000);
         if (closed) CloseDesktop(desktop);
-        Assert(closed && failure == null, "Result message opens and closes" + (failure == null ? "" : ": " + failure));
-        Assert(names.Contains(text), "Screen readers hear the exact result text, including '&'");
+        Assert(closed && failure == null, title + " opens and closes" + (failure == null ? "" : ": " + failure));
+        return result;
     }
+
+    // The default button has the dialog's keyboard focus when it opens. Task dialog
+    // buttons have no control id, so name the focused button by its text.
+    private static string DefaultButton(IntPtr box)
+    {
+        int unused;
+        var info = new GuiThreadInfo(); info.Size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(GuiThreadInfo));
+        if (!GetGUIThreadInfo(GetWindowThreadProcessId(box, out unused), ref info) || info.Focus == IntPtr.Zero) return "";
+        var text = new StringBuilder(64); GetWindowText(info.Focus, text, text.Capacity);
+        return text.ToString().Replace("&", "");
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct GuiThreadInfo { public int Size, Flags; public IntPtr Active, Focus, Capture, MenuOwner, MoveSize, Caret; public int Left, Top, Right, Bottom; }
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(int thread, ref GuiThreadInfo info);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern int GetWindowThreadProcessId(IntPtr window, out int process);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, StringBuilder text, int capacity);
 
     private static void RegistryConfirmation() {
         var method = typeof(InstallerForm).GetMethod("RegistryConfirmation", BindingFlags.Static | BindingFlags.NonPublic);
@@ -491,6 +534,7 @@ internal static class InstallerTests
             InstallerSecurityTests.Run(fixture, Assert);
             InstallerSafetyTests.Run(fixture, Assert);
             ResultMessageKeepsAmpersand();
+            UninstallConfirmationKeepsAmpersand();
             foreach (string name in InstallerEngine.PayloadNames) {
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));

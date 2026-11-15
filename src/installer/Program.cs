@@ -215,12 +215,43 @@ namespace FfxScreenReader.Setup
         private void StartUninstall()
         {
             if (worker.IsBusy || selected.Text.Length == 0) return;
-            if (MessageBox.Show(this, "Uninstall the screen reader from " + selected.Text + "? Setup removes the screen reader files, including those of older versions, and restores the original launcher configuration. Saves, settings and other mods stay.",
-                "Uninstall screen reader", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
+            if (!ConfirmUninstall(selected.Text)) return;
             uninstalling = true;
             SetBusy(true);
             status.Text = "Checking the newest setup backup.";
             worker.RunWorkerAsync(selected.Text);
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential,
+            CharSet = System.Runtime.InteropServices.CharSet.Unicode, Pack = 1)]
+        private struct TaskDialogConfig
+        {
+            public int Size; public IntPtr Owner; public IntPtr Instance; public int Flags; public int CommonButtons;
+            public string Title; public IntPtr MainIcon; public string Instruction; public string Content;
+            public int ButtonCount; public IntPtr Buttons; public int DefaultButton;
+            public int RadioCount; public IntPtr Radios; public int DefaultRadio;
+            public string Verification; public string Expanded; public string ExpandedControl; public string CollapsedControl;
+            public IntPtr FooterIcon; public string Footer; public IntPtr Callback; public IntPtr CallbackData; public int Width;
+        }
+
+        [System.Runtime.InteropServices.DllImport("comctl32.dll", PreserveSig = false)]
+        private static extern void TaskDialogIndirect(ref TaskDialogConfig config, out int button, IntPtr radio, IntPtr verification);
+
+        // Same '&' problem as ShowMessage: the question names the game folder.
+        private bool ConfirmUninstall(string folder)
+        {
+            string text = "Uninstall the screen reader from " + folder + "? Setup removes the screen reader files, including those of older versions, and restores the original launcher configuration. Saves, settings and other mods stay.";
+            const string title = "Uninstall screen reader";
+            var config = new TaskDialogConfig {
+                Size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(TaskDialogConfig)), Owner = Handle,
+                Flags = 0x2 | 0x8, // TDF_USE_HICON_MAIN, TDF_ALLOW_DIALOG_CANCELLATION
+                CommonButtons = 0x2 | 0x4, // Yes, No
+                Title = title, MainIcon = SystemIcons.Question.Handle, Content = text,
+                DefaultButton = (int)DialogResult.No };
+            try { int button; TaskDialogIndirect(ref config, out button, IntPtr.Zero, IntPtr.Zero); return button == (int)DialogResult.Yes; }
+            catch (EntryPointNotFoundException) {
+                return MessageBox.Show(this, text, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+            }
         }
 
         private void SetBusy(bool busy)
