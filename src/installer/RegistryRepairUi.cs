@@ -16,7 +16,7 @@ namespace FfxScreenReader.Setup
         private readonly Button uninstall = new Button();
         private bool uninstalling;
         private void AddRegistryButtons(FlowLayoutPanel buttons) {
-            repair.Text = "&Repair launch redirection";
+            repair.Text = "Re&pair launch redirection";
             restore.Text = "Restore launch bac&kup";
             repair.AccessibleName = "Repair launch redirection";
             restore.AccessibleName = "Restore launch backup";

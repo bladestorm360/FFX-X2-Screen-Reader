@@ -405,6 +405,15 @@ internal static class InstallerTests
             Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Uninstall"; }).Enabled, "Uninstall must require selected installation");
             Assert(all.Find(delegate(Control c) { return c.AccessibleName == "Restore launch backup"; }) is Button, "Restore uses standard accessible button");
             Assert(window.AcceptButton == install && window.CancelButton != null, "Enter/Escape keyboard controls");
+            var keys = new Dictionary<char, string>();
+            foreach (Control control in all)
+            {
+                int at = control.Text.Replace("&&", "").IndexOf('&');
+                if (at < 0 || at + 1 >= control.Text.Replace("&&", "").Length) continue;
+                char key = Char.ToUpperInvariant(control.Text.Replace("&&", "")[at + 1]);
+                Assert(!keys.ContainsKey(key), "Access key Alt+" + key + " is used by both " + (keys.ContainsKey(key) ? keys[key] : "") + " and " + control.Text);
+                keys[key] = control.Text;
+            }
         }
     }
 
