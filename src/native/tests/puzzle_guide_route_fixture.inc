@@ -57,13 +57,16 @@ void djoseGuideRouteFixture() {
         {"take left circuit sphere",{{0x0c000094,1},{0x0c00009c,0}},8},
         {"insert charging recess 2 powers charger",{{0x0c00009a,1},{0x0c000094,0},{0x0c0000a1,1}},9},
         {"push loaded pedestal under charger",{{0x0c00009d,3},{0x0c0000a1,2}},0},
-        {"reset tile returns pedestal",{},0},
+        // Reset tile 67 writes only 0xd9=0, which is already 0 here, so the
+        // guide cannot see steps 10 and 11. The charged door recess (0x9b=3)
+        // stays set until step 19 and recovers the route.
+        {"reset tile returns pedestal",{{0x0c0000d9,0}},0},
         {"take charged sphere from east face",{{0x0c000094,3},{0x0c00009d,0}},0},
-        {"insert charged door recess",{{0x0c00009b,3},{0x0c000094,0}},0},
-        {"take charging recess 1",{{0x0c000094,1},{0x0c000099,0}},0},
-        {"insert west pedestal socket",{{0x0c00009e,1},{0x0c000094,0}},0},
-        {"take charging recess 2",{{0x0c000094,1},{0x0c00009a,0}},0},
-        {"insert east pedestal socket",{{0x0c00009d,1},{0x0c000094,0}},0},
+        {"insert charged door recess",{{0x0c00009b,3},{0x0c000094,0}},13},
+        {"take charging recess 1",{{0x0c000094,1},{0x0c000099,0}},14},
+        {"insert west pedestal socket",{{0x0c00009e,1},{0x0c000094,0}},15},
+        {"take charging recess 2",{{0x0c000094,1},{0x0c00009a,0}},16},
+        {"insert east pedestal socket",{{0x0c00009d,1},{0x0c000094,0}},17},
         {"push pedestal into gap",{{0x0c0000d9,1}},18},
         {"press gap switch",{{0x0c0000da,1}},19},
         {"take charged door sphere",{{0x0c000094,3},{0x0c00009b,0}},20},
@@ -84,6 +87,14 @@ void djoseGuideRouteFixture() {
     walkGuideRoute("djyt0600",{{"late start after hidden glyph",{{0x0000028e,1},{0x0c000095,1},{0x0c000096,1},{0x0c00009c,3},{0x0c00009f,10},
         {0x0c0000a1,2},{0x0c0000da,1},{0x0c0000db,1},{0x0c0000e5,2}},27}});
     walkGuideRoute("djyt0600",{{"late start after door",{{0x0000028e,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10},{0x0c000094,1}},6}});
+    // Taking from the wrong charging recess first does not count as step 13:
+    // that step waits for recess 1 (0x99) to be emptied.
+    walkGuideRoute("djyt0600",{
+        {"start after the charged door recess",{{0x0000028e,1},{0x0c00009b,3},{0x0c000099,1},{0x0c00009a,1},{0x0c0000a1,2}},13},
+        {"take charging recess 2 first",{{0x0c000094,1},{0x0c00009a,0}},13},
+        {"put it back",{{0x0c00009a,1},{0x0c000094,0}},13},
+        {"take charging recess 1",{{0x0c000094,1},{0x0c000099,0}},14},
+    });
     // Removing a sphere from a checked socket never moves the guide backward.
     walkGuideRoute("djyt0600",{
         {"insert door recesses",{{0x0c000097,1},{0x0c000098,1},{0x0000028e,1}},5},
