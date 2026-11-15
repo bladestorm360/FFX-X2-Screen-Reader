@@ -15,7 +15,11 @@ $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
 $test = Join-Path $fixture 'InstallerTests.exe'
 $productionSources = @(Get-ChildItem -LiteralPath $source -Filter '*.cs' | ForEach-Object { $_.FullName })
 $testSources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs' | ForEach-Object { $_.FullName })
-& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:InstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/out:$test") @testSources @productionSources
+# Same manifest as setup, so the result dialog test gets Common Controls 6 (TaskDialog).
+$wpf = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\WPF'
+& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:InstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll `
+    ("/reference:$wpf\UIAutomationClient.dll") ("/reference:$wpf\UIAutomationTypes.dll") ("/reference:$wpf\WindowsBase.dll") `
+    ('/win32manifest:' + (Join-Path $source 'setup.manifest')) ("/out:$test") @testSources @productionSources
 if ($LASTEXITCODE -ne 0) { throw 'Installer test compilation failed.' }
 & $test $fixture
 if ($LASTEXITCODE -ne 0) { throw 'Synthetic installer tests failed.' }

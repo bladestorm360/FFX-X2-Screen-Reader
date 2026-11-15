@@ -408,6 +408,59 @@ internal static class InstallerTests
         }
     }
 
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr CreateDesktop(string name, IntPtr device, IntPtr mode, int flags, uint access, IntPtr attributes);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetThreadDesktop(IntPtr desktop);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool CloseDesktop(IntPtr desktop);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr FindWindow(string className, string title);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string title);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+
+    // Screen readers must hear '&' in result text such as a backup folder under
+    // "FFX&X-2 HD Remaster". The dialog opens on a hidden desktop, so the test
+    // never takes focus from the user's desktop.
+    private static void ResultMessageKeepsAmpersand()
+    {
+        const string text = @"Backup: C:\Games\FINAL FANTASY FFX&FFX-2 HD Remaster\FFX_SR_Install_Backups";
+        IntPtr desktop = CreateDesktop("ffx-sr-tests-" + Guid.NewGuid().ToString("N"), IntPtr.Zero, IntPtr.Zero, 0, 0x10000000, IntPtr.Zero);
+        Assert(desktop != IntPtr.Zero, "Hidden test desktop is created");
+        Exception failure = null;
+        var names = new List<string>();
+        var show = new Thread(delegate() {
+            try {
+                SetThreadDesktop(desktop);
+                using (var window = new InstallerForm())
+                    typeof(InstallerForm).GetMethod("ShowMessage", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(window, new object[] { text, false });
+            } catch (Exception ex) { failure = ex; }
+        });
+        var read = new Thread(delegate() {
+            try {
+                SetThreadDesktop(desktop);
+                IntPtr box = IntPtr.Zero;
+                for (int i = 0; i < 200 && box == IntPtr.Zero; i++) { Thread.Sleep(50); box = FindWindow("#32770", "Screen reader setup"); }
+                if (box == IntPtr.Zero) throw new InvalidOperationException("Result message did not open");
+                Thread.Sleep(300);
+                foreach (System.Windows.Automation.AutomationElement element in System.Windows.Automation.AutomationElement.FromHandle(box).FindAll(
+                    System.Windows.Automation.TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition))
+                    names.Add(element.Current.Name);
+                // UI Automation Invoke needs keyboard input, which a hidden desktop has not.
+                // Press OK with TDM_CLICK_BUTTON (task dialog) or BM_CLICK (message box button).
+                PostMessage(box, 0x0466, new IntPtr(1), IntPtr.Zero);
+                IntPtr button = FindWindowEx(box, IntPtr.Zero, "Button", null);
+                if (button != IntPtr.Zero) PostMessage(button, 0x00F5, IntPtr.Zero, IntPtr.Zero);            } catch (Exception ex) { failure = failure ?? ex; }
+        });
+        show.SetApartmentState(ApartmentState.STA);
+        read.SetApartmentState(ApartmentState.MTA);
+        show.IsBackground = read.IsBackground = true;
+        show.Start(); read.Start();
+        bool closed = read.Join(30000) && show.Join(10000);
+        if (closed) CloseDesktop(desktop);
+        Assert(closed && failure == null, "Result message opens and closes" + (failure == null ? "" : ": " + failure));
+        Assert(names.Contains(text), "Screen readers hear the exact result text, including '&'");
+    }
+
     private static void RegistryConfirmation() {
         var method = typeof(InstallerForm).GetMethod("RegistryConfirmation", BindingFlags.Static | BindingFlags.NonPublic);
         var entries = new List<LaunchRedirectRepair.Entry> { new LaunchRedirectRepair.Entry(Microsoft.Win32.RegistryView.Registry64, "FFX.exe", Microsoft.Win32.RegistryValueKind.String, "old-launcher.exe") };
@@ -437,6 +490,7 @@ internal static class InstallerTests
             fixture = Path.GetFullPath(args[0]); Directory.CreateDirectory(fixture);
             InstallerSecurityTests.Run(fixture, Assert);
             InstallerSafetyTests.Run(fixture, Assert);
+            ResultMessageKeepsAmpersand();
             foreach (string name in InstallerEngine.PayloadNames) {
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));

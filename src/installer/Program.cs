@@ -244,11 +244,20 @@ namespace FfxScreenReader.Setup
             ShowMessage((string)e.Result, false);
         }
 
+        [System.Runtime.InteropServices.DllImport("comctl32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, PreserveSig = false)]
+        private static extern void TaskDialog(IntPtr owner, IntPtr instance, string title, string instruction, string content,
+            int buttons, IntPtr icon, out int button);
+
         private void ShowMessage(string text, bool error)
         {
             status.Text = text;
-            MessageBox.Show(this, text, error ? "Setup could not finish" : "Screen reader setup", MessageBoxButtons.OK,
-                error ? MessageBoxIcon.Error : MessageBoxIcon.Information);
+            string title = error ? "Setup could not finish" : "Screen reader setup";
+            // Screen readers hear MessageBox text without '&' ("FFX&FFX-2" reads as "FFXFFX-2").
+            // TaskDialog text keeps it. TaskDialog needs Common Controls 6 from setup.manifest.
+            try { int button; TaskDialog(Handle, IntPtr.Zero, title, null, text, 1, new IntPtr(error ? 0xFFFE : 0xFFFD), out button); }
+            catch (EntryPointNotFoundException) {
+                MessageBox.Show(this, text, title, MessageBoxButtons.OK, error ? MessageBoxIcon.Error : MessageBoxIcon.Information);
+            }
             status.Focus();
             status.SelectionStart = 0;
             status.SelectionLength = 0;
