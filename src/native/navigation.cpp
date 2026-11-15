@@ -7,6 +7,7 @@
 #include "navigation_intents.hpp"
 #include "navigation_cancel.hpp"
 #include "intent_cancel_text.hpp"
+#include "route_text_cap.hpp"
 #include "camera_direction.hpp"
 #include "process_storage.hpp"
 #include "reachability.hpp"
@@ -180,7 +181,8 @@ void pathfind(const Pending& event,bool assist=false) {
         recordLog("auto walk refused: destination inactive worker=%d id=%u",target.worker,target.id);
         emit(event,nav::inactiveRouteText(label(target),routeDirectionsText(points,UnitsPerStep,setting(Setting::PartialSteps)!=0)),"navigation-action-refused");return;
     }
-    if(!assist && (target.butterfly || !setting(Setting::AutoWalk) || setting(Setting::AutoWalkPath))) {const auto directions=routeDirectionsText(points,UnitsPerStep,setting(Setting::PartialSteps)!=0);emit(event,directions.empty()?L"Inside the trigger zone":directions,"navigation-path");}
+    if(!assist && (target.butterfly || !setting(Setting::AutoWalk) || setting(Setting::AutoWalkPath))) {auto directions=routeDirectionsText(points,UnitsPerStep,setting(Setting::PartialSteps)!=0);
+        if(setting(Setting::AutoWalk) && !target.butterfly) directions=nav::capRouteText(directions);emit(event,directions.empty()?L"Inside the trigger zone":directions,"navigation-path");}
     if(setting(Setting::AutoWalk)) intent(event,target,assist?nav::Intent::AssistStart:target.pushControl?nav::Intent::ArmAndStart:nav::Intent::Start);
 }
 void execute(const Pending& event) {

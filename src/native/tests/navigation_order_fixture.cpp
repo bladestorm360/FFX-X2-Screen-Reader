@@ -1,6 +1,7 @@
 #include "../navigation_order.hpp"
 #include "../camera_direction.hpp"
 #include "../intent_cancel_text.hpp"
+#include "../route_text_cap.hpp"
 #include <cstdio>
 #include <string>
 #include <cstdlib>
@@ -152,6 +153,15 @@ int main() {
         check(!ffx::nav::reachabilityRefreshAllowed(true,false,true) && !ffx::nav::reachabilityRefreshAllowed(true,true,true),"a choice prompt keeps the last reachable list");
         check(!ffx::nav::reachabilityRefreshAllowed(false,true,false) && !ffx::nav::reachabilityRefreshAllowed(true,false,false),"a scene or a scripted freeze keeps the last reachable list");
         check(ffx::nav::reachabilityRefreshAllowed(true,true,false),"an open field with player control rechecks reachability");
+        // Djose Pedestal: "5 southwest, 1 south, bear right, 1 south, 1 southwest, bear right, ..."
+        // read fourteen parts before Auto walk started. Speak the first three legs and count the rest.
+        {
+            using ffx::nav::capRouteText;
+            const std::wstring pedestal=L"5 southwest, 1 south, bear right, 1 south, 1 southwest, bear right, 1 southwest, 1 west, bear right, 1 west, 1 northwest, bear right, 1 northwest, 1 north";
+            check(capRouteText(pedestal)==L"5 southwest, 1 south, bear right, 1 south, then 7 more turns","a long Auto walk route speaks three legs and counts the remaining turns");
+            check(capRouteText(L"2 southeast, 3 east, 1 north, 4 west")==L"2 southeast, 3 east, 1 north, then 1 more turn","one remaining turn is counted in the singular");
+            check(capRouteText(L"19 north, 2 northeast, 4 east")==L"19 north, 2 northeast, 4 east" && capRouteText(L"")==L"","a route of three legs or fewer is read in full");
+        }
         ffx::nav::ListStability list;
         list.observe(7,11,10000);check(!list.settled(10000),"the first scan in a new room omits N of M");
         list.observe(7,23,10400);check(!list.settled(10400),"a destination count that changed omits N of M");

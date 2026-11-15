@@ -519,7 +519,9 @@ Off restores ordinary pickup. The option is hidden outside Sin. Offline
 verified; gameplay confirmation is pending.
 
 **Speak auto walk path**, also in Navigation, defaults **Off**. Off announces
-only “Auto walking to [destination]” when starting. On reads the route first.
+only “Auto walking to [destination]” when starting. On reads the route first;
+a route with more than three legs reads the first three and then “then N more
+turns”. With Auto walk Off, the full route is read.
 
 For a trial pedestal, Backslash gives the push direction and remaining distance,
 or says to push once for an animation. Selection and P announce your current
