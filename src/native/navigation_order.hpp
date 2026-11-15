@@ -63,6 +63,10 @@ inline void collapseInactiveDuplicates(std::vector<Entity>& entities) {
 // a lift riding), verdicts describe a moving player, so the selection is kept and nothing is said;
 // the first command after control returns rescans and reports any real loss.
 inline bool selectionLossSpoken(bool fieldOpen,bool control) {return fieldOpen && control;}
+// Whether a rescan may start a new reachability check. A choice prompt freezes the player, and
+// a check taken then hid 11 of 19 Djose rows until the prompt closed. While a message, scene or
+// scripted freeze holds the field, the rows keep their last verdicts and no check starts.
+inline bool reachabilityRefreshAllowed(bool fieldOpen,bool control,bool message) {return fieldOpen && control && !message;}
 struct ListStability {
     unsigned epoch=0;size_t count=0;unsigned long long since=0;bool counted=false,checked=false,hidden=false;
     void observe(unsigned scanEpoch,size_t found,unsigned long long at) {

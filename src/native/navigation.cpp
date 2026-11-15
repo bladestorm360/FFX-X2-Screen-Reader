@@ -203,7 +203,8 @@ void execute(const Pending& event) {
     switch(query) {
     case nav::Query::Scan: {
         s.selection={};s.selected=0;clearNavRoute();nav::orderEntities(s.entities,{},key,false);
-        requestOwnedReachability(s.observation,s.entities,true);const auto rows=filtered();
+        if(nav::reachabilityRefreshAllowed(s.observation.allowed,s.observation.control,s.observation.message)) requestOwnedReachability(s.observation,s.entities,true);
+        const auto rows=filtered();
         emit(event,std::to_wstring(rows.size())+L" "+categories[s.category]+(s.category?L"s":L""),"navigation-scan");
         if(!rows.empty()) {announce(event,false);lockSelected();beacon(event);}break;
     }
@@ -301,7 +302,9 @@ void receiveScene(const speechq::Header& header,const nav::SceneObservation& cap
     nav::stageAirshipPassages(observation,s.mesh,found);nav::collapseInactiveDuplicates(found);
     nav::orderEntities(found,s.entities,key,s.selection.valid);nav::keepVerdicts(found,s.entities,key);
     s.entities=std::move(found);s.selected=0;s.list.observe(generation(),s.entities.size(),GetTickCount64());
-    s.meshContext=geometry;requestOwnedReachability(observation,s.entities,true);
+    s.meshContext=geometry;
+    if(nav::reachabilityRefreshAllowed(observation.allowed,observation.control,observation.message)) requestOwnedReachability(observation,s.entities,true);
+    else retireOwnedReachability();
     auto rows=filtered();bool kept=false;for(unsigned i=0;i<rows.size();++i) if(s.selection.valid && key(*rows[i])==s.selection) {s.selected=i;kept=true;break;}
     const bool lostSelection=s.selection.valid && !kept && nav::selectionLossSpoken(observation.allowed,observation.control);
     if(lostSelection) {

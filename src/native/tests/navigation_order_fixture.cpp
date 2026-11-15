@@ -146,6 +146,12 @@ int main() {
             ffx::nav::collapseInactiveDuplicates(spheres);
             check(spheres.size()==4 && spheres[0].worker==1 && spheres[1].worker==4 && spheres[2].worker==5 && spheres[3].worker==6,"inactive rows with one name at one spot collapse to the first; active, distant and differently named rows stay");
         }
+        // Djose: a Take / Do nothing choice froze the player and the reachable list shrank from 19 to
+        // 8 until the prompt closed. While a message, scene or scripted freeze holds the field, a
+        // rescan keeps the last verdicts instead of starting a new check.
+        check(!ffx::nav::reachabilityRefreshAllowed(true,false,true) && !ffx::nav::reachabilityRefreshAllowed(true,true,true),"a choice prompt keeps the last reachable list");
+        check(!ffx::nav::reachabilityRefreshAllowed(false,true,false) && !ffx::nav::reachabilityRefreshAllowed(true,false,false),"a scene or a scripted freeze keeps the last reachable list");
+        check(ffx::nav::reachabilityRefreshAllowed(true,true,false),"an open field with player control rechecks reachability");
         ffx::nav::ListStability list;
         list.observe(7,11,10000);check(!list.settled(10000),"the first scan in a new room omits N of M");
         list.observe(7,23,10400);check(!list.settled(10400),"a destination count that changed omits N of M");

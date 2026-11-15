@@ -564,7 +564,9 @@ with no connected collision route or reachable interaction zone. Destinations
 with unknown collision data remain listed. This option is also in F8. While a
 scene, message or scripted movement such as a pedestal dropping or a lift ride
 holds the field, a selected destination that becomes unreachable stays selected
-and nothing is announced; the next navigation command reports it.
+and nothing is announced; the next navigation command reports it. During such a
+pause, including a choice prompt that freezes the player, the list keeps its
+last reachability results and is checked again once you can move.
 
 ### FFX Makalania butterfly hunt
 
