@@ -24,6 +24,14 @@ template<class Key> void keepVerdicts(std::vector<Entity>& found,const std::vect
     for(const auto& e:previous) if(e.unreachable) hidden.insert(key(e));
     for(auto& e:found) e.unreachable=hidden.count(key(e))!=0;
 }
+// Index of the selected entity among the visible rows, or -1 when it is hidden or gone.
+// The selected row index counts visible rows only, so it must be found again whenever
+// visibility changes (Hide unreachable toggled) or "N of M" names the wrong row.
+template<class Key,class Selection,class Visible> int visibleRowOf(const std::vector<Entity>& entities,const Selection& selection,Key key,Visible visible) {
+    unsigned row=0;
+    for(const auto& e:entities) if(visible(e)) {if(key(e)==selection) return static_cast<int>(row);++row;}
+    return -1;
+}
 // Row to select when a reachability verdict hides the selected entity. The list keeps its order:
 // verdicts are matched to targets by position, so reordering would drop them and the hidden row
 // would come back. A negative step picks the visible row before the lost one, otherwise the row after.

@@ -200,6 +200,13 @@ void execute(const Pending& event) {
     case nav::Query::Path:pathfind(event);break;
     case nav::Query::Filter:
         adjustSetting(Setting::HideUnreachable,1);requestOwnedReachability(s.observation,s.entities);
+        // The row index counts visible rows only; find the selected destination again so "N of M"
+        // and the locked selection follow it rather than whatever row now has its old number.
+        if(s.selection.valid) {
+            int row=nav::visibleRowOf(s.entities,s.selection,key,visible);
+            if(row<0) row=nav::rowAfterLoss(s.entities,s.selection,key,visible,s.step);
+            s.selected=row<0?0u:static_cast<unsigned>(row);
+        }else if(s.selected>=filtered().size()) s.selected=0;
         emit(event,L"Hide unreachable destinations: "+settingValue(Setting::HideUnreachable)+(setting(Setting::HideUnreachable)?(ownedReachabilityChecking()?L". Checking reachability":L". Reachability unavailable; destinations remain listed"):L". "+std::to_wstring(filtered().size())+L" destinations"),"navigation-filter");
         if(!filtered().empty()) {announce(event,false);lockSelected();}break;
     case nav::Query::Beacon:beacon(event);break;

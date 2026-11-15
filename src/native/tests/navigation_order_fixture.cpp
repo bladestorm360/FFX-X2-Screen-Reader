@@ -83,6 +83,17 @@ int main() {
     check(settled.spoken==std::vector<int>({3,4,6,1,3}),"] after committed verdicts steps through reachable rows in order");
     for(int i=0;i<3;++i) {settled.press(-1);settled.settle(2,5);}
     check(settled.spoken==std::vector<int>({3,4,6,1,3,1,6,4}) && settled.lost==0,"[ after committed verdicts steps back through reachable rows");
+    // Toggling Hide unreachable changes which rows are visible, so the selected
+    // entity's row number must be found again for the "N of M" readout.
+    {
+        std::vector<ffx::Entity> list{row(1,1),row(2,2),row(3,3),row(4,4),row(5,5)};list[1].unreachable=list[2].unreachable=true;
+        const auto id=[](const ffx::Entity& e){return e.actor;};
+        const auto all=[](const ffx::Entity&){return true;};const auto reachable=[](const ffx::Entity& e){return !e.unreachable;};
+        check(ffx::nav::visibleRowOf(list,4,id,all)==3,"with every row shown the fourth destination is row 4 of 5");
+        check(ffx::nav::visibleRowOf(list,4,id,reachable)==1,"hiding two unreachable rows makes the same destination row 2 of 3");
+        check(ffx::nav::visibleRowOf(list,2,id,reachable)==-1,"a selected destination that becomes hidden has no visible row");
+        check(ffx::nav::visibleRowOf(list,9,id,all)==-1,"a destination that left the list has no row");
+    }
     // A message box or scripted scene is not a changed destination: say so. Losing focus, a menu,
     // the console or a battle are the player's own context changes and stay silent.
     {
