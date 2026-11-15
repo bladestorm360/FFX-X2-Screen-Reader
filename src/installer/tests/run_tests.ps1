@@ -1,13 +1,27 @@
+# PRISM root (holds packages\<package_id>\runtime): -PrismRoot, else FFX_SR_PRISM_ROOT,
+# else the repo's .local\prism. With none, the cases that need PRISM are skipped.
+param([string]$PrismRoot)
 $ErrorActionPreference = 'Stop'
 if ([IntPtr]::Size -ne 4 -or $PSVersionTable.PSEdition -eq 'Core') {
     $installerTestHost = Join-Path $env:WINDIR 'SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
-    & $installerTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    $forward = @(); if ($PrismRoot) { $forward = @('-PrismRoot', $PrismRoot) }
+    & $installerTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath @forward
     if ($LASTEXITCODE -ne 0) { throw 'x86 installer tests failed.' }
     return
 }
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $env:FFX_PRISM_TEST_LOCK = Join-Path $repo 'prism.lock.json'
-$env:FFX_PRISM_TEST_PACKAGE = 'D:\Games\Dev\codex\prism\packages\prism-0.18.3-b68e9c9-windows-x86-msvc-c17-1aa76c88\runtime'
+if (-not $PrismRoot) { $PrismRoot = $env:FFX_SR_PRISM_ROOT }
+if (-not $PrismRoot -and (Test-Path -LiteralPath (Join-Path $repo '.local\prism'))) { $PrismRoot = Join-Path $repo '.local\prism' }
+$env:FFX_PRISM_TEST_PACKAGE = ''
+if ($PrismRoot) {
+    $packageId = (Get-Content -LiteralPath $env:FFX_PRISM_TEST_LOCK -Raw | ConvertFrom-Json).package_id
+    $env:FFX_PRISM_TEST_PACKAGE = [IO.Path]::GetFullPath((Join-Path $PrismRoot "packages\$packageId\runtime"))
+    if (-not (Test-Path -LiteralPath $env:FFX_PRISM_TEST_PACKAGE)) { throw "PRISM runtime not found: $env:FFX_PRISM_TEST_PACKAGE" }
+    Write-Output "PRISM runtime: $env:FFX_PRISM_TEST_PACKAGE"
+} else {
+    Write-Output 'SKIP: no PRISM root (pass -PrismRoot, set FFX_SR_PRISM_ROOT, or add .local\prism). Cases that need PRISM are skipped.'
+}
 $source = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $fixture = Join-Path $repo ('install\windows-installer-tests-' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($fixture)
@@ -15,7 +29,11 @@ $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
 $test = Join-Path $fixture 'InstallerTests.exe'
 $productionSources = @(Get-ChildItem -LiteralPath $source -Filter '*.cs' | ForEach-Object { $_.FullName })
 $testSources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs' | ForEach-Object { $_.FullName })
-& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:InstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/out:$test") @testSources @productionSources
+# Same manifest as setup, so the result dialog test gets Common Controls 6 (TaskDialog).
+$wpf = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\WPF'
+& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:InstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll `
+    ("/reference:$wpf\UIAutomationClient.dll") ("/reference:$wpf\UIAutomationTypes.dll") ("/reference:$wpf\WindowsBase.dll") `
+    ('/win32manifest:' + (Join-Path $source 'setup.manifest')) ("/out:$test") @testSources @productionSources
 if ($LASTEXITCODE -ne 0) { throw 'Installer test compilation failed.' }
 & $test $fixture
 if ($LASTEXITCODE -ne 0) { throw 'Synthetic installer tests failed.' }
@@ -24,6 +42,10 @@ $ui = Join-Path $fixture 'InstallerUiCompileCheck.exe'
 & $compiler /nologo /target:winexe /platform:x86 /warnaserror+ ("/out:$ui") /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll @productionSources
 if ($LASTEXITCODE -ne 0) { throw 'Installer UI compilation failed.' }
 Write-Output 'PASS: real WinForms installer source compiled with warnings as errors.'
+if (-not $env:FFX_PRISM_TEST_PACKAGE) {
+    Write-Output 'SKIP: self-contained installer build, packaged EXE and corrupt-inventory checks need the PRISM runtime.'
+    return
+}
 # Build a self-contained EXE from fake x86 headers and inspect embedded resources.
 # These synthetic files are never loaded as native modules or executed as game files.
 $package = Join-Path $fixture 'synthetic-package'

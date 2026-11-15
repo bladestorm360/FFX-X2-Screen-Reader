@@ -41,7 +41,7 @@ internal static class InstallerTests
         File.WriteAllText(Path.Combine(path, "FFX&X-2_LAUNCHER.exe"), "Synthetic fixture; not a launcher executable.");
         Directory.CreateDirectory(Path.Combine(path, "magicFiles", "stock"));
         File.WriteAllText(Path.Combine(path, "magicFiles", "stock", "original.dll"), "Synthetic stock DLL");
-        PrismTestSupport.Prepare(path);
+        if (PrismTestSupport.Available) PrismTestSupport.Prepare(path);
         return path;
     }
 
@@ -168,7 +168,7 @@ internal static class InstallerTests
         Assert(File.ReadAllText(config + ".ffx_sr_original") == original, "Original XML backup preserved across repeat");
         foreach (string name in new[] { "FFXAccessibility.ini" })
             Assert(File.ReadAllText(Path.Combine(game, name)) == "original-" + name, "Unrelated file/settings changed");
-        Assert(!File.Exists(Path.Combine(game, "OtherMod.dll")) && File.Exists(Path.Combine(firstBackup, "OtherMod.dll")), "Other added DLL must be backed up and removed");
+        Assert(File.ReadAllText(Path.Combine(game, "OtherMod.dll")) == "original-OtherMod.dll" && !File.Exists(Path.Combine(firstBackup, "OtherMod.dll")), "Other added DLL stays in place");
         var xml = new XmlDocument(); xml.Load(config);
         Assert(xml.SelectNodes("/configuration/runtime/appDomainManagerType").Count == 1, "Repeat duplicated manager");
         Assert(xml.SelectSingleNode("/configuration/appSettings/add").Attributes["value"].Value == "yes", "Unrelated XML changed");
@@ -278,7 +278,7 @@ internal static class InstallerTests
         File.WriteAllText(config, "<configuration><appSettings><add key=\"Kept\" value=\"yes\"/></appSettings></configuration>");
         string backup = Engine().Install(game, delegate { });
         Assert(Path.Combine(backup, added).Length > 500, "Nested backup exercises paths well beyond MAX_PATH");
-        Assert(!File.Exists(Path.Combine(game, added)) && File.ReadAllText(Path.Combine(backup, added)) == "old nested mod", "Long nested module is backed up before cleanup");
+        Assert(File.ReadAllText(Path.Combine(game, added)) == "old nested mod" && File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains(added), "Long nested module stays in place and is reported");
         foreach (string name in InstallerEngine.PayloadNames)
             Assert(InstallerEngine.Hash(File.ReadAllBytes(Path.Combine(game, name))) == hashes[name], "Long-path payload hash: " + name);
         Assert(File.ReadAllText(Path.Combine(game, "FFXAccessibility.ini")) == "long-path settings", "Long-path settings preserved");
@@ -292,7 +292,7 @@ internal static class InstallerTests
             if (text == "Configuring launcher speech") throw new IOException("long-path rollback fixture");
         }); }, "Previous files were restored");
         Unchanged(game, before);
-        Assert(File.ReadAllText(Path.Combine(game, added)) == "rollback nested mod", "Long-path rollback restores removed nested module");
+        Assert(File.ReadAllText(Path.Combine(game, added)) == "rollback nested mod", "Long-path rollback leaves nested module alone");
         Reject(delegate { InstallerPaths.InGame(game, "..\\outside.dll"); }, "Invalid relative installation path");
         string unc = "\\\\server\\share\\" + new string('u', 80) + "\\" + new string('v', 80) + "\\" + new string('w', 80);
         Assert(Path.GetFullPath(unc) == unc, "Long UNC paths normalize without accessing the network");
@@ -311,12 +311,16 @@ internal static class InstallerTests
         File.WriteAllText(Path.Combine(game, "mods", "reader", "settings.ini"), "preserve");
         File.WriteAllText(Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config"), "<configuration><runtime><appDomainManagerAssembly value=\"ForeignReader, Version=1.0.0.0\"/><appDomainManagerType value=\"Foreign.Manager\"/><gcConcurrent enabled=\"true\"/></runtime></configuration>");
         File.WriteAllText(Path.Combine(game, "ForeignReader.dll"), "foreign reader");
+        var foreignBefore = Snapshot(game);
+        Reject(delegate { Engine().Install(game, delegate { }); }, "another AppDomainManager");
+        Unchanged(game, foreignBefore);
+        File.WriteAllText(Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config"), "<configuration><runtime><gcConcurrent enabled=\"true\"/></runtime></configuration>");
         string backup = Engine().Install(game, delegate { });
         foreach (string name in new[] { "dxgi.dll", "version.DLL", "mods/reader/foreign.dll", "mods/reader/plugin.asi", "ForeignReader.dll" })
-            Assert(!File.Exists(InstallerPaths.InGame(game, name)) && File.Exists(InstallerPaths.InGame(backup, name)), "Added module cleanup: " + name);
+            Assert(File.Exists(InstallerPaths.InGame(game, name)) && !File.Exists(InstallerPaths.InGame(backup, name)), "Added module stays in place: " + name);
         Assert(File.ReadAllText(Path.Combine(game, "mods", "reader", "settings.ini")) == "preserve", "Mod settings preserved");
         Assert(File.Exists(Path.Combine(game, "magicFiles", "stock", "original.dll")), "Stock nested DLL preserved");
-        Assert(File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains("mods\\reader\\foreign.dll"), "Relative removal report");
+        Assert(File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains("mods\\reader\\foreign.dll"), "Relative left-in-place report");
         var oldPayload = new Dictionary<string, byte[]>(payload);
         var oldHashes = new Dictionary<string, string>(hashes);
         const string savedAssistance = "; Upgrade must preserve both On and Off\r\n[Accessibility]\r\noverdrive_assist=1\r\njecht_assist=0\r\nlightning_auto_dodge=1\r\n[Controller]\r\nrepeat=7\r\n";
@@ -342,9 +346,9 @@ internal static class InstallerTests
         }
         Reject(delegate { InstallerPaths.InGame(game, "../outside.dll"); }, "Invalid relative");
         Reject(delegate { InstallerPaths.InGame(game, "C:/outside.dll"); }, "Invalid relative");
-        File.WriteAllText(Path.Combine(game, "late.dll"), "before"); before = Snapshot(game);
+        before = Snapshot(game);
         Reject(delegate { Engine().Install(game, delegate(string message) {
-            if (message == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "late.dll"), "changed during setup");
+            if (message == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "Tolk.dll"), "restored during setup");
         }); }, "appeared during setup");
         Unchanged(game, before);
         string linked = Game("Linked folder refusal");
@@ -384,7 +388,7 @@ internal static class InstallerTests
         using (var window = new InstallerForm())
         {
             var all = new List<Control>(); Controls(window, all);
-            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup" })
+            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup", "Uninstall" })
             {
                 Control found = all.Find(delegate(Control c) { return c.AccessibleName == name; });
                 Assert(found != null && found.TabStop, "Missing keyboard-accessible named control: " + name);
@@ -398,10 +402,116 @@ internal static class InstallerTests
             Control install = all.Find(delegate(Control c) { return c.AccessibleName == "Install"; });
             Assert(!install.Enabled, "Install must be disabled before a game folder is selected");
             Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Repair launch redirection"; }).Enabled, "Repair must require selected installation");
+            Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Uninstall"; }).Enabled, "Uninstall must require selected installation");
             Assert(all.Find(delegate(Control c) { return c.AccessibleName == "Restore launch backup"; }) is Button, "Restore uses standard accessible button");
             Assert(window.AcceptButton == install && window.CancelButton != null, "Enter/Escape keyboard controls");
+            var keys = new Dictionary<char, string>();
+            foreach (Control control in all)
+            {
+                int at = control.Text.Replace("&&", "").IndexOf('&');
+                if (at < 0 || at + 1 >= control.Text.Replace("&&", "").Length) continue;
+                char key = Char.ToUpperInvariant(control.Text.Replace("&&", "")[at + 1]);
+                Assert(!keys.ContainsKey(key), "Access key Alt+" + key + " is used by both " + (keys.ContainsKey(key) ? keys[key] : "") + " and " + control.Text);
+                keys[key] = control.Text;
+            }
         }
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr CreateDesktop(string name, IntPtr device, IntPtr mode, int flags, uint access, IntPtr attributes);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetThreadDesktop(IntPtr desktop);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool CloseDesktop(IntPtr desktop);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr FindWindow(string className, string title);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string title);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
+
+    // Screen readers must hear '&' in result text such as a backup folder under
+    // "FFX&X-2 HD Remaster". The dialog opens on a hidden desktop, so the test
+    // never takes focus from the user's desktop.
+    private static void ResultMessageKeepsAmpersand()
+    {
+        const string text = @"Backup: C:\Games\FINAL FANTASY FFX&FFX-2 HD Remaster\FFX_SR_Install_Backups";
+        var names = new List<string>();
+        OnHiddenDesktop("Screen reader setup", "ShowMessage", new object[] { text, false }, 1, names);
+        Assert(names.Contains(text), "Screen readers hear the exact result text, including '&'");
+    }
+
+    // The uninstall question names the game folder, so it must keep '&' too, and No stays the default.
+    private static void UninstallConfirmationKeepsAmpersand()
+    {
+        const string folder = @"C:\Games\FINAL FANTASY FFX&FFX-2 HD Remaster";
+        var names = new List<string>();
+        object confirmed = OnHiddenDesktop("Uninstall screen reader", "ConfirmUninstall", new object[] { folder }, 7, names);
+        Assert(names.Exists(delegate(string name) { return name.StartsWith("Uninstall the screen reader from " + folder + "?", StringComparison.Ordinal); }),
+            "Screen readers hear the exact folder in the uninstall question, including '&'");
+        Assert(names.Contains("Default button: No"), "No is the default answer to the uninstall question");
+        Assert(confirmed is bool && !(bool)confirmed, "Answering No does not confirm uninstall");
+    }
+
+    // Opens an InstallerForm dialog on a hidden desktop, so the test never takes focus
+    // from the user's desktop. Collects its UI Automation names and the default button
+    // id, then presses the button with the given id. Returns the method's result.
+    private static object OnHiddenDesktop(string title, string method, object[] arguments, int press, List<string> names)
+    {
+        IntPtr desktop = CreateDesktop("ffx-sr-tests-" + Guid.NewGuid().ToString("N"), IntPtr.Zero, IntPtr.Zero, 0, 0x10000000, IntPtr.Zero);
+        Assert(desktop != IntPtr.Zero, "Hidden test desktop is created");
+        Exception failure = null;
+        object result = null;
+        var show = new Thread(delegate() {
+            try {
+                SetThreadDesktop(desktop);
+                using (var window = new InstallerForm())
+                    result = typeof(InstallerForm).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(window, arguments);
+            } catch (Exception ex) { failure = ex; }
+        });
+        var read = new Thread(delegate() {
+            try {
+                SetThreadDesktop(desktop);
+                IntPtr box = IntPtr.Zero;
+                for (int i = 0; i < 200 && box == IntPtr.Zero; i++) { Thread.Sleep(50); box = FindWindow("#32770", title); }
+                if (box == IntPtr.Zero) throw new InvalidOperationException(title + " did not open");
+                Thread.Sleep(300);
+                foreach (System.Windows.Automation.AutomationElement element in System.Windows.Automation.AutomationElement.FromHandle(box).FindAll(
+                    System.Windows.Automation.TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition))
+                    names.Add(element.Current.Name);
+                names.Add("Default button: " + DefaultButton(box));
+                // UI Automation Invoke needs keyboard input, which a hidden desktop has not.
+                // Press with TDM_CLICK_BUTTON (task dialog) or BM_CLICK (message box button).
+                PostMessage(box, 0x0466, new IntPtr(press), IntPtr.Zero);
+                IntPtr button = GetDlgItem(box, press);
+                if (button != IntPtr.Zero) PostMessage(button, 0x00F5, IntPtr.Zero, IntPtr.Zero);
+            } catch (Exception ex) { failure = failure ?? ex; }
+        });
+        show.SetApartmentState(ApartmentState.STA);
+        read.SetApartmentState(ApartmentState.MTA);
+        show.IsBackground = read.IsBackground = true;
+        show.Start(); read.Start();
+        bool closed = read.Join(30000) && show.Join(10000);
+        if (closed) CloseDesktop(desktop);
+        Assert(closed && failure == null, title + " opens and closes" + (failure == null ? "" : ": " + failure));
+        return result;
+    }
+
+    // The default button has the dialog's keyboard focus when it opens. Task dialog
+    // buttons have no control id, so name the focused button by its text.
+    private static string DefaultButton(IntPtr box)
+    {
+        int unused;
+        var info = new GuiThreadInfo(); info.Size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(GuiThreadInfo));
+        if (!GetGUIThreadInfo(GetWindowThreadProcessId(box, out unused), ref info) || info.Focus == IntPtr.Zero) return "";
+        var text = new StringBuilder(64); GetWindowText(info.Focus, text, text.Capacity);
+        return text.ToString().Replace("&", "");
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct GuiThreadInfo { public int Size, Flags; public IntPtr Active, Focus, Capture, MenuOwner, MoveSize, Caret; public int Left, Top, Right, Bottom; }
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(int thread, ref GuiThreadInfo info);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern int GetWindowThreadProcessId(IntPtr window, out int process);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, StringBuilder text, int capacity);
 
     private static void RegistryConfirmation() {
         var method = typeof(InstallerForm).GetMethod("RegistryConfirmation", BindingFlags.Static | BindingFlags.NonPublic);
@@ -431,11 +541,17 @@ internal static class InstallerTests
             if (args[0] == "--embedded") return EmbeddedInstallerTests.Run(args[1], args[2]);
             fixture = Path.GetFullPath(args[0]); Directory.CreateDirectory(fixture);
             InstallerSecurityTests.Run(fixture, Assert);
+            InstallerSafetyTests.Run(fixture, Assert);
+            ResultMessageKeepsAmpersand();
+            UninstallConfirmationKeepsAmpersand();
             foreach (string name in InstallerEngine.PayloadNames) {
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));
             }
-            SteamAppManifestTests.Run(fixture, Assert); LaunchRedirectRepairTests.Run(fixture, Assert); LargeAddressIdentity(); Discovery(); LongPaths(); Installation(); Migration(); ProcessRefusal(); AccessibleControls(); RegistryConfirmation();
+            SteamAppManifestTests.Run(fixture, Assert); LaunchRedirectRepairTests.Run(fixture, Assert); LargeAddressIdentity(); Discovery();
+            if (PrismTestSupport.Available) { LongPaths(); Installation(); Migration(); ProcessRefusal(); }
+            else Console.WriteLine("SKIP: LongPaths, Installation, Migration, ProcessRefusal need the PRISM runtime (FFX_PRISM_TEST_PACKAGE is not set).");
+            AccessibleControls(); RegistryConfirmation();
             Console.WriteLine("PASS: " + checks + " synthetic installer assertions; discovery/case dedup, 7 payload hashes, Prism preflight/runtime preservation, XML/settings/repeat, legacy backups, refusals and rollback.");
             Console.WriteLine("Fixtures retained: " + fixture);
             return 0;

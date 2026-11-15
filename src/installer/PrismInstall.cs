@@ -75,6 +75,26 @@ namespace FfxScreenReader.Setup
             return new JavaScriptSerializer().Serialize(data);
         }
 
+        // The runtime must still be exactly the locked package and receipt.
+        public void Verify(string directory)
+        {
+            PrismPrerequisite.Require(InstallerPaths.Full(directory).TrimEnd(Path.DirectorySeparatorChar), sourceLock);
+        }
+
+        // Removes a verified runtime that this setup installed. The folder is first
+        // renamed to .PrismRuntime.backup.* so the game never loads a partial runtime;
+        // Verify guarantees it holds only the locked files and the receipt.
+        public void Remove(string directory)
+        {
+            string game = InstallerPaths.Full(directory).TrimEnd(Path.DirectorySeparatorChar);
+            Verify(game);
+            string removing = InstallerPaths.InGame(game, ".PrismRuntime.backup." + Guid.NewGuid().ToString("N"));
+            Directory.Move(InstallerPaths.InGame(game, "PrismRuntime"), removing);
+            foreach (string name in package.Files.Keys) File.Delete(Path.Combine(removing, name));
+            File.Delete(Path.Combine(removing, "prism-install.json"));
+            Directory.Delete(removing);
+        }
+
         public string Install(string directory, Action<string> status)
         {
             string game = InstallerPaths.Full(directory).TrimEnd(Path.DirectorySeparatorChar);
