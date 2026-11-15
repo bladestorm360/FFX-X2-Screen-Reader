@@ -134,6 +134,37 @@ void djoseGuideRouteFixture() {
         {"take a door sphere back",{{0x0c000097,0},{0x0c000094,1}},6},
     });
 }
+void besaidGuideRouteFixture() {
+    // bsyt0100: 0xac carried sphere (1 Besaid, 2 Glyph, 3 Destruction);
+    // 0xb0 Glyph source (w39), 0xb4 door recess (w40, w41), 0xb8 hidden
+    // recess (w42), 0xbc Destruction source (w43), 0xc0 Besaid recess (w46)
+    // and 0xcc pedestal socket (w44). The one-shot flags are 0xec entry
+    // glyph, 0xd4 door glyph, 0xd8 door insert, 0xdc hidden insert, 0xe0
+    // pedestal insert, 0xe4 wall symbols and 0xe8 Destruction insert.
+    walkGuideRoute("bsyt0100",{
+        {"enter the trial",{{0x5c0000b0,2},{0x5c0000bc,3},{0x5c0000c0,1}},1},
+        {"touch entry glyph",{{0x5c0000ec,1}},2},
+        {"touch door glyph",{{0x5c0000d4,1}},3},
+        {"take Glyph Sphere",{{0x5c0000ac,2},{0x5c0000b0,0}},4},
+        {"insert door recess",{{0x5c0000ac,0},{0x5c0000b4,2},{0x5c0000d8,1}},5},
+        {"retrieve Glyph from door recess",{{0x5c0000ac,2},{0x5c0000b4,0}},6},
+        {"insert hidden recess",{{0x5c0000ac,0},{0x5c0000b8,2},{0x5c0000dc,1}},7},
+        {"touch wall symbols",{{0x5c0000e4,1}},8},
+        {"take Besaid Sphere",{{0x5c0000ac,1},{0x5c0000c0,0}},9},
+        {"insert pedestal",{{0x5c0000e0,1},{0x5c0000ac,0},{0x5c0000cc,1}},10},
+        {"take Destruction Sphere",{{0x5c0000ac,3},{0x5c0000bc,0}},11},
+        {"insert Destruction in Besaid recess",{{0x5c0000ac,0},{0x5c0000c0,3},{0x5c0000e8,1}},12},
+        {"open Destruction treasure",{{0x01000a70,1}},13},
+    });
+    walkGuideRoute("bsyt0100",{{"late start after treasure",{{0x5c0000ec,1},{0x5c0000e8,1},{0x01000a70,1}},13}});
+    // w44 writes 0xac=1 and 0xcc=0 when the Besaid Sphere is taken back out
+    // of the pedestal, and 0xac=0 and 0xcc=1 when it is put back.
+    walkGuideRoute("bsyt0100",{
+        {"enter after the wall symbols",{{0x5c0000ec,1},{0x5c0000d4,1},{0x5c0000d8,1},{0x5c0000dc,1},{0x5c0000e4,1},{0x5c0000ac,1},{0x5c0000c0,0}},9},
+        {"insert pedestal",{{0x5c0000e0,1},{0x5c0000ac,0},{0x5c0000cc,1}},10},
+        {"take back and put back pedestal sphere",{{0x5c0000ac,1},{0x5c0000cc,0},{0x5c0000ac,0},{0x5c0000cc,1}},10},
+    });
+}
 void kilikaGuideRouteFixture() {
     // klyt1000: 0x5b carried sphere (1-3 Kilika, 4 Glyph, 6 Destruction);
     // 0x59/0x5a/0x5c/0x5d/0x5e/0x5f/0x61/0x62 recess sockets; 0x5d becomes 5
@@ -333,6 +364,7 @@ void zanarkandGuideRouteFixture() {
 }
 void puzzleGuideRouteFixtures() {
     djoseGuideRouteFixture();
+    besaidGuideRouteFixture();
     kilikaGuideRouteFixture();
     macalaniaGuideRouteFixture();
     bevelleGuideRouteFixture();
