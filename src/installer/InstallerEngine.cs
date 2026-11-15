@@ -105,6 +105,42 @@ namespace FfxScreenReader.Setup
             return xml;
         }
 
+        // Returns the configuration without this mod's AppDomainManager entries, the
+        // same bytes when it has none, or null when it is not a launcher configuration.
+        private static byte[] WithoutReader(byte[] bytes)
+        {
+            var xml = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+            try
+            {
+                using (var stream = new MemoryStream(bytes))
+                using (XmlReader reader = XmlReader.Create(stream, settings)) xml.Load(reader);
+            }
+            catch (XmlException) { return null; }
+            if (xml.DocumentElement == null || xml.DocumentElement.Name != "configuration") return null;
+            bool changed = false;
+            foreach (XmlElement runtime in Nodes(xml.SelectNodes("/configuration/runtime")))
+            {
+                foreach (XmlElement node in Nodes(runtime.SelectNodes("appDomainManagerAssembly|appDomainManagerType")))
+                {
+                    string value = node.GetAttribute("value");
+                    if (value == ManagerType || value == "FFXLauncherReader" || value.StartsWith("FFXLauncherReader,", StringComparison.Ordinal))
+                    { runtime.RemoveChild(node); changed = true; }
+                }
+                if (changed && runtime.SelectNodes("*").Count == 0) runtime.ParentNode.RemoveChild(runtime);
+            }
+            if (!changed) return bytes;
+            using (var output = new MemoryStream()) { xml.Save(output); return output.ToArray(); }
+        }
+
+        // A copy, so nodes can be removed while looping.
+        private static List<XmlNode> Nodes(XmlNodeList list)
+        {
+            var nodes = new List<XmlNode>();
+            foreach (XmlNode node in list) nodes.Add(node);
+            return nodes;
+        }
+
         public void ValidateDependencies()
         { new PrismInstall(readPayload, closedProcesses, delegate { }).ValidatePackage(); }
 
@@ -310,9 +346,11 @@ namespace FfxScreenReader.Setup
             foreach (string[] file in files)
             {
                 InstallerPaths.CheckOrdinaryFile(game, file[1]);
-                if (HashOrAbsent(InstallerPaths.InGame(game, file[1])) != file[3])
+                // The saved original may be replaced by hand; its content is checked below.
+                bool isOriginal = String.Equals(file[1], original, StringComparison.OrdinalIgnoreCase);
+                if (!isOriginal && HashOrAbsent(InstallerPaths.InGame(game, file[1])) != file[3])
                     throw UninstallRefused(file[1] + " changed after setup.");
-                if (String.Equals(file[1], original, StringComparison.OrdinalIgnoreCase) && file[3] != "absent") originalHash = file[3];
+                if (isOriginal && file[3] != "absent") originalHash = file[3];
                 if (Restores(file, previousOurs) && HashOrAbsent(InstallerPaths.InGame(backup, file[1])) != file[2])
                     throw UninstallRefused("The backup of " + file[1] + " is missing or changed.");
             }
@@ -324,11 +362,14 @@ namespace FfxScreenReader.Setup
             byte[] stockConfig = null;
             if (previousOurs || configLoadsReader)
             {
-                if (originalHash == null) throw UninstallRefused("The original launcher configuration " + original + " was not found.");
-                stockConfig = File.ReadAllBytes(InstallerPaths.InGame(game, original));
-                if (Hash(stockConfig) != originalHash) throw UninstallRefused(original + " changed after setup.");
-                if (Encoding.UTF8.GetString(stockConfig).IndexOf(ManagerType, StringComparison.Ordinal) >= 0)
-                    throw UninstallRefused(original + " still loads the screen reader.");
+                string next = " Copy a launcher configuration without FFXLauncherReader to " + original + ", then choose Uninstall again.";
+                string originalPath = InstallerPaths.InGame(game, original);
+                if (originalHash == null || !File.Exists(originalPath))
+                    throw UninstallRefused("The original launcher configuration " + original + " was not found." + next);
+                // An earlier dev deploy could save an original that loads the reader. Keep
+                // everything in it except the reader's own entries.
+                stockConfig = WithoutReader(File.ReadAllBytes(originalPath));
+                if (stockConfig == null) throw UninstallRefused(original + " is not a launcher configuration." + next);
             }
             var prism = new PrismInstall(readPayload, closedProcesses, delegate { });
             if (prismState == "installed")

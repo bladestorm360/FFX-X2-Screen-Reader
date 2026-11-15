@@ -43,6 +43,7 @@ internal static class InstallerSafetyTests
         UpgradeFromFridaBuild();
         BackupFailureKeepsUninstall();
         LeftoverLauncherConfiguration();
+        LauncherOriginalRecovers();
         UninstallRefuses();
         UninstallFailureKeepsLauncher();
     }
@@ -333,12 +334,37 @@ internal static class InstallerSafetyTests
 
         string unusable = Game("Leftover 1.x launcher configuration without a usable original");
         config = Path.Combine(unusable, "FFX&X-2_LAUNCHER.exe.config");
-        File.WriteAllText(config + ".ffx_sr_original", reader);
+        File.WriteAllText(config + ".ffx_sr_original", "not a configuration");
         File.WriteAllText(config, reader);
         Engine().Install(unusable, delegate { });
         var before = Snapshot(unusable);
-        Reject(delegate { Engine().Uninstall(unusable, delegate { }); }, "still loads the screen reader", "Leftover original that loads the reader");
-        Unchanged(unusable, before, "Leftover original that loads the reader");
+        Reject(delegate { Engine().Uninstall(unusable, delegate { }); }, "then choose Uninstall again", "Unreadable leftover original names the next step");
+        Unchanged(unusable, before, "Unreadable leftover original");
+    }
+
+    // A dev deploy (src\launcher\install.ps1) could save an original that already loads
+    // the reader, and a user may replace that file by hand. Neither may block uninstall.
+    private static void LauncherOriginalRecovers()
+    {
+        string reader = "<configuration><runtime><appDomainManagerAssembly value=\"FFXLauncherReader, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\"/>" +
+            "<appDomainManagerType value=\"FfxLauncher.ReaderDomainManager\"/></runtime><appSettings><add key=\"Kept\" value=\"yes\"/></appSettings></configuration>";
+        foreach (string label in new[] { "Original loads the reader", "Original replaced by hand" })
+        {
+            string game = Game(label);
+            string config = Path.Combine(game, "FFX&X-2_LAUNCHER.exe.config");
+            string stock = File.ReadAllText(config);
+            File.WriteAllText(Path.Combine(game, "FFXLauncherReader.dll"), "dev reader");
+            File.WriteAllText(config, reader);
+            File.WriteAllText(config + ".ffx_sr_original", reader);
+            Engine().Install(game, delegate { });
+            if (label == "Original replaced by hand") File.WriteAllText(config + ".ffx_sr_original", stock);
+            Engine().Uninstall(game, delegate { });
+            string restored = File.ReadAllText(config);
+            assert(restored.IndexOf("ReaderDomainManager", StringComparison.Ordinal) < 0 &&
+                restored.IndexOf("FFXLauncherReader", StringComparison.Ordinal) < 0 &&
+                restored.Contains("key=\"Kept\" value=\"yes\""), label + ": uninstall restores a configuration without the reader");
+            assert(!File.Exists(Path.Combine(game, "FFXLauncherReader.dll")), label + ": reader removed");
+        }
     }
 
     private static void UninstallRefuses()
