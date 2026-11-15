@@ -81,6 +81,17 @@ const PuzzleRoute sockets{"synthetic djose sockets",{
     step(gap,1,true,1),         // 6 push the pedestal into the gap
     PuzzleStep{L"",0,{},{0,1,0,0},false,true,false},
 }};
+// The Djose charger: two spheres go into the charging recesses, the charger
+// runs, then the route takes the first one back out of its recess.
+const PuzzleRoute charger{"synthetic djose charger",{
+    step(carry,1,false,54),     // 0 take the first sphere
+    step(recess,1,false,52),    // 1 insert it into charging recess 1
+    step(carry,1,false,55),     // 2 take the second sphere
+    step(recess2,1,false,53),   // 3 insert it into charging recess 2
+    step(gap,1,true,1),         // 4 the charger runs
+    step(carry,1,false,52),     // 5 take the sphere back out of charging recess 1
+    PuzzleStep{L"",0,{},{0,1,0,0},false,true,false},
+}};
 // The Bevelle opening: the rail pedestal node reads 1 once pushed onto the
 // entrance track and 19 once ridden. Riding moves it on; nothing is taken back.
 const PuzzleRoute bevelle{"synthetic bevelle",{
@@ -125,10 +136,37 @@ int main() {
     flags[carry]=3; check(expected(p)==8,"carried pickup still advances sequentially");
     flags[carry]=0; check(expected(p)==8,"a carried value that changes later does not move the guide back");
     flags[treasure]=1; check(expected(p)==9,"treasure expects the final unchecked step");
-    // A placement before a later passed checkpoint is durable: routes empty
-    // some of them as part of later steps.
-    flags[hidden]=0; check(expected(p)==9,"a placement before a later checkpoint does not move the guide back");
-    flags[hidden]=1;
+    // A placement before a later passed checkpoint, emptied with its sphere in
+    // hand, moves the guide back to it. Emptied with nothing in hand, it stays
+    // passed: the guide cannot see where that sphere went.
+    flags[hidden]=0; check(expected(p)==9,"an emptied placement behind a checkpoint with nothing in hand stays passed");
+    flags[carry]=2;
+    const auto behind=expected(p);
+    if(behind!=3) std::fprintf(stderr,"expected step index %u after taking the hidden recess sphere back out behind later checkpoints, want 3\n",behind);
+    check(behind==3,"taking a sphere back out behind a later checkpoint moves the guide back to it");
+    check(expected(p)==3,"the placement behind the checkpoint stays expected on later reads");
+    flags[carry]=0; check(expected(p)==3,"putting that sphere down elsewhere keeps the placement expected");
+    flags[hidden]=1; check(expected(p)==9,"reinserting it resumes after the latest checkpoint");
+    {
+        // The Djose door opening clears both door recesses as the door
+        // checkpoint passes. That is the route using the spheres up.
+        PuzzleProgress o; flags={{carry,1}};
+        check(expected(o,djose)==1,"door: carrying the first sphere expects door recess 1");
+        flags[carry]=0; flags[door]=1; check(expected(o,djose)==2,"door: door recess 1 expects the second sphere");
+        flags[carry]=1; check(expected(o,djose)==3,"door: carrying the second sphere expects door recess 2");
+        flags[carry]=0; flags[door]=0; flags[door2]=1; check(expected(o,djose)==4,"door: the door opening empties door recess 1 without moving the guide back");
+        flags[carry]=1; check(expected(o,djose)==5,"door: carrying another sphere later does not move the guide back to door recess 1");
+        // The script may clear door recess 1 after the door flag is set. Read
+        // late, while the next sphere is in hand, it is still used up.
+        PuzzleProgress l; flags={{carry,1}};
+        expected(l,djose); flags[carry]=0; flags[door]=1; expected(l,djose); flags[carry]=1; expected(l,djose);
+        flags[carry]=0; flags[door2]=1; check(expected(l,djose)==4,"door: the door opening expects the pedestal sphere");
+        flags[door]=0; flags[carry]=1; check(expected(l,djose)==5,"door: door recess 1 cleared late is still used up by the door");
+        PuzzleProgress w; flags={{carry,1}};
+        expected(w,djose); flags[carry]=0; flags[door]=1; expected(w,djose); flags[carry]=1; expected(w,djose);
+        flags[carry]=0; flags[door]=0; check(expected(w,djose)==1,"door: door recess 1 read empty before the door opens moves the guide back");
+        flags[door2]=1; check(expected(w,djose)==4,"door: the door opening then counts door recess 1 as used up");
+    }
     {
         // Two placements with no checkpoint between them. Emptying the earlier
         // one while the later one holds moves the guide back to the earlier one.
@@ -185,6 +223,21 @@ int main() {
         flags[carry]=0; flags[door]=1; check(expected(d,djose)==2,"djose: reinserting it expects the second entry sphere");
         flags[carry]=1; check(expected(d,djose)==3,"djose: carrying the second sphere expects door recess 2");
         flags[carry]=0; flags[door2]=1; check(expected(d,djose)==4,"djose: door recess 2 expects the pedestal sphere");
+    }
+    {
+        // A route step that takes a sphere back out later does not cover an
+        // undo before the guide reaches it, unless a checkpoint has passed.
+        PuzzleProgress c; flags={{carry,1}};
+        expected(c,charger); flags[carry]=0; flags[recess]=1;
+        check(expected(c,charger)==2,"charger: charging recess 1 expects the second sphere");
+        flags[recess]=0; flags[carry]=1;
+        const auto undo=expected(c,charger);
+        if(undo!=1) std::fprintf(stderr,"charger: expected step index %u after taking the sphere back out of charging recess 1 early, want 1\n",undo);
+        check(undo==1,"charger: taking it back out before the charger moves the guide back");
+        flags[recess]=1; flags[carry]=0; check(expected(c,charger)==2,"charger: reinserting it expects the second sphere");
+        flags[carry]=1; expected(c,charger); flags[carry]=0; flags[recess2]=1; flags[gap]=1;
+        check(expected(c,charger)==5,"charger: the charger expects the route pickup");
+        flags[recess]=0; flags[carry]=1; check(expected(c,charger)==6,"charger: the route pickup after the charger is not an undo");
     }
     {
         // Djose sockets: a sphere put back into its charging recess undoes the
