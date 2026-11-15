@@ -5,7 +5,7 @@ inline const PuzzleRoute puzzleRoutes[] = {
     {"bsyt0100", {
         {L"Target: Entry glyph. Touch the entry wall glyph.", 37, {-26.20171356201172, -19.530553817749023, 143.2293243408203}, {0x5c0000ec, 0x1, 1, 0}, true, false, true, L"Entry glyph"},
         {L"Target: Door glyph. Touch the glyph on the opened wall to enter the sphere corridor.", 38, {-6.775454998016357, -19.530553817749023, 112.53302001953125}, {0x5c0000d4, 0x1, 1, 0}, true, false, true, L"Door glyph"},
-        {L"Target: Glyph Sphere recess. Take the Glyph Sphere from its recess.", 39, {76.27716827392578, 8.36007308959961, 134.29029846191406}, {0x5c0000ac, 0x1, 2, 0}, true, false, false, L"Glyph Sphere recess"},
+        {L"Target: Glyph Sphere recess. Take the Glyph Sphere from its recess.", 39, {76.27716827392578, 8.36007308959961, 134.29029846191406}, {0x5c0000ac, 0x1, 2, 0}, true, false, false, L"Glyph Sphere recess", {0x5c0000b0, 0x1, 0, 0}},
         {L"Target: Door sphere recess 1. Insert the Glyph Sphere into the sealed door.", 40, {-24.32514762878418, 38.24881362915039, 85.58792114257812}, {0x5c0000d8, 0x1, 1, 0}, true, false, true, L"Door sphere recess 1"},
         {L"Target: Door sphere recess 2. Retrieve the Glyph Sphere from the door recess.", 41, {-32.747344970703125, 38.246376037597656, 77.14740753173828}, {0x5c0000ac, 0x1, 2, 0}, true, false, false, L"Door sphere recess 2"},
         {L"Target: Hidden sphere recess. Insert the Glyph Sphere into the hidden wall recess to reveal the Destruction Sphere.", 42, {65.91871643066406, 38.24881362915039, 3.9837660789489746}, {0x5c0000dc, 0x1, 1, 0}, true, false, true, L"Hidden sphere recess"},

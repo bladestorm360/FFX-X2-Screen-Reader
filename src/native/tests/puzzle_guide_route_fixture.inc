@@ -245,6 +245,19 @@ void besaidGuideRouteFixture() {
         {"insert pedestal",{{0x5c0000e0,1},{0x5c0000ac,0},{0x5c0000cc,1}},10},
         {"take back and put back pedestal sphere",{{0x5c0000ac,1},{0x5c0000cc,0},{0x5c0000ac,0},{0x5c0000cc,1}},10},
     });
+    // w39 writes 0xac=2 and 0xb0=0 when the Glyph Sphere is taken, and 0xac=0
+    // and 0xb0=2 when it is put back. The door insert also clears 0xac, so
+    // only the refilled source tells a put-back from the right move.
+    walkGuideRoute("bsyt0100",{
+        {"enter the trial",{{0x5c0000b0,2},{0x5c0000bc,3},{0x5c0000c0,1}},1},
+        {"touch entry glyph",{{0x5c0000ec,1}},2},
+        {"touch door glyph",{{0x5c0000d4,1}},3},
+        {"take Glyph Sphere",{{0x5c0000ac,2},{0x5c0000b0,0}},4},
+        {"put Glyph Sphere back",{{0x5c0000ac,0},{0x5c0000b0,2}},3},
+        {"take Glyph Sphere again",{{0x5c0000ac,2},{0x5c0000b0,0}},4},
+        {"empty hand before the door flag",{{0x5c0000ac,0}},4},
+        {"insert door recess",{{0x5c0000b4,2},{0x5c0000d8,1}},5},
+    });
 }
 void kilikaGuideRouteFixture() {
     // klyt1000: 0x5b carried sphere (1-3 Kilika, 4 Glyph, 6 Destruction);
