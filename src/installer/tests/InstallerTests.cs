@@ -41,7 +41,7 @@ internal static class InstallerTests
         File.WriteAllText(Path.Combine(path, "FFX&X-2_LAUNCHER.exe"), "Synthetic fixture; not a launcher executable.");
         Directory.CreateDirectory(Path.Combine(path, "magicFiles", "stock"));
         File.WriteAllText(Path.Combine(path, "magicFiles", "stock", "original.dll"), "Synthetic stock DLL");
-        PrismTestSupport.Prepare(path);
+        if (PrismTestSupport.Available) PrismTestSupport.Prepare(path);
         return path;
     }
 
@@ -539,7 +539,10 @@ internal static class InstallerTests
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));
             }
-            SteamAppManifestTests.Run(fixture, Assert); LaunchRedirectRepairTests.Run(fixture, Assert); LargeAddressIdentity(); Discovery(); LongPaths(); Installation(); Migration(); ProcessRefusal(); AccessibleControls(); RegistryConfirmation();
+            SteamAppManifestTests.Run(fixture, Assert); LaunchRedirectRepairTests.Run(fixture, Assert); LargeAddressIdentity(); Discovery();
+            if (PrismTestSupport.Available) { LongPaths(); Installation(); Migration(); ProcessRefusal(); }
+            else Console.WriteLine("SKIP: LongPaths, Installation, Migration, ProcessRefusal need the PRISM runtime (FFX_PRISM_TEST_PACKAGE is not set).");
+            AccessibleControls(); RegistryConfirmation();
             Console.WriteLine("PASS: " + checks + " synthetic installer assertions; discovery/case dedup, 7 payload hashes, Prism preflight/runtime preservation, XML/settings/repeat, legacy backups, refusals and rollback.");
             Console.WriteLine("Fixtures retained: " + fixture);
             return 0;
