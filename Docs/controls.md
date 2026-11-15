@@ -566,8 +566,9 @@ with no connected collision route or reachable interaction zone. Destinations
 with unknown collision data remain listed. Recesses, glyphs, pedestals, chests
 and save spheres are never hidden, and neither is the current puzzle guide
 step's target: when the check finds no route to one, it
-stays listed and its readout ends with **may be unreachable**. This option is
-also in F8. While a
+stays listed and its readout ends with **may be unreachable**. When a trial
+step changes the room, for example a wall or door opening, earlier results are
+dropped and every destination is checked again. This option is also in F8. While a
 scene, message or scripted movement such as a pedestal dropping or a lift ride
 holds the field, a selected destination that becomes unreachable stays selected
 and nothing is announced; the next navigation command reports it. During such a

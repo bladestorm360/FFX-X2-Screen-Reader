@@ -2,6 +2,7 @@
 #include "../camera_direction.hpp"
 #include "../intent_cancel_text.hpp"
 #include "../route_text_cap.hpp"
+#include <array>
 #include <cstdio>
 #include <string>
 #include <cstdlib>
@@ -221,6 +222,25 @@ int main() {
         check(guideStepRow(3,39,false,3,39,false),"the step's worker in the guide's part is its target");
         check(!guideStepRow(2,39,false,3,39,false) && !guideStepRow(3,40,false,3,39,false),"another part or worker is not the target");
         check(!guideStepRow(3,7,true,3,7,false) && guideStepRow(3,7,true,3,7,true),"a push row matches only a push step");
+    }
+    {
+        // Room state is the trial's script values (sphere inserted, wall destroyed). Verdicts from
+        // before a change are not carried onto the new scan; rows show until checked again.
+        struct Row {unsigned binding=0;int value=0;unsigned high=1,element=0;};
+        struct Bindings {std::array<Row,4> rows{};unsigned count=0;};
+        struct Part {Bindings bindings;bool bindingsReady=false;};
+        std::array<Part,2> parts{};parts[0].bindingsReady=true;parts[0].bindings.count=2;
+        parts[0].bindings.rows[0]={0x5c0000ac,0};parts[0].bindings.rows[1]={0x5c0000cc,0};
+        const auto before=ffx::nav::roomStateToken(parts,2);
+        check(ffx::nav::roomStateToken(parts,2)==before,"the same trial values give the same room state");
+        parts[1].bindings.count=1;parts[1].bindings.rows[0]={1,5};
+        check(ffx::nav::roomStateToken(parts,2)==before,"parts without ready values do not change the room state");
+        parts[0].bindings.rows[1].value=1;
+        check(ffx::nav::roomStateToken(parts,2)!=before,"a changed trial value changes the room state");
+        std::vector<ffx::Entity> earlier{row(1,1),row(2,2)};earlier[0].unreachable=true;
+        auto same=std::vector<ffx::Entity>{row(1,1),row(2,2)};ffx::nav::keepVerdicts(same,earlier,[](const ffx::Entity& e) {return e.actor;});
+        auto changed=std::vector<ffx::Entity>{row(1,1),row(2,2)};ffx::nav::keepVerdicts(changed,earlier,[](const ffx::Entity& e) {return e.actor;},false);
+        check(same[0].unreachable && !changed[0].unreachable,"a room state change drops carried verdicts until the next check");
     }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

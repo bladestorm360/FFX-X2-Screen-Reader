@@ -20,7 +20,9 @@ template<class Key> void orderEntities(std::vector<Entity>& found,const std::vec
 // until the next reachability result replaces it. A request reuses verdicts only when the context
 // and every target's facts are identical; any difference (a push target's contact bounds follow
 // the player's live body) started over with nothing hidden, so ] or [ landed on hidden rows.
-template<class Key> void keepVerdicts(std::vector<Entity>& found,const std::vector<Entity>& previous,Key key) {
+template<class Key> void keepVerdicts(std::vector<Entity>& found,const std::vector<Entity>& previous,Key key,bool sameRoomState=true) {
+    // After a room state change the old verdicts are stale; rows stay listed until checked again.
+    if(!sameRoomState) {for(auto& e:found) e.unreachable=false;return;}
     std::set<decltype(key(Entity{}))> hidden;
     for(const auto& e:previous) if(e.unreachable) hidden.insert(key(e));
     for(auto& e:found) e.unreachable=hidden.count(key(e))!=0;
@@ -36,6 +38,17 @@ inline bool hiddenAsUnreachable(const Entity& e,bool hideUnreachable,bool guideT
 // part, and is a push row exactly when the step pushes (the guide's own target lookup rule).
 inline bool guideStepRow(unsigned part,unsigned local,bool pushRow,unsigned stepPart,unsigned stepLocal,bool pushStep) {return part==stepPart && local==stepLocal && pushRow==pushStep;}
 inline const wchar_t* reachabilityNote(const Entity& e,bool hideUnreachable) {return hideUnreachable && e.unreachable?L", may be unreachable":L"";}
+// Room state for reachability: the trial script values captured for each part (sphere inserted,
+// wall destroyed, door opened). Walls and doors that open mid-trial change what is reachable
+// without changing the map, floor or collision gates, so cached verdicts must not outlive them.
+template<class Parts> unsigned roomStateToken(const Parts& parts,unsigned count) {
+    unsigned hash=2166136261u;const auto mix=[&](unsigned value) {for(unsigned i=0;i<4;++i) {hash^=(value>>(i*8))&0xffu;hash*=16777619u;}};
+    for(unsigned part=0;part<count && part<parts.size();++part) {
+        const auto& p=parts[part];if(!p.bindingsReady) continue;mix(part);
+        for(unsigned i=0;i<p.bindings.count && i<p.bindings.rows.size();++i) {const auto& row=p.bindings.rows[i];mix(row.binding);mix(row.high);mix(row.element);mix(static_cast<unsigned>(row.value));}
+    }
+    return hash;
+}
 // Index of the selected entity among the visible rows, or -1 when it is hidden or gone.
 // The selected row index counts visible rows only, so it must be found again whenever
 // visibility changes (Hide unreachable toggled) or "N of M" names the wrong row.

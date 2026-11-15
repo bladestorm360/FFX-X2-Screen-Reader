@@ -14,6 +14,7 @@
 #include "owned_mesh_decoder.hpp"
 #include "process_storage.hpp"
 #include "puzzle_guide_bindings.hpp"
+#include "navigation_order.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -143,6 +144,7 @@ bool captureNavigationScene(Scene& s,unsigned revision,bool needGeometry) {
         s.geometryValid=(!g.count || copyReadyRegion(g.triangles,s.triangles.data(),g.count*16,g.count*16)) &&
             (!g.vertexCount || copyReadyRegion(g.vertices,s.vertices.data(),g.vertexCount*8,g.vertexCount*8));
     }
+    s.geometry.roomState=roomStateToken(s.parts,s.partCount);
     return s.epoch==generation();
 }
 void captureNavigationAreaNames(Scene& s,const AreaNameDemand& demand) {

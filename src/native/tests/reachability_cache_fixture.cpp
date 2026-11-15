@@ -40,6 +40,7 @@ int main() {
     moved.floor=1;check(!sameContext(first,moved),"floor transition invalidates reachability");
     moved=first;moved.collision.remaps[0]=1;check(!sameContext(first,moved),"native gate change invalidates reachability");
     moved=first;++moved.geometry.epoch;check(!sameContext(first,moved),"map epoch invalidates reachability");
+    moved=first;moved.roomState=first.roomState+1;check(!sameContext(first,moved),"trial state change (a wall or door opening) invalidates reachability");
     first.floor=-1;moved=first;moved.player.x=4;check(sameContext(first,moved),"missing floor uses one-step position bucket");
     moved.player.x=12;check(!sameContext(first,moved),"missing floor crossing a bucket invalidates reachability");
     moved=first;moved.player.x=-.01;check(!sameContext(first,moved),"negative positions use floor buckets");
@@ -49,6 +50,10 @@ int main() {
     check(searches==initialSearches,"worker reuses actual verdict after a step on the same floor");
     submit(moved,2);check(searches==initialSearches+1 && checkedPlayer.x==4 && meshPlayer.x==4,"new target uses current player in reused mesh");
     moved.floor=1;submit(moved);check(searches==initialSearches+2,"new floor recomputes actual verdict");
+    // Besaid (F18): a cached "unreachable" verdict survived walls opening mid-trial. The same
+    // target is searched again once the room state changes.
+    moved.roomState=7;submit(moved);check(searches==initialSearches+3,"room state change recomputes the cached verdict");
+    submit(moved);check(searches==initialSearches+3,"unchanged room state keeps reusing the verdict");
     moved.swimming=true;moved.player.y=20;submit(moved,3);moved.player.y=30;submit(moved,4);
     check(planeY==30 && meshPlayer.y==30,"reused swimming mesh tracks current depth for new targets");
     std::puts("PASS: synthetic reachability floor cache, fallback buckets, invalidation, verdict reuse and swimming pose refresh.");

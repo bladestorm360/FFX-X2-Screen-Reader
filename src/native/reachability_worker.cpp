@@ -38,7 +38,7 @@ bool sameContext(const Context& a,const Context& b) {
     const auto bucket=[](double coordinate) {return std::floor(coordinate/11.13);};
     const bool samePosition=floorKnown || (bucket(a.player.x)==bucket(b.player.x) &&
         bucket(a.player.y)==bucket(b.player.y) && bucket(a.player.z)==bucket(b.player.z));
-    return a.actor==b.actor && sameGeometry(a.geometry,b.geometry) && a.floor==b.floor && a.swimming==b.swimming && a.waterBake==b.waterBake && a.waterCrossings==b.waterCrossings && nav::sameRouteEvents(a.events,b.events) &&
+    return a.actor==b.actor && a.roomState==b.roomState && sameGeometry(a.geometry,b.geometry) && a.floor==b.floor && a.swimming==b.swimming && a.waterBake==b.waterBake && a.waterCrossings==b.waterCrossings && nav::sameRouteEvents(a.events,b.events) &&
         samePosition &&
         a.collision.actorFlags==b.collision.actorFlags && a.collision.actorIsControlled==b.collision.actorIsControlled && a.collision.remaps==b.collision.remaps;
 }
