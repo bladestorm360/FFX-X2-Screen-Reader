@@ -191,5 +191,24 @@ int main() {
             hall.observe(10,7,at+200);check(!hall.totals(at+200,true,false),"a new room starts unsettled again");
         }
     }
+    {
+        // Besaid (F18): with Hide unreachable on, the trial's recesses, glyphs, chest and pedestal
+        // were hidden although Auto walk reached them. Interaction rows stay listed and say
+        // "may be unreachable"; only other rows (exits, people) are hidden.
+        using ffx::nav::hiddenAsUnreachable;using ffx::nav::reachabilityNote;
+        ffx::Entity recess;recess.name=L"Glyph Sphere recess";recess.category=L"Object";recess.authoredTrialControl=true;recess.unreachable=true;
+        ffx::Entity chest;chest.category=L"Treasure Chest";chest.unreachable=true;
+        ffx::Entity save;save.category=L"Save Sphere";save.unreachable=true;
+        ffx::Entity pedestal;pedestal.name=L"Pedestal";pedestal.category=L"Object";pedestal.pushControl=1;pedestal.unreachable=true;
+        ffx::Entity exit;exit.category=L"Exit";exit.unreachable=true;
+        ffx::Entity npc;npc.category=L"NPC";npc.unreachable=true;
+        check(!hiddenAsUnreachable(recess,true) && !hiddenAsUnreachable(chest,true) && !hiddenAsUnreachable(save,true) && !hiddenAsUnreachable(pedestal,true),
+            "recesses, glyphs, chests, save spheres and pedestals are never hidden as unreachable");
+        check(hiddenAsUnreachable(exit,true) && hiddenAsUnreachable(npc,true),"other unreachable rows are still hidden");
+        check(!hiddenAsUnreachable(exit,false) && !hiddenAsUnreachable(npc,false),"Hide unreachable off hides nothing");
+        auto reachable=recess;reachable.unreachable=false;
+        check(std::wstring(reachabilityNote(recess,true))==L", may be unreachable" && !*reachabilityNote(recess,false) && !*reachabilityNote(reachable,true),
+            "a listed row checked unreachable says so only while Hide unreachable is on");
+    }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

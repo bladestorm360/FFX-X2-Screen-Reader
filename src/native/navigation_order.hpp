@@ -25,6 +25,13 @@ template<class Key> void keepVerdicts(std::vector<Entity>& found,const std::vect
     for(const auto& e:previous) if(e.unreachable) hidden.insert(key(e));
     for(auto& e:found) e.unreachable=hidden.count(key(e))!=0;
 }
+// Hide unreachable trusts a background check over the modelled walk mesh. In Besaid that check
+// hid trial recesses, a glyph, the chest and the pedestal that Auto walk then reached, so rows
+// the player has to interact with (authored trial controls, pedestals, chests, save spheres)
+// stay listed and are only described as possibly unreachable. Other rows are still hidden.
+inline bool interactionRow(const Entity& e) {return e.pushControl || e.authoredTrialControl || e.category==L"Treasure Chest" || e.category==L"Save Sphere";}
+inline bool hiddenAsUnreachable(const Entity& e,bool hideUnreachable) {return hideUnreachable && e.unreachable && !interactionRow(e);}
+inline const wchar_t* reachabilityNote(const Entity& e,bool hideUnreachable) {return hideUnreachable && e.unreachable?L", may be unreachable":L"";}
 // Index of the selected entity among the visible rows, or -1 when it is hidden or gone.
 // The selected row index counts visible rows only, so it must be found again whenever
 // visibility changes (Hide unreachable toggled) or "N of M" names the wrong row.
