@@ -70,7 +70,7 @@ inline const PuzzleRoute puzzleRoutes[] = {
         {L"Target: Hidden glyph. Touch the hidden glyph beside the reset tile to reveal the Destruction Sphere.", 64, {-66.0, -10.0, 37.0}, {0x0c0000e5, 0x1, 2, 0}, true, false, true, L"Hidden glyph"},
         {L"Target: Destruction Sphere recess. Take the Destruction Sphere from the opened wall recess.", 62, {-64.7327651977539, -9.993024826049805, 70.65607452392578}, {0x0c000094, 0x1, 10, 0}, true, false, false, L"Destruction Sphere recess"},
         {L"Target: Central lift. Ride the central lift to the upper floor while carrying the Destruction Sphere.", 63, {0.0, -18.0, 50.0}, {0x0, 0x1, 0, 0}, false, true, false, L"Central lift"},
-        {L"Target: Upper pedestal 1. Push the first upper pedestal into its wall.", 56, {30.0, -67.0, 117.0}, {0x0c0000de, 0x1, 1, 0}, true, true, false, L"Upper pedestal 1"},
+        {L"Target: Upper pedestal 1. Push the first upper pedestal into its wall.", 56, {30.0, -67.0, 117.0}, {0x0c0000de, 0x1, 1, 0}, true, true, true, L"Upper pedestal 1"},
         {L"Target: Upper pedestal 2. Push the second upper pedestal into its wall.", 57, {27.0, -67.0, 151.0}, {0x0c0000df, 0x1, 1, 0}, true, true, false, L"Upper pedestal 2"},
         {L"Target: Upper pedestal 3. Push the third upper pedestal into its wall.", 58, {0.0, -67.0, 162.0}, {0x0c0000e0, 0x1, 1, 0}, true, true, false, L"Upper pedestal 3"},
         {L"Target: Upper pedestal 4. Push the fourth upper pedestal into its wall.", 59, {-27.0, -67.0, 151.0}, {0x0c0000e1, 0x1, 1, 0}, true, true, false, L"Upper pedestal 4"},

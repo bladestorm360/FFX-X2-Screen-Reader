@@ -78,7 +78,8 @@ void djoseGuideRouteFixture() {
         {"insert entry recess 2 completes lift circuit",{{0x0c000096,1},{0x0c000094,0},{0x0c0000db,1},{0x0c0000e5,1}},26},
         {"touch hidden glyph",{{0x0c0000e5,2}},27},
         {"take Destruction Sphere",{{0x0c000094,10},{0x0c00009f,0}},0},
-        {"push upper pedestals 1 to 4",{{0x0c0000de,1},{0x0c0000df,1},{0x0c0000e0,1},{0x0c0000e1,1}},0},
+        {"push upper pedestal 1",{{0x0c0000de,1}},30},
+        {"push upper pedestals 2 to 4",{{0x0c0000df,1},{0x0c0000e0,1},{0x0c0000e1,1}},33},
         {"push upper pedestal 5",{{0x0c0000e3,1}},34},
         {"insert Destruction Sphere",{{0x0c000094,0},{0x0c0000e3,2}},35},
         {"open Destruction treasure",{{0x01000a70,4}},36},
@@ -87,6 +88,14 @@ void djoseGuideRouteFixture() {
     walkGuideRoute("djyt0600",{{"late start after hidden glyph",{{0x0000028e,1},{0x0c000095,1},{0x0c000096,1},{0x0c00009c,3},{0x0c00009f,10},
         {0x0c0000a1,2},{0x0c0000da,1},{0x0c0000db,1},{0x0c0000e5,2}},27}});
     walkGuideRoute("djyt0600",{{"late start after door",{{0x0000028e,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10},{0x0c000094,1}},6}});
+    // Upper pedestal 1 (0xde) is never cleared, so it is a checkpoint after the
+    // unseen lift ride. Pedestals pushed out of order do not skip the first one.
+    walkGuideRoute("djyt0600",{
+        {"carry the Destruction Sphere upstairs",{{0x0000028e,1},{0x0c0000db,1},{0x0c0000e5,2},{0x0c000094,10},{0x0c00009f,0}},0},
+        {"push upper pedestal 3 first",{{0x0c0000e0,1}},0},
+        {"push upper pedestal 1",{{0x0c0000de,1}},30},
+        {"push upper pedestal 2",{{0x0c0000df,1}},32},
+    });
     // Taking from the wrong charging recess first does not count as step 13:
     // that step waits for recess 1 (0x99) to be emptied.
     walkGuideRoute("djyt0600",{
