@@ -210,5 +210,17 @@ int main() {
         check(std::wstring(reachabilityNote(recess,true))==L", may be unreachable" && !*reachabilityNote(recess,false) && !*reachabilityNote(reachable,true),
             "a listed row checked unreachable says so only while Hide unreachable is on");
     }
+    {
+        // The guide's current target is never hidden, whatever kind of row it is: the guide
+        // tells the player to go there, so the list must offer it.
+        using ffx::nav::hiddenAsUnreachable;using ffx::nav::guideStepRow;
+        ffx::Entity exit;exit.category=L"Exit";exit.unreachable=true;
+        check(!hiddenAsUnreachable(exit,true,true) && hiddenAsUnreachable(exit,true,false),"the guide's current target stays listed while other unreachable rows hide");
+        // Rows match the step like the guide's own target lookup: same script part and worker,
+        // and a push row only for a push step (a pedestal worker also lists its sphere recess).
+        check(guideStepRow(3,39,false,3,39,false),"the step's worker in the guide's part is its target");
+        check(!guideStepRow(2,39,false,3,39,false) && !guideStepRow(3,40,false,3,39,false),"another part or worker is not the target");
+        check(!guideStepRow(3,7,true,3,7,false) && guideStepRow(3,7,true,3,7,true),"a push row matches only a push step");
+    }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

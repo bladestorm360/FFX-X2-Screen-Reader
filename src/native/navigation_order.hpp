@@ -30,7 +30,11 @@ template<class Key> void keepVerdicts(std::vector<Entity>& found,const std::vect
 // the player has to interact with (authored trial controls, pedestals, chests, save spheres)
 // stay listed and are only described as possibly unreachable. Other rows are still hidden.
 inline bool interactionRow(const Entity& e) {return e.pushControl || e.authoredTrialControl || e.category==L"Treasure Chest" || e.category==L"Save Sphere";}
-inline bool hiddenAsUnreachable(const Entity& e,bool hideUnreachable) {return hideUnreachable && e.unreachable && !interactionRow(e);}
+// The puzzle guide's current target is never hidden either: the guide sends the player there.
+inline bool hiddenAsUnreachable(const Entity& e,bool hideUnreachable,bool guideTarget=false) {return hideUnreachable && e.unreachable && !guideTarget && !interactionRow(e);}
+// A row is the guide step's target when it comes from the step's worker in the guide's script
+// part, and is a push row exactly when the step pushes (the guide's own target lookup rule).
+inline bool guideStepRow(unsigned part,unsigned local,bool pushRow,unsigned stepPart,unsigned stepLocal,bool pushStep) {return part==stepPart && local==stepLocal && pushRow==pushStep;}
 inline const wchar_t* reachabilityNote(const Entity& e,bool hideUnreachable) {return hideUnreachable && e.unreachable?L", may be unreachable":L"";}
 // Index of the selected entity among the visible rows, or -1 when it is hidden or gone.
 // The selected row index counts visible rows only, so it must be found again whenever

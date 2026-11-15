@@ -92,7 +92,7 @@ ProcessStorage<Owned> storage;
 std::atomic<bool> interested{false};
 bool blocked=false;
 Owned& owned() {return storage.get();}
-bool visible(const Entity& e) {const auto& s=owned();return !nav::hiddenAsUnreachable(e,setting(Setting::HideUnreachable)!=0) && (!s.category || e.category==categories[s.category]);}
+bool visible(const Entity& e) {const auto& s=owned();return !nav::hiddenAsUnreachable(e,setting(Setting::HideUnreachable)!=0,ownedGuideStepTarget(s.observation,e)) && (!s.category || e.category==categories[s.category]);}
 std::vector<const Entity*> filtered() {
     std::vector<const Entity*> rows;for(const auto& e:owned().entities) if(visible(e)) rows.push_back(&e);
     return rows;

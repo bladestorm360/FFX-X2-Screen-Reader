@@ -564,7 +564,8 @@ The announcement queues behind existing speech.
 **U** — toggle the saved unreachable-destination filter. It hides destinations
 with no connected collision route or reachable interaction zone. Destinations
 with unknown collision data remain listed. Recesses, glyphs, pedestals, chests
-and save spheres are never hidden: when the check finds no route to one, it
+and save spheres are never hidden, and neither is the current puzzle guide
+step's target: when the check finds no route to one, it
 stays listed and its readout ends with **may be unreachable**. This option is
 also in F8. While a
 scene, message or scripted movement such as a pedestal dropping or a lift ride
