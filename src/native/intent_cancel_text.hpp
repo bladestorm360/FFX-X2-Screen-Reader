@@ -13,4 +13,11 @@ inline const wchar_t* intentCancelText(IntentRejection reason) {
     default: return L"Navigation action canceled because the player, input or destination changed. Request the route again.";
     }
 }
+// The field capture falls back to the first actor-table entry when the
+// controlled-actor pointer is not inside the table. The route can still be read
+// from that entry, but the native start requires the controlled actor, so an
+// action from such an observation could never run.
+inline const wchar_t* intentRefusalText(bool controlled) {
+    return controlled?nullptr:L"Auto walk unavailable: the game is not reporting the controlled character. Walk manually or try again after moving.";
+}
 }

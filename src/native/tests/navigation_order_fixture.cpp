@@ -102,6 +102,12 @@ int main() {
         check(changed.find(L"changed")!=std::wstring::npos,"a changed player, input or destination keeps the cancel message");
         check(message!=changed && message.find(L"message")!=std::wstring::npos,"a cancel caused by an open message says a message is open");
         check(intentCancelText(IntentRejection::Context)==nullptr,"a cancel caused by focus, menus, console or battle stays silent");
+        // The scene capture accepts the actor-table fallback when the controlled-actor pointer is
+        // outside the table, but the native start rejects that state every time. Refuse before
+        // queueing an action that cannot run, and say why.
+        const std::wstring refusal=ffx::nav::intentRefusalText(false)?ffx::nav::intentRefusalText(false):L"";
+        check(refusal.find(L"controlled character")!=std::wstring::npos,"an observation without the controlled character refuses Auto walk before queueing it");
+        check(ffx::nav::intentRefusalText(true)==nullptr,"an observation of the controlled character queues Auto walk");
     }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

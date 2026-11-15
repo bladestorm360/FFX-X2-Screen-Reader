@@ -60,7 +60,13 @@ bool qualify(unsigned slot,unsigned token) {
     if(scene) {lastRejection=IntentRejection::Message;return rejected("message or scene open",static_cast<unsigned>(scene.load()));}
     if(!gameFocused() || inBattle() || modMenuActive() || utilityConsoleActive()) {lastRejection=IntentRejection::Context;return rejected("focus, menu, console or battle");}
     const auto controller=read<uintptr_t>(address(0xf26ae8)),player=playerActor();
-    if(controller!=f.controller || read<uintptr_t>(controller+0x48)!=f.primary || player!=read<uintptr_t>(address(0xf00740))) return rejected("field controller or player");
+    const auto primary=read<uintptr_t>(controller+0x48),controlled=read<uintptr_t>(address(0xf00740));
+    if(controller!=f.controller || primary!=f.primary || player!=controlled) {
+        recordLog("navigation action rejected: field controller or player: controller %08x was %08x, primary %08x was %08x, player %08x controlled %08x, actors %08x count %u",
+            static_cast<unsigned>(controller),static_cast<unsigned>(f.controller),static_cast<unsigned>(primary),static_cast<unsigned>(f.primary),
+            static_cast<unsigned>(player),static_cast<unsigned>(controlled),static_cast<unsigned>(read<uintptr_t>(address(0x1fc44e4))),read<unsigned>(address(0x1fc44e0)));
+        return false;
+    }
     // Dialogue and scripted scenes take field control away before any window opens.
     if(!(read<uint8_t>(controller)&2)) {lastRejection=IntentRejection::Message;return rejected("field control disabled");}
     const auto count=read<uint16_t>(controller+0xc);if(!count || count>SceneWorkers || (!f.pointOnly && f.global>=count)) return rejected("worker count");
@@ -118,6 +124,8 @@ unsigned navigationIntentRevision() {return revision.load(std::memory_order_acqu
 void invalidateNavigationIntents() {revision.fetch_add(1,std::memory_order_acq_rel);}
 bool submitNavigationIntent(const Scene& observation,const Entity& target,Intent kind,unsigned manual,unsigned wantedRevision) {
     if(nativeGameThread() || !frames.ready() || (target.worker>=0 && static_cast<unsigned>(target.worker)>=observation.count) || wantedRevision!=navigationIntentRevision()) return false;
+    // qualify() requires the controlled actor; never queue an action it must refuse.
+    if(!observation.controlled) return false;
     const bool pointOnly=target.worker<0;if(pointOnly && (kind!=Intent::Start || target.pushControl)) return false;
     const WorkerFact* worker=pointOnly?nullptr:&observation.workers[target.worker];unsigned part=SceneParts;
     if(worker) {if(!worker->valid || worker->part>=observation.partCount) return false;part=worker->part;}

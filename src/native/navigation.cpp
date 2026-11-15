@@ -6,6 +6,7 @@
 #include "navigation_observations.hpp"
 #include "navigation_intents.hpp"
 #include "navigation_cancel.hpp"
+#include "intent_cancel_text.hpp"
 #include "camera_direction.hpp"
 #include "process_storage.hpp"
 #include "reachability.hpp"
@@ -122,6 +123,8 @@ void announce(const Pending& event,bool interrupt=true,bool index=true) {
     if(index) text+=menuIndex(s.selected,static_cast<unsigned>(rows.size()));emit(event,std::move(text),"navigation-selection",interrupt);
 }
 void intent(const Pending& event,const Entity& target,nav::Intent kind) {
+    const auto refusal=nav::intentRefusalText(owned().observation.controlled);
+    if(refusal && kind!=nav::Intent::AssistFailed) {emit(event,refusal,"navigation-action-refused",false);return;}
     if(!nav::submitNavigationIntent(owned().observation,target,kind,event.query.manual,event.query.intentRevision))
         emit(event,L"Navigation action is unavailable or busy. Request the route again after it recovers.","navigation-pressure",false);
 }
