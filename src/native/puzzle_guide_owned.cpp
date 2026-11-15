@@ -160,6 +160,16 @@ std::wstring ownedGuidePedestalStep(const nav::Scene& observation,const Entity& 
     if(!text.compare(0,tag.size(),tag)) text.erase(0,tag.size());
     return L"Guide step "+std::to_wstring(state.step-state.begin+1)+L": "+text;
 }
+bool ownedGuideTargetsTile(const nav::Scene& observation,const Entity& tile) {
+    if(nativeGameThread() || tile.pushControl || tile.worker<0 || static_cast<unsigned>(tile.worker)>=observation.count ||
+        !enabled.load(std::memory_order_acquire) || !storage.ready()) return false;
+    const auto& state=storage.get();
+    if(!state.route || state.epoch!=observation.epoch || state.revision!=revision.load(std::memory_order_acquire) || state.step>=state.end) return false;
+    const auto& step=state.route->steps[state.step];const auto& worker=observation.workers[tile.worker];
+    if(!worker.valid || worker.part>=observation.partCount || observation.parts[worker.part].span.chunk!=observation.primary || worker.local!=step.worker) return false;
+    // Only reset tiles: their step-on handler has no gate, so the row is usable.
+    return std::wstring_view(step.label).find(L"reset tile")!=std::wstring_view::npos;
+}
 bool ownedGuidePedestalFace(const nav::Scene& observation,const Entity& pedestal,Point& face) {
     if(pedestal.pushControl!=3 || ownedGuidePedestalStep(observation,pedestal).empty()) return false;
     const auto& state=storage.get();if(std::string_view(state.route->script)!="djyt0600") return false;

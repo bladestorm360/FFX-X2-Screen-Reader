@@ -100,9 +100,11 @@ void lockSelected() {
     auto& s=owned();const auto rows=filtered();s.selection=s.selected<rows.size()?key(*rows[s.selected]):EntityKey{};interested.store(true,std::memory_order_release);
 }
 // A selected guide sphere step routes the pedestal to the socket face it
-// names, using the sphere recess zone, instead of to a push position.
+// names, using the sphere recess zone, instead of to a push position. A
+// selected reset tile step lets auto walk reach the tile.
 void guideTargets(const nav::Scene& observation,std::vector<Entity>& found) {
     for(auto& e:found) {
+        if(e.inactive && e.zone.valid && ownedGuideTargetsTile(observation,e)) {e.inactive=false;continue;}
         Point face;if(!e.pushControl || !ownedGuidePedestalFace(observation,e,face)) continue;
         const auto recess=std::find_if(found.begin(),found.end(),[&](const Entity& r) {return r.worker==e.worker && !r.pushControl && r.name==L"Pedestal sphere recess";});
         if(recess==found.end() || !recess->zone.valid) continue;

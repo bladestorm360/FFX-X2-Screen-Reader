@@ -144,6 +144,14 @@ std::wstring guidePedestalStep(const Entity& pedestal) {
     const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;
     auto text=ownedGuidePedestalStep(*fixtureGuideScene,pedestal);fixtureNativeOwner=previous;return text;
 }
+// The reset tile row is listed inactive although stepping on it works.
+bool guideTargetsTile(unsigned local) {
+    static nav::Scene scene;scene=*fixtureGuideScene;scene.count=1;scene.workers[0]={};
+    scene.workers[0].valid=true;scene.workers[0].part=0;scene.workers[0].local=local;
+    Entity tile;tile.worker=0;tile.name=L"Pedestal reset tile";tile.inactive=true;
+    const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;
+    const bool found=ownedGuideTargetsTile(scene,tile);fixtureNativeOwner=previous;return found;
+}
 double guidePedestalFace(const Entity& pedestal) {
     const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;Point face{};
     const bool found=ownedGuidePedestalFace(*fixtureGuideScene,pedestal,face);fixtureNativeOwner=previous;return found?face.x:0;
@@ -193,8 +201,11 @@ void guideSelectionFixture() {
     setValue(0x0c00009d,1,0);setValue(0x0c00009e,1,1);fixturePuzzleGuideSync(OwnedGuideAction::Completed);
     check(guidePedestalFace(pedestal)==-1,"take step routes to the loaded west socket face");
     guideSays(OwnedGuideAction::Previous,L"Step 10 of","manual previous to the reset tile");
+    check(guideTargetsTile(67),"selected reset tile step lets auto walk reach the tile");
+    check(!guideTargetsTile(61),"selected reset tile step does not touch other controls");
     guideSays(OwnedGuideAction::Previous,L"Step 9 of","manual previous to the push step");
     check(guidePedestalStep(pedestal).empty(),"pedestal arrival keeps push text for a push step");
+    check(!guideTargetsTile(67),"reset tile stays as captured when the step is not the tile");
     resetOwnedPuzzleGuide();
 }
 void besaidGuideRouteFixture() {
