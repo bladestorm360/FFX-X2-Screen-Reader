@@ -364,8 +364,11 @@ namespace FfxScreenReader.Setup
             // After an upgrade the backed-up config loads the old reader; the saved original does not.
             // A hand-removed 1.x install leaves no marker, but its config still loads the reader.
             string savedConfig = InstallerPaths.InGame(backup, ConfigName);
+            // .NET reads the launcher config in the encoding its byte order mark names (UTF-16 from
+            // Notepad "Unicode"), so decode it the same way before searching.
             bool configLoadsReader = File.Exists(savedConfig) &&
-                Encoding.UTF8.GetString(File.ReadAllBytes(savedConfig)).IndexOf(ManagerType, StringComparison.Ordinal) >= 0;
+                new StreamReader(new MemoryStream(File.ReadAllBytes(savedConfig)), Encoding.UTF8, true).ReadToEnd()
+                    .IndexOf(ManagerType, StringComparison.Ordinal) >= 0;
             byte[] stockConfig = null;
             if (previousOurs || configLoadsReader)
             {

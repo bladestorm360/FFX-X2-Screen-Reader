@@ -338,6 +338,19 @@ internal static class InstallerSafetyTests
         assert(File.ReadAllText(config) == stock, "Uninstall restores the saved original, not a configuration that loads the removed reader");
         Unchanged(game, stockSnapshot, "Uninstall after a hand-removed 1.x install leaves the stock game");
 
+        // .NET reads a launcher configuration saved as UTF-16 (Notepad "Unicode") through its BOM.
+        string utf16 = Game("Leftover 1.x launcher configuration in UTF-16");
+        config = Path.Combine(utf16, "FFX&X-2_LAUNCHER.exe.config");
+        stock = File.ReadAllText(config);
+        stockSnapshot = Snapshot(utf16);
+        File.WriteAllText(config + ".ffx_sr_original", stock);
+        var unicode = new List<byte>(Encoding.Unicode.GetPreamble());
+        unicode.AddRange(Encoding.Unicode.GetBytes("<?xml version=\"1.0\" encoding=\"utf-16\"?>" + reader));
+        File.WriteAllBytes(config, unicode.ToArray());
+        Engine().Install(utf16, delegate { });
+        Engine().Uninstall(utf16, delegate { });
+        assert(File.ReadAllText(config) == stock, "Uninstall does not restore a UTF-16 configuration that loads the removed reader");
+        Unchanged(utf16, stockSnapshot, "Uninstall after a hand-removed 1.x install with a UTF-16 configuration");
 
         string unusable = Game("Leftover 1.x launcher configuration without a usable original");
         config = Path.Combine(unusable, "FFX&X-2_LAUNCHER.exe.config");
