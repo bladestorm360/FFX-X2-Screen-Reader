@@ -84,8 +84,11 @@ Entity target(const nav::Scene& observation,const State& state,const PuzzleStep&
     if(!result.pushControl && (step.fallback.x || step.fallback.y || step.fallback.z)) {result.position=step.fallback;return result;}
     throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
 }
-std::wstring instruction(const nav::Scene& observation,const Entity& target) {
+// step is the guide step that wants this push; its own signal decides when
+// the push is done, never the pedestal position.
+std::wstring instruction(const nav::Scene& observation,const Entity& target,const PuzzleStep* step=nullptr,bool stepDone=false) {
     if(!target.pushControl) return {};PedestalPlan plan;if(!nav::scenePedestalPlan(observation,target,plan)) return L"The current pedestal state is unavailable.";
+    if(step) {const auto text=pedestalStepText(plan,stepDone,step->done.low==0x0c0000d9 && step->done.value==1 && target.pushControl==3);if(!text.empty()) return text;}
     auto controls=observation.controls;controls.swap=false;const auto names=copiedControlContext(controls);const bool single=!plan.moves.empty() && plan.moves.front().mode==PushMode::Single;
     const unsigned raw=single?observation.confirmMask:0x40;const unsigned masks[]={0x10,0x20,0x40,0x80,4,8,1,2,0x800,0x100};std::vector<std::wstring> choices;
     for(unsigned i=0;i<_countof(masks);++i) if(raw&masks[i]) {const auto& name=names.glyphs[0x30+i];if(!name.empty() && name!=L"unassigned control") choices.push_back(name);}
@@ -176,7 +179,7 @@ std::wstring puzzleGuideOwned(OwnedGuideAction action,const nav::Scene& observat
         const int stage=value(observation,state,0x5c000004);if(selected==11 || (selected==1 && stage==0) || (selected>=2 && stage==static_cast<int>(selected-1))) {Point point;std::wstring label;if(tile(observation,state,point,label)) {Entity panel;panel.name=L"Floor puzzle panel";panel.position=point;return prefix+label+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,panel,false,manual,intentRevision):L"");}}}
     if(!std::strcmp(state.route->script,"bsyt0100") && current.worker==7 && value(observation,state,0x5c0000cc)!=1) return prefix+L"The Besaid Sphere must be in the pedestal before the final push. Insert it into the pedestal sphere recess first."+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,state.route->steps[8],entities),false,manual,intentRevision):L"");
     const bool held=settling(observation);
-    std::wstring push;if(pushStep(state,current) && !held) {try {push=instruction(observation,target(observation,state,current,entities));}catch(...) {}}
+    std::wstring push;if(pushStep(state,current) && !held) {try {push=instruction(observation,target(observation,state,current,entities),&current,done(observation,state,current));}catch(...) {}}
     if(held && action!=OwnedGuideAction::Path) push=L"Wait for the current scene or push to finish, then ask again.";
     return prefix+current.instruction+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,current,entities),current.platform,manual,intentRevision):push.empty()?L"":L" "+push);
 }

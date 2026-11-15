@@ -43,7 +43,9 @@ PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot
             move(plan,{0,p.y,86},0x1000);
         } else if(s.get(0x0c000099)>0 && s.get(0x0c000099)!=10 &&
                   s.get(0x0c00009a)>0 && s.get(0x0c00009a)!=10) {
-            plan.complete=p.x>69 && p.x<71 && p.z>22 && p.z<26;
+            // The charger writes 0xa1=2 once the sphere on top is charged.
+            // Position alone is not enough: a released push can stop there.
+            plan.complete=s.get(0x0c0000a1)==2;
             if(!plan.complete) {
                 if(std::abs(p.z-24)>1) move(plan,{p.x,p.y,24},p.z<24?0x1000:0x4000);
                 move(plan,{70,p.y,24},p.x<70?0x2000:0x8000);
@@ -118,6 +120,13 @@ std::wstring describePedestalPlan(const PedestalPlan& plan,Point position,const 
     const bool single=plan.moves.front().mode==PushMode::Single;
     return L"Push "+join(parts,L", then ")+L". "+(single?L"Press "+action+L" once. ":L"Hold "+action+L" and move in the announced direction. ")+
         L"With Auto walk on, hold "+action+L" to push into position.";
+}
+std::wstring pedestalStepText(const PedestalPlan& plan,bool stepDone,bool gapStep) {
+    if(stepDone) return {};
+    if(gapStep && plan.phase!=1 && !plan.complete)
+        return L"The pedestal is not ready for the gap. Both pedestal sockets need a sphere, and the charged Sphere door recess needs its charged sphere.";
+    if(plan.complete) return L"The pedestal has stopped, but this step is not finished yet. Check the previous steps.";
+    return {};
 }
 std::wstring describePedestalSide(Point pedestal,Point player) {
     const Point offset{player.x-pedestal.x,0,player.z-pedestal.z};

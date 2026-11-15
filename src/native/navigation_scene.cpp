@@ -47,7 +47,7 @@ void captureBindings(PartFact& part,uintptr_t controller,uintptr_t workerZero) {
     char name[9]{};if(!copy(span.chunk+nameAt,name,8)) return;
     const unsigned* rows=nullptr;unsigned count=0;
     static constexpr unsigned besaid[]={0x5c0000cc,0x5c000100},kilika[]={0x0c00005a,0x0c000064};
-    static constexpr unsigned djose[]={0x0c000099,0x0c00009a,0x0c00009b,0x0c00009d,0x0c00009e,0x0c0000d9,0x0c0000db,0x0c0000de,0x0c0000df,0x0c0000e0,0x0c0000e1,0x0c0000e2};
+    static constexpr unsigned djose[]={0x0c000099,0x0c00009a,0x0c00009b,0x0c00009d,0x0c00009e,0x0c0000a1,0x0c0000d9,0x0c0000db,0x0c0000de,0x0c0000df,0x0c0000e0,0x0c0000e1,0x0c0000e2};
     static constexpr unsigned macalania[]={0x0c000096,0x0c000097,0x0c0000a3,0x0c0000c6},bevelle[]={0x0c000007,0x0c000008,0x0c00001f,0x0c000020,0x0c000024,0x0c000029};
     if(!std::strcmp(name,"bsyt0100")) {rows=besaid;count=_countof(besaid);}
     else if(!std::strcmp(name,"klyt1000")) {rows=kilika;count=_countof(kilika);}
@@ -234,7 +234,7 @@ PedestalPlan copiedPedestalPlan(const Scene& s,const WorkerFact& w,const Entity&
     switch(e.pushControl) {
     case 1:value(0x5c0000cc);value(0x5c000100);break;
     case 2:value(0x0c00005a);value(0x0c000064);break;
-    case 3:for(unsigned low:{0x99u,0x9au,0x9bu,0x9du,0x9eu,0xd9u,0xdbu}) value(0x0c000000+low);break;
+    case 3:for(unsigned low:{0x99u,0x9au,0x9bu,0x9du,0x9eu,0xa1u,0xd9u,0xdbu}) value(0x0c000000+low);break;
     case 4:for(unsigned low:{0x96u,0x97u,0xa3u,0xc6u}) value(0x0c000000+low);break;
     case 5:value(0x0c0000de+e.pushLocal-56);break;
     case 6:value(0x0c000021);break;
