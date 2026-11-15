@@ -137,7 +137,7 @@ ROUTES = {
   ('Open the required Destruction Sphere chest.',16,'temple_treasure',16,False),
   ('For the separate optional chest, insert the remaining Bevelle Sphere into the upper platform sphere recess.',37,None,0,False),
   ('Push the empty rail pedestal onto the upper platform to reach the optional chest.',13,None,0,True),
-  ('Open the optional chest.',17,None,0,False),
+  ('Stay on the pedestal. The ride opens the optional chest when it arrives.',17,None,0,False),
   ('Leave for the antechamber.',56,None,0,False),
  ],
  'zanarkand': [

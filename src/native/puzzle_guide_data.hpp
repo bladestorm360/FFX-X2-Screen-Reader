@@ -132,8 +132,8 @@ inline const PuzzleRoute puzzleRoutes[] = {
         {L"Target: Lower rail power recess. Retrieve the Bevelle Sphere from the lower rail power recess before taking the final ascending rail.", 34, {359.70001220703125, 462.83843994140625, 543.5999755859375}, {0xd000032, 0xc0048, 1, 37}, true, false, false, L"Lower rail power recess"},
         {L"Target: Destruction Sphere treasure. Open the required Destruction Sphere chest.", 16, {-18.29863166809082, -453.1286926269531, 302.8455810546875}, {0x1000a70, 0x1, 16, 0}, true, false, true, L"Destruction Sphere treasure"},
         {L"Target: Upper platform sphere recess. For the separate optional chest, insert the remaining Bevelle Sphere into the upper platform sphere recess.", 37, {-50.20000076293945, -453.17724609375, 263.1000061035156}, {0xc000029, 0x1, 1, 0}, true, false, true, L"Upper platform sphere recess"},
-        {L"Target: Rail pedestal. Push the empty rail pedestal onto the upper platform to reach the optional chest.", 13, {-20.260332107543945, -460.01617431640625, -36.25043869018555}, {0x0, 0x1, 0, 0}, false, true, false, L"Rail pedestal"},
-        {L"Target: Second treasure chest. Open the optional chest.", 17, {-19.3751220703125, -454.6579895019531, 118.5524673461914}, {0xc00002a, 0x1, 1, 0}, true, false, true, L"Second treasure chest"},
+        {L"Target: Rail pedestal. Push the empty rail pedestal onto the upper platform to reach the optional chest.", 13, {-20.260332107543945, -460.01617431640625, -36.25043869018555}, {0xc000009, 0x1, 15, 0}, true, true, false, L"Rail pedestal"},
+        {L"Target: Second treasure chest. Stay on the pedestal. The ride opens the optional chest when it arrives.", 17, {-19.3751220703125, -454.6579895019531, 118.5524673461914}, {0xc00002a, 0x1, 1, 0}, true, false, true, L"Second treasure chest"},
         {L"Target: Exit to the antechamber. Leave for the antechamber.", 56, {-18.67501735687256, -453.1286926269531, 383.51300048828125}, {0x0, 0x1, 0, 0}, false, false, false, L"Exit to the antechamber"},
     }, 0},
     {"dome0700", {

@@ -222,9 +222,13 @@ void bevelleGuideRouteFixture() {
         {"insert Destruction Sphere in former Glyph recess",{bevelleSphere(5,1,0),bevelleSphere(5,7,1),{0x0c000026,1}},10},
         {"retrieve lower power recess sphere",{bevelleSphere(3,8,0),bevelleSphere(3,1,1)},11},
         {"open Destruction treasure",{{0x01000a70,16}},12},
-        {"insert upper platform recess",{bevelleSphere(3,1,0),bevelleSphere(3,10,1),{0x0c000029,1}},0},
-        {"push pedestal to upper platform",{{0x0c000008,66}},0},
-        {"open second chest",{{0x0c00002a,1}},15},
+        {"insert upper platform recess",{bevelleSphere(3,1,0),bevelleSphere(3,10,1),{0x0c000029,1}},13},
+        // w53 is the push zone for the emptied pedestal; it alone writes
+        // 0x09=15. w15 then rides to 0x08=66, gives the second chest (w17
+        // entry 7) and sets 0x2a, and only then rests the pedestal at 0x09=17.
+        {"push pedestal to upper platform",{{0x0c000009,15}},14},
+        {"ride reaches the second chest",{{0x0c000008,66}},14},
+        {"ride opens second chest",{{0x0c00002a,1},{0x0c000009,17}},15},
     });
     walkGuideRoute("bvyt1100",{{"late start after Glyph placed",{{0x0c000025,1},bevelleSphere(4,11,1)},8}});
     walkGuideRoute("bvyt1100",{{"late start after Destruction placed",{{0x0c000025,1},bevelleSphere(4,11,1),{0x0c000026,1}},10}});
