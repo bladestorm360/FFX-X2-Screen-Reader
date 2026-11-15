@@ -34,36 +34,53 @@ template<class Done,class Cleared> void advancePuzzleProgress(const PuzzleRoute&
     //   entry door, the Djose charging recesses). When a later carried-sphere
     //   step takes the sphere back out of the placement, and the guide has
     //   passed it or it reads as done now, the removal is that route step, so
-    //   the placement stays passed for this trial context. A step takes the
-    //   sphere back out when it targets the same worker as the placement
-    //   (Kilika, Djose), or when it directly follows a checkpoint placement and
-    //   carries the same sphere as the step before the placement (Besaid). A
-    //   pickup of another sphere with the same carried value (the second Djose
-    //   door sphere) is not a removal.
+    //   the placement stays passed for this trial context. Only steps up to the
+    //   expected one count, unless a later checkpoint has passed: before that,
+    //   an emptied recess is an undo even if a later step empties it too. A
+    //   step takes the sphere back out when it targets the same worker as the
+    //   placement (Kilika, Djose), or when it directly follows a checkpoint
+    //   placement and carries the same sphere as the step before the placement
+    //   (Besaid). A pickup of another sphere with the same carried value (the
+    //   second Djose door sphere) is not a removal.
     // - A binding that moved to another nonzero value was not emptied: the
     //   Bevelle rail pedestal reads 1 on the entrance track and 19 once ridden.
     //   That placement stays passed too.
-    // - A placement before a later passed checkpoint is durable. The route may
-    //   empty it as part of a later step (the Djose door recesses clear when the
-    //   door opens; the charging recesses are emptied after the charger runs).
+    // - A placement emptied behind the next passed checkpoint, before the
+    //   guide has passed the step after that checkpoint, was used up by the
+    //   route: the Djose door recesses clear as the door opens (the script may
+    //   clear them just after it sets the door flag), and the Kilika
+    //   antechamber recess clears as its sphere is removed. So is one the guide
+    //   moved back to, once that checkpoint passes with nothing in hand and no
+    //   later placement made.
+    // - Later than that, a placement emptied behind a checkpoint counts as
+    //   taken back out only while its sphere is in hand: the carried-sphere
+    //   step before the placement reads as done again. Without a sphere in
+    //   hand the recess may have been emptied by play the guide cannot see (a
+    //   floor pattern resetting), so the placement stays passed.
+    const auto checkpoint=latestCheckpoint();
     if(progress.placed) {
-        const auto checkpoint=latestCheckpoint();
-        unsigned latest=0;for(unsigned i=0;i<progress.expected && i<64;++i) if(progress.placed&bit(i)) latest=i;
+        const auto inHand=[&](unsigned i) {return i>begin && steps[i-1].check && !steps[i-1].checkpoint && steps[i-1].done.value!=0 &&
+            !puzzleStepPlaced(route,i-1) && done(steps[i-1]);};
         unsigned back=progress.expected;
-        for(unsigned i=begin;i<progress.expected && i<end && i<64;++i) {
+        for(unsigned i=begin;i<end && i<64;++i) {
             if(!(progress.placed&bit(i)) || passed(i)) continue;
-            if(i!=latest && checkpoint>static_cast<int>(i)) continue;
             const auto sameBinding=[](const UtilityBinding& a,const UtilityBinding& b) {
                 return a.low==b.low && a.high==b.high && a.value==b.value && a.element==b.element;};
             bool routeRemoval=false;
-            for(unsigned next=i+1;next<=progress.expected && next+1<end && !routeRemoval;++next) {
+            for(unsigned next=i+1;next+1<end && (next<=progress.expected || checkpoint>static_cast<int>(i)) && !routeRemoval;++next) {
                 const bool takesBack=steps[next].worker==steps[i].worker ||
                     (next==i+1 && steps[i].checkpoint && i>begin && steps[i-1].check && sameBinding(steps[i-1].done,steps[next].done));
                 routeRemoval=takesBack && steps[next].check && !puzzleStepPlaced(route,next) && steps[next].done.value!=0 &&
                     (next<progress.expected || done(steps[next]));
             }
-            if(!cleared(steps[i]) || routeRemoval) progress.removed|=bit(i);
-            else if(i<back) back=i;
+            if(!cleared(steps[i]) || routeRemoval) {progress.removed|=bit(i);continue;}
+            if(checkpoint>static_cast<int>(i)) {
+                unsigned next=i+1;while(next<end && !(steps[next].checkpoint && passed(next))) ++next;
+                bool later=false;for(unsigned j=next+1;j<end && j<64;++j) if(progress.placed&bit(j)) later=true;
+                if(progress.expected>i?progress.expected<=next+1:!later && !inHand(i)) {progress.removed|=bit(i);continue;}
+                if(!inHand(i)) continue;
+            }
+            if(i<back) back=i;
         }
         progress.expected=back;
     }
@@ -88,10 +105,12 @@ template<class Done,class Cleared> void advancePuzzleProgress(const PuzzleRoute&
         }
     }
     // Checkpoints are durable native flags, so the guide may jump forward to
-    // one. Otherwise it only moves forward one done step at a time, so a
-    // carried sphere that is placed later does not move it backwards.
-    const auto checkpoint=latestCheckpoint();
-    if(checkpoint>=0 && static_cast<unsigned>(checkpoint)+1>progress.expected) progress.expected=static_cast<unsigned>(checkpoint)+1;
+    // one, but not past a placement it is waiting to see redone. Otherwise it
+    // only moves forward one done step at a time, so a carried sphere that is
+    // placed later does not move it backwards.
+    bool waiting=false;
+    for(unsigned i=progress.expected;static_cast<int>(i)<checkpoint && i<64;++i) if((progress.placed&bit(i)) && !passed(i)) waiting=true;
+    if(checkpoint>=0 && !waiting && static_cast<unsigned>(checkpoint)+1>progress.expected) progress.expected=static_cast<unsigned>(checkpoint)+1;
     while(progress.expected+1<end && passed(progress.expected)) ++progress.expected;
     // A move back keeps the later placements that still hold. Once the player
     // redoes the earlier step, the guide resumes after them.
@@ -102,7 +121,9 @@ template<class Done,class Cleared> void advancePuzzleProgress(const PuzzleRoute&
         progress.expected=i+1;
         while(progress.expected+1<end && passed(progress.expected)) ++progress.expected;
     }
-    std::uint64_t kept=0;for(unsigned i=progress.expected;i<end && i<64;++i) if(ahead&bit(i)) kept|=bit(i);
+    // An emptied placement left passed above (nothing in hand) keeps its bit,
+    // so taking its sphere out later still moves the guide back to it.
+    std::uint64_t kept=0;for(unsigned i=begin;i<end && i<64;++i) if(progress.placed&bit(i) && (i>=progress.expected?(ahead&bit(i))!=0:!passed(i))) kept|=bit(i);
     progress.placed=placedNow()|kept;
 }
 }
