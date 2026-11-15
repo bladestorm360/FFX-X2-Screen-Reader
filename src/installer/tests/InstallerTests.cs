@@ -229,6 +229,12 @@ internal static class InstallerTests
                 }); }, "Previous files were restored");
             }
             finally { if (lockFile != null) lockFile.Dispose(); }
+            // An SDL3.dll that another program creates during setup is not ours to delete.
+            string other = Path.Combine(game, blocked);
+            if (blocked == "SDL3.dll") {
+                Assert(File.Exists(other), "Rollback keeps an SDL3.dll that another program created during setup");
+                File.Delete(other);
+            }
             Unchanged(game, before);
         }
         FileStream legacyLock = null;
@@ -350,6 +356,9 @@ internal static class InstallerTests
         Reject(delegate { Engine().Install(game, delegate(string message) {
             if (message == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "Tolk.dll"), "restored during setup");
         }); }, "appeared during setup");
+        Assert(File.ReadAllText(Path.Combine(game, "Tolk.dll")) == "restored during setup",
+            "Rollback keeps a legacy file that another tool restored during setup");
+        File.Delete(Path.Combine(game, "Tolk.dll"));
         Unchanged(game, before);
         string linked = Game("Linked folder refusal");
         string outside = Path.Combine(fixture, "linked-outside"); Directory.CreateDirectory(outside);
