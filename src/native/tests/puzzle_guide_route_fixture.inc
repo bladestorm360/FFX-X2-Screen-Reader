@@ -88,6 +88,10 @@ void djoseGuideRouteFixture() {
     walkGuideRoute("djyt0600",{{"late start after hidden glyph",{{0x0000028e,1},{0x0c000095,1},{0x0c000096,1},{0x0c00009c,3},{0x0c00009f,10},
         {0x0c0000a1,2},{0x0c0000da,1},{0x0c0000db,1},{0x0c0000e5,2}},27}});
     walkGuideRoute("djyt0600",{{"late start after door",{{0x0000028e,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10},{0x0c000094,1}},6}});
+    // The treasure flag is permanent save data, but the room resets on each
+    // entry. A collected treasure must not skip the room steps.
+    walkGuideRoute("djyt0600",{{"room reset after treasure",{{0x0c000095,1},{0x0c000096,1},{0x0c00009b,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10},{0x01000a70,4}},1}});
+    walkGuideRoute("djyt0600",{{"late start after treasure",{{0x0000028e,1},{0x0c0000de,1},{0x0c0000e3,2},{0x01000a70,4}},36}});
     // In game the spheres from the charging wall went back into the same wall
     // recesses. Only a pedestal socket insert finishes steps 14 and 16.
     walkGuideRoute("djyt0600",{
@@ -231,6 +235,9 @@ void besaidGuideRouteFixture() {
         {"open Destruction treasure",{{0x01000a70,1}},13},
     });
     walkGuideRoute("bsyt0100",{{"late start after treasure",{{0x5c0000ec,1},{0x5c0000e8,1},{0x01000a70,1}},13}});
+    // The treasure flag is permanent save data, but the room resets on each
+    // entry. A collected treasure must not skip the room steps.
+    walkGuideRoute("bsyt0100",{{"room reset after treasure",{{0x5c0000b0,2},{0x5c0000bc,3},{0x5c0000c0,1},{0x01000a70,1}},1}});
     // w44 writes 0xac=1 and 0xcc=0 when the Besaid Sphere is taken back out
     // of the pedestal, and 0xac=0 and 0xcc=1 when it is put back.
     walkGuideRoute("bsyt0100",{
@@ -270,6 +277,10 @@ void kilikaGuideRouteFixture() {
     });
     walkGuideRoute("klyt1000",{{"late start on depression",{{0x0c000064,1}},16}});
     walkGuideRoute("klyt1000",{{"late start after treasure",{{0x0c000064,1},{0x01000a70,2},{0x0c000063,3}},22}});
+    // The treasure flag is permanent save data, but the room resets on each
+    // entry. A collected treasure must not skip the room steps.
+    walkGuideRoute("klyt1000",{{"room reset after treasure",{{0x0c000058,1},{0x0c00005a,4},{0x0c00005f,2},{0x0c000060,6},{0x0c000061,3},{0x01000a70,2}},1}});
+    walkGuideRoute("klyt1000",{{"late start after treasure before door",{{0x0c000064,1},{0x0c000061,6},{0x01000a70,2}},21}});
     // Taking a sphere back out of its socket never moves the guide backward.
     walkGuideRoute("klyt1000",{
         {"take and insert entry sphere",{{0x0c00005b,1}},2},
@@ -327,6 +338,9 @@ void macalaniaGuideRouteFixture() {
     });
     walkGuideRoute("mcyt0500",{{"late start after bridge",{{0x0c0000c8,1},{0x0c0000ca,1}},12}});
     walkGuideRoute("mcyt0500",{{"late start after treasure",{{0x0c0000c8,1},{0x0c0000ca,1},{0x0c0000cd,1},{0x01000a70,8}},24}});
+    // The treasure flag is permanent save data, but the room resets on each
+    // entry. A collected treasure must not skip the room steps.
+    walkGuideRoute("mcyt0500",{{"room reset after treasure",{{0x0c000095,4},{0x0c000096,4},{0x0c000098,11},{0x0c00009b,4},{0x0c00009d,10},{0x01000a70,8}},1}});
     // Taking the bridge sphere back keeps the durable bridge checkpoint.
     walkGuideRoute("mcyt0500",{
         {"bridge restored",{{0x0c0000c8,1},{0x0c0000ca,1},{0x0c000098,4}},12},
@@ -381,6 +395,10 @@ void bevelleGuideRouteFixture() {
     });
     walkGuideRoute("bvyt1100",{{"late start after Glyph placed",{{0x0c000025,1},bevelleSphere(4,11,1)},8}});
     walkGuideRoute("bvyt1100",{{"late start after Destruction placed",{{0x0c000025,1},bevelleSphere(4,11,1),{0x0c000026,1}},10}});
+    // The treasure flag is permanent save data, but the room resets on each
+    // entry. A collected treasure must not skip the room steps.
+    walkGuideRoute("bvyt1100",{{"room reset after treasure",{bevelleSphere(1,2,1),bevelleSphere(2,4,1),bevelleSphere(3,6,1),bevelleSphere(4,7,1),bevelleSphere(5,9,1),{0x01000a70,16}},1}});
+    walkGuideRoute("bvyt1100",{{"late start after treasure",{{0x0c000025,1},bevelleSphere(4,11,1),{0x0c000026,1},{0x01000a70,16}},12}});
     // Taking a Bevelle Sphere back out of w31 clears 0x25 (w31 writes
     // 0x25=0 at 1685a, 169b0 and 16b06); putting it back sets it again.
     // After the put-back the guide must expect step 4 again.
@@ -434,6 +452,10 @@ void zanarkandGuideRouteFixture() {
     });
     auto returnLate=returnVisit;returnLate.insert(returnLate.end(),{{0x5c000014,0},{0x5c00000c,3}});
     walkGuideRoute("dome0700",{{"late return start after Destruction placed",returnLate,4}});
+    // The treasure flag is permanent save data, but the room resets on each
+    // entry. A collected treasure must not skip the room steps.
+    auto returnCollected=returnVisit;returnCollected.push_back({0x01000a70,32});
+    walkGuideRoute("dome0700",{{"return entry after treasure",returnCollected,1}});
 }
 }
 void puzzleGuideRouteFixtures() {
