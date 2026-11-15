@@ -40,6 +40,7 @@ internal static class InstallerSafetyTests
         PayloadFailureRollsBack();
         UninstallRestores();
         UpgradeFromOlderSetup();
+        UpgradeFromFridaBuild();
         UninstallRefuses();
         UninstallFailureKeepsLauncher();
     }
@@ -279,6 +280,23 @@ internal static class InstallerSafetyTests
         before = Snapshot(game);
         Reject(delegate { Engine().Uninstall(game, delegate { }); }, "Nothing was changed", "Uninstall after the launcher configuration changed");
         Unchanged(game, before, "Uninstall after the launcher configuration changed");
+    }
+
+    // A 0.x Frida build left its own dinput8.dll beside frida-gadget.dll and ffx_sr.js,
+    // with no launcher reader DLL. That dinput8.dll is ours, not another mod's loader.
+    private static void UpgradeFromFridaBuild()
+    {
+        string game = Game("Upgrade from 0.x");
+        var stockSnapshot = Snapshot(game);
+        stockSnapshot.Remove("dinput8.dll"); // The fixture's dinput8.dll stands in for 0.x below.
+        File.WriteAllText(Path.Combine(game, "dinput8.dll"), "0.x dinput8");
+        foreach (string name in new[] { "frida-gadget.dll", "frida-gadget.config", "ffx_sr.js", "Tolk.dll" })
+            File.WriteAllText(Path.Combine(game, name), "0.x " + name);
+        var engine = Engine();
+        engine.Install(game, delegate { });
+        assert(!engine.ReplacedLoader, "The 0.x dinput8.dll is not reported as another mod's loader");
+        Engine().Uninstall(game, delegate { });
+        Unchanged(game, stockSnapshot, "Uninstall after a 0.x upgrade leaves the stock game");
     }
 
     private static void UninstallRefuses()

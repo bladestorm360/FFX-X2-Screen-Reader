@@ -36,7 +36,8 @@ namespace FfxScreenReader.Setup
         public bool ReplacedLoader { get; private set; }
         public const string ReplacedLoaderText = "dinput8.dll from another mod was replaced and backed up; .asi mods will not load while the screen reader is installed.";
         // Files only this mod ships. If one was present, the payload files were ours too.
-        private static readonly string[] OwnMarkers = { "FFXLauncherReader.dll", "FFXLauncherNative.dll" };
+        // 0.x builds loaded Frida from dinput8.dll and had no launcher reader.
+        private static readonly string[] OwnMarkers = { "FFXLauncherReader.dll", "FFXLauncherNative.dll", "frida-gadget.dll", "ffx_sr.js" };
 
         public InstallerEngine(Func<string, byte[]> readPayload, IDictionary<string, string> hashes)
             : this(readPayload, hashes, MigrationPlan.Build) { }
