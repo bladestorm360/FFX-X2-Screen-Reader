@@ -10,6 +10,7 @@
 #include "process_storage.hpp"
 #include "auto_walk.hpp"
 #include "log_capture.hpp"
+#include "intent_cancel_text.hpp"
 #include "nav_audio.hpp"
 #include "pedestal_rvas.hpp"
 #include "settings.hpp"
@@ -41,19 +42,27 @@ bool scriptFor(const Frame& f,UtilityScript& script) {
 }
 // Log the first failed check so a canceled action can be traced. recordLog
 // copies scalars and literals only; nothing is allocated on the game thread.
+// Why the last qualification failed, read by the same action's completion.
+// Game thread only: preparation and completion run back to back on it.
+IntentRejection lastRejection=IntentRejection::Changed;
 bool rejected(const char* check,unsigned had=0,unsigned now=0) {
     recordLog("navigation action rejected: %s (%u, %u)",check,had,now);return false;
 }
 bool qualify(unsigned slot,unsigned token) {
+    lastRejection=IntentRejection::Changed;
     if(slot>=Slots || tickets[slot].load(std::memory_order_acquire)!=(token|Held)) return rejected("action ticket");
     auto& f=frames.get()[slot];const auto now=GetTickCount64();
     if(f.epoch!=generation()) return rejected("map generation",f.epoch,generation());
     if(f.revision!=revision.load(std::memory_order_acquire)) return rejected("navigation command revision",f.revision,revision.load(std::memory_order_acquire));
     if(f.manual!=autoWalkInputRevision()) return rejected("manual input revision",f.manual,autoWalkInputRevision());
     if(f.capturedAt>now || now-f.capturedAt>250) return rejected("observation age ms",static_cast<unsigned>(now-f.capturedAt),250u);
-    if(!nativeReaderResourcesReady() || !gameFocused() || scene || inBattle() || modMenuActive() || utilityConsoleActive()) return rejected("field context");
+    if(!nativeReaderResourcesReady()) return rejected("reader resources");
+    if(scene) {lastRejection=IntentRejection::Message;return rejected("message or scene open",static_cast<unsigned>(scene.load()));}
+    if(!gameFocused() || inBattle() || modMenuActive() || utilityConsoleActive()) {lastRejection=IntentRejection::Context;return rejected("focus, menu, console or battle");}
     const auto controller=read<uintptr_t>(address(0xf26ae8)),player=playerActor();
-    if(controller!=f.controller || read<uintptr_t>(controller+0x48)!=f.primary || !(read<uint8_t>(controller)&2) || player!=read<uintptr_t>(address(0xf00740))) return rejected("field controller or player");
+    if(controller!=f.controller || read<uintptr_t>(controller+0x48)!=f.primary || player!=read<uintptr_t>(address(0xf00740))) return rejected("field controller or player");
+    // Dialogue and scripted scenes take field control away before any window opens.
+    if(!(read<uint8_t>(controller)&2)) {lastRejection=IntentRejection::Message;return rejected("field control disabled");}
     const auto count=read<uint16_t>(controller+0xc);if(!count || count>SceneWorkers || (!f.pointOnly && f.global>=count)) return rejected("worker count");
     AtelSpan current;if(!nativeAtelSpan(f.span.chunk,current) || current.serial!=f.span.serial || current.size!=f.span.size) return rejected("script allocation");
     if(f.pointOnly) {
@@ -141,7 +150,10 @@ void dispatchNavigationIntents() {
         action.prepare=[slot,token] {return qualify(slot,token);};action.invoke=[slot] {invoke(slot);};
         action.retire=[slot,token] {release(slot,token|Held);};
         const auto kind=frames.get()[slot].kind;
-        action.complete=[kind](bool okay) {if(!okay && kind!=Intent::UpdatePedestal) output(L"Navigation action canceled because the player, input or destination changed. Request the route again.",false,"navigation-action-canceled");};
+        action.complete=[kind](bool okay) {
+            if(okay || kind==Intent::UpdatePedestal) return;
+            if(const auto text=intentCancelText(lastRejection)) output(text,false,"navigation-action-canceled");
+        };
         if(!deferNativeAction(action)) {release(slot,token|Held);output(L"Navigation action is busy. Request the route again.",false,"navigation-pressure");}
     }
 }

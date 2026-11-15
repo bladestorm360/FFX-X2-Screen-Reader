@@ -1,6 +1,8 @@
 #include "../navigation_order.hpp"
 #include "../camera_direction.hpp"
+#include "../intent_cancel_text.hpp"
 #include <cstdio>
+#include <string>
 #include <cstdlib>
 
 namespace {
@@ -81,5 +83,14 @@ int main() {
     check(settled.spoken==std::vector<int>({3,4,6,1,3}),"] after committed verdicts steps through reachable rows in order");
     for(int i=0;i<3;++i) {settled.press(-1);settled.settle(2,5);}
     check(settled.spoken==std::vector<int>({3,4,6,1,3,1,6,4}) && settled.lost==0,"[ after committed verdicts steps back through reachable rows");
+    // A message box or scripted scene is not a changed destination: say so. Losing focus, a menu,
+    // the console or a battle are the player's own context changes and stay silent.
+    {
+        using ffx::nav::IntentRejection;using ffx::nav::intentCancelText;
+        const std::wstring changed=intentCancelText(IntentRejection::Changed),message=intentCancelText(IntentRejection::Message)?intentCancelText(IntentRejection::Message):L"";
+        check(changed.find(L"changed")!=std::wstring::npos,"a changed player, input or destination keeps the cancel message");
+        check(message!=changed && message.find(L"message")!=std::wstring::npos,"a cancel caused by an open message says a message is open");
+        check(intentCancelText(IntentRejection::Context)==nullptr,"a cancel caused by focus, menus, console or battle stays silent");
+    }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

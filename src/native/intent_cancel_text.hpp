@@ -1,0 +1,16 @@
+#pragma once
+// Spoken outcome of a navigation action whose native checks failed. Kept
+// separate from navigation_intents.cpp so the wording is testable alone.
+namespace ffx::nav {
+// Changed: the player, input, destination or route moved on since the request.
+// Message: a message box, dialogue or scripted scene holds the field.
+// Context: focus, a menu, the console or a battle; the player caused it.
+enum class IntentRejection : unsigned {Changed,Message,Context};
+inline const wchar_t* intentCancelText(IntentRejection reason) {
+    switch(reason) {
+    case IntentRejection::Message: return L"Navigation action skipped while a message or scene is open. Request the route again after it closes.";
+    case IntentRejection::Context: return nullptr;
+    default: return L"Navigation action canceled because the player, input or destination changed. Request the route again.";
+    }
+}
+}
