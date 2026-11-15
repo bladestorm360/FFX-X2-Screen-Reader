@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 // Spoken outcome of a navigation action whose native checks failed. Kept
 // separate from navigation_intents.cpp so the wording is testable alone.
 namespace ffx::nav {
@@ -25,6 +26,13 @@ inline const wchar_t* routeStartRefusal(bool autoWalk,bool fieldOpen,bool contro
     if(!autoWalk) return nullptr;
     if(!fieldOpen || !control) return L"Auto walk unavailable during a scene.";
     return intentRefusalText(controlled);
+}
+// Auto walk never starts toward an inactive destination: the walker and route cues retire such a
+// route at once. Say so instead of reading the route and then doing nothing.
+inline std::wstring inactiveRouteText(const std::wstring& name,const std::wstring& directions) {
+    std::wstring text=L"Auto walk unavailable: "+name+L" is currently inactive.";
+    if(!directions.empty()) text+=L" Route: "+directions;
+    return text;
 }
 inline const wchar_t* intentRefusalText(bool controlled) {
     return controlled?nullptr:L"Auto walk unavailable: the game is not reporting the controlled character. Walk manually or try again after moving.";

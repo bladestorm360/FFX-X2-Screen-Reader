@@ -471,7 +471,9 @@ destination, then press **Backslash** to walk its current collision route.
 The field controller route command (right trigger) also starts walking. Movement input or Escape cancels immediately. Dialogue, scripted
 scenes, menus, battle, lost focus and a map change stop it; press Backslash
 again to start a new walk. On arrival, Auto walk faces an interactible; confirm
-the interaction yourself.
+the interaction yourself. A destination listed as currently inactive is not
+walked to: Backslash says **Auto walk unavailable: [destination] is currently
+inactive** and reads the route so you can walk it yourself.
 Blocked routes get bounded recovery attempts and stop if progress stalls.
 Automatic stops and lost routes announce a short reason once. Explicit stop
 commands stay silent; map transitions use the map announcement instead.

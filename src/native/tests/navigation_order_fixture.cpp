@@ -114,6 +114,9 @@ int main() {
         check(during(routeStartRefusal(true,false,true,true)) && during(routeStartRefusal(true,true,false,false)),"a route request during a scene or with field control off refuses before any route, saying a scene is playing");
         check(routeStartRefusal(true,true,true,false)==ffx::nav::intentRefusalText(false),"a field without the controlled character refuses before any route");
         check(!routeStartRefusal(true,true,true,true) && !routeStartRefusal(false,false,false,false),"an open field, or Auto walk off, reads the route as before");
+        // Djose: Backslash on "Pedestal reset tile, currently inactive" said only "12 west" and never walked.
+        check(ffx::nav::inactiveRouteText(L"Pedestal reset tile",L"12 west")==L"Auto walk unavailable: Pedestal reset tile is currently inactive. Route: 12 west","an inactive destination refuses Auto walk by name and still reads the route");
+        check(ffx::nav::inactiveRouteText(L"Pedestal",L"")==L"Auto walk unavailable: Pedestal is currently inactive.","an inactive destination inside its zone refuses without an empty route");
         // Turning Hide unreachable on starts a check; until verdicts arrive the visible count is the
         // unfiltered one, so "6 of 35" would later become "6 of 10". Speak the row without "N of M".
         check(!ffx::nav::rowCountSettled(true,true),"turning Hide unreachable on omits N of M while reachability is checked");
