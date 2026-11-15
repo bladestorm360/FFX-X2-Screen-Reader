@@ -232,10 +232,13 @@ void bevelleGuideRouteFixture() {
     });
     walkGuideRoute("bvyt1100",{{"late start after Glyph placed",{{0x0c000025,1},bevelleSphere(4,11,1)},8}});
     walkGuideRoute("bvyt1100",{{"late start after Destruction placed",{{0x0c000025,1},bevelleSphere(4,11,1),{0x0c000026,1}},10}});
-    // Taking the sphere back out of w31 keeps the one-shot 0x25 checkpoint.
+    // Taking a Bevelle Sphere back out of w31 clears 0x25 (w31 writes
+    // 0x25=0 at 1685a, 169b0 and 16b06); putting it back sets it again.
+    // After the put-back the guide must expect step 4 again.
     walkGuideRoute("bvyt1100",{
-        {"insert upper rail power recess",{{0x0c000025,1}},4},
-        {"take it back",{bevelleSphere(2,5,0),bevelleSphere(2,1,1)},4},
+        {"insert upper rail power recess",{bevelleSphere(2,1,0),bevelleSphere(2,5,1),{0x0c000025,1}},4},
+        {"take it back and put it in again",{bevelleSphere(2,5,0),bevelleSphere(2,1,1),{0x0c000025,0},
+            bevelleSphere(2,1,0),bevelleSphere(2,5,1),{0x0c000025,1}},4},
     });
 }
 void zanarkandGuideRouteFixture() {
