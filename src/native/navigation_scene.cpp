@@ -103,6 +103,7 @@ bool captureNavigationScene(Scene& s,unsigned revision,bool needGeometry) {
         }
     }
     s.controlled=player==read<uintptr_t>(address(0xf00740));
+    using MessageMode=int(__cdecl*)();s.message=reinterpret_cast<MessageMode>(address(0x46c840))()!=0;s.window=scene.load(std::memory_order_acquire);
     s.allowed=!scene && !inBattle() && !airshipNavigationUiActive() && gameFocused() && !modMenuActive() && !utilityConsoleActive();s.control=(read<uint8_t>(s.controller)&2)!=0;
     s.playerIndex=static_cast<int>((player-actors)/0x880);s.actorCount=actorCount;s.count=count;
     s.swimming=read<uint8_t>(player+0x186)==2;s.dive=read<uint8_t>(address(swimming_rva::DiveEnabled))!=0;

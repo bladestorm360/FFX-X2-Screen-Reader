@@ -21,10 +21,14 @@ inline const wchar_t* intentCancelText(IntentRejection reason) {
 inline const wchar_t* intentRefusalText(bool controlled);
 // Checked before a route is read, so a refused walk is not preceded by route speech.
 // fieldOpen: no window, scene, battle or menu; control: the field controller allows
-// player input. Scenes clear field control and the controlled actor together.
-inline const wchar_t* routeStartRefusal(bool autoWalk,bool fieldOpen,bool control,bool controlled) {
+// player input; message: the game's message mode (46C840) reports an open message box.
+// Message boxes and scripted events clear field control without opening a scene, so
+// each refusal names what actually holds the field.
+inline const wchar_t* routeStartRefusal(bool autoWalk,bool fieldOpen,bool control,bool controlled,bool message) {
     if(!autoWalk) return nullptr;
-    if(!fieldOpen || !control) return L"Auto walk unavailable during a scene.";
+    if(message) return L"Auto walk unavailable while a message is open.";
+    if(!fieldOpen) return L"Auto walk unavailable during a scene.";
+    if(!control) return L"Auto walk unavailable: the game is controlling the player. Try again when you can move.";
     return intentRefusalText(controlled);
 }
 // Auto walk never starts toward an inactive destination: the walker and route cues retire such a

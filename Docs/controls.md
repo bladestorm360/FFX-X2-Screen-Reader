@@ -477,6 +477,10 @@ the interaction yourself. If the walk ends without reaching the interaction
 range, it says **Auto walk stopped: not in interaction range**. A destination listed as currently inactive is not
 walked to: Backslash says **Auto walk unavailable: [destination] is currently
 inactive** and reads the route so you can walk it yourself.
+Backslash with a message box open says **Auto walk unavailable while a message
+is open**; during a scene it says **Auto walk unavailable during a scene**; and
+while a scripted event still holds player control it says **Auto walk
+unavailable: the game is controlling the player**. No route is read first.
 Blocked routes get bounded recovery attempts and stop if progress stalls.
 Automatic stops and lost routes announce a short reason once. Explicit stop
 commands stay silent; map transitions use the map announcement instead.

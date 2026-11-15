@@ -219,6 +219,7 @@ void stub(unsigned off, void* function) {
 }
 uintptr_t __cdecl navigationWorker(int) { ++workerReads; return address(0x2251000); }
 unsigned __cdecl language() { return 0; }
+int __cdecl noMessageMode() { return 0; }
 uintptr_t __cdecl names(int id) { return address(id==1 ? 0x2100020 : id==8 ? 0x2100040 : 0x2100000); }
 uintptr_t __cdecl record(unsigned id, uintptr_t* base) {
     id&=0xfff;
@@ -455,6 +456,10 @@ int main(int argc, char** argv) {
     stub(0x4c1c00,requirementsTable); stub(0x4c1b50,requirementsTable); stub(0x4cd2f0,increase);
     stub(0x4c1ad0,shopTable); stub(0x4db390,price); stub(0x4db3e0,price);
     stub(0x2414a0,loc); stub(0x394030,character);
+    // Navigation observations call the message-mode getter (46C840) every scan. An
+    // unstubbed getter runs zeroed fixture memory: the reference profile reads 0xffff
+    // (Auto walk then refuses to start) and the installed profile faults.
+    stub(0x46c840,reinterpret_cast<void*>(noMessageMode));
     followupStubs(); navigationIdentityFixtures(); airshipPassageFixtures();
     polishTextFixtures();
     setSetting(Setting::MenuIndex,1);

@@ -34,7 +34,8 @@ struct Scene {
     float extraTalkRange=0,surface=0;
     unsigned confirmMask=0,audioContext=0,collisionSerial=0;
     bool surfaceReady=false;
-    bool allowed=false,cameraValid=false,control=false,controlled=false,swimming=false,dive=false,geometryValid=false;
+    bool allowed=false,cameraValid=false,control=false,controlled=false,swimming=false,dive=false,geometryValid=false,message=false;
+    int window=0;
     // Exact Baaj request-time diagnostic facts, captured with its existing
     // native scene event. No polling or game pointer crosses into preparation.
     bool baajFactsReady=false;int baajTreasureFlags=-1,baajActivatedCount=-1;
