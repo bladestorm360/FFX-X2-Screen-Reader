@@ -189,7 +189,22 @@ void macalaniaGuideRouteFixture() {
 // Bevelle Spheres, 4 Glyph, 5 Destruction. Place 1 is carried; 4 w30, 5 w31,
 // 6 w32, 7 w33, 8 w34, 9 w36, 10 w37, 11 w35, 2 the rail pedestal.
 GuideWrite bevelleSphere(unsigned sphere,unsigned place,int value) {return {0x0d000032,value,12*sphere+place,0xc0048};}
+// The solver contract binds each recess worker to its Destruction Sphere
+// element 12*5+place, so it names the worker that owns each place.
+unsigned bevellePlaceWorker(unsigned place) {
+    for(const auto& contract:puzzleContracts) if(!std::strcmp(contract.script,"bvyt1100"))
+        for(const auto& recess:contract.interactions) if(recess.sphere.element==60+place) return recess.worker;
+    check(false,"Bevelle recess place has a worker");return 0;
+}
 void bevelleGuideRouteFixture() {
+    // The Glyph Sphere starts in place 7, and w33 writes 0x26 when the
+    // Destruction Sphere goes in. The lower Bevelle Sphere goes into the empty
+    // place 8 (element 44).
+    const auto& bevelle=guideRoute("bvyt1100");
+    check(bevelle.steps[4].worker==bevellePlaceWorker(8),"Bevelle lower power recess step targets place 8");
+    check(bevelle.steps[5].worker==bevellePlaceWorker(7),"Bevelle Glyph Sphere source step targets place 7");
+    check(bevelle.steps[8].worker==bevellePlaceWorker(7),"Bevelle Destruction Sphere destination step targets place 7");
+    check(bevelle.steps[9].worker==bevellePlaceWorker(8),"Bevelle lower power recess retrieval step targets place 8");
     // 0x08 rail pedestal node (1 = pushed onto the entrance track); 0x25
     // Bevelle Sphere in w31; 0x26 Destruction Sphere in w33; 0x29 sphere in
     // w37; 0x2a second chest opened.

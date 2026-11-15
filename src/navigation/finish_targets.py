@@ -56,7 +56,7 @@ TRIAL_LABELS["djyt0600"].update({48:"Entry sphere recess 1",49:"Entry sphere rec
     52:"Charging wall recess 1",53:"Charging wall recess 2",54:"Charged Sphere door recess",55:"Left circuit recess",
     **{w:f"Upper pedestal {w-55}" for w in range(56,61)}})
 TRIAL_LABELS["mcyt0500"].update({37:"Upper Macalania Sphere recess",38:"Ramp Macalania Sphere recess",39:"Central Glyph Sphere recess",40:"Lower treasure sphere recess",41:"Lower Glyph Sphere reveal recess",42:"Revealed Macalania Sphere",43:"Lower bridge support recess"})
-TRIAL_LABELS["bvyt1100"].update({30:"Upper Bevelle Sphere source",31:"Upper rail power recess",32:"Lower Bevelle Sphere source",33:"Lower rail power recess",34:"Glyph Sphere source and Destruction Sphere destination",35:"Glyph Sphere barrier recess",36:"Destruction Sphere source",37:"Upper platform sphere recess"})
+TRIAL_LABELS["bvyt1100"].update({30:"Upper Bevelle Sphere source",31:"Upper rail power recess",32:"Lower Bevelle Sphere source",33:"Glyph Sphere source and Destruction Sphere destination",34:"Lower rail power recess",35:"Glyph Sphere barrier recess",36:"Destruction Sphere source",37:"Upper platform sphere recess"})
 TRIAL_LABELS["dome0700"].update({w:f"Pattern pedestal {w-43}" for w in range(44,48)})
 TRIAL_LABELS["dome0700"].update({53:"First chamber pattern display",54:"Main chamber pattern display",
     56:"Trial floor activation tile",84:"Return puzzle completion tile"})
