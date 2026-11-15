@@ -106,11 +106,23 @@ Movie suppression follows audible soundtrack playback, including background musi
 Braille only sends no synthesized speech, including when no display is available.
 Ordinary field F1–F5 and F9–F12 pass to the game; F6–F8 remain mod controls.
 
+**Shift+Slash** (Shift+/, the question-mark key on US layouts) speaks the mod
+keys for the current context in one short list: battle, Sphere Grid, menus
+(Escape and native menus), a supported Cloister, Via or Gagazet guide, or the
+field. Inside the F8 menu it lists the menu's own keys. The game does not
+receive the key. In the tested keyboard setup the game binds nothing to Slash.
+
 F11 reads puzzle guidance in supported Cloister, Via, and Gagazet guide contexts.
 In native menus, battle, or the Escape menu, it repeats the current speech.
 Ordinary field F11 is passed through to the game. **F9/F10** select the
 previous/next step only while a supported guide is active; Shift+F11 reads the
 step inferred from game state when identifiable.
+
+**L** repeats the last speech everywhere, including the ordinary field, and
+interrupts current speech. It replays the last game or navigation line, not
+F8 menu or setting announcements. If you bind L to an action in the game's
+keyboard settings, L goes to the game instead and F11 keeps its menu, battle
+and Escape menu repeat.
 
 In Zanarkand, interact with a pattern display and let its animation finish.
 Autodetail reads the displayed glyphs. To review them, use **F8 > Miscellaneous >
