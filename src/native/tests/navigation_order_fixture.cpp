@@ -118,6 +118,15 @@ int main() {
         // unfiltered one, so "6 of 35" would later become "6 of 10". Speak the row without "N of M".
         check(!ffx::nav::rowCountSettled(true,true),"turning Hide unreachable on omits N of M while reachability is checked");
         check(ffx::nav::rowCountSettled(true,false) && ffx::nav::rowCountSettled(false,true) && ffx::nav::rowCountSettled(false,false),"a settled or unfiltered list keeps N of M");
+        // Entering Macalania - Trials, ] said "2 of 11", "5 of 23", "4 of 13" while the room loaded.
+        // A total is spoken only after the destination count has held for ListSettleMs in this room.
+        ffx::nav::ListStability list;
+        list.observe(7,11,10000);check(!list.settled(10000),"the first scan in a new room omits N of M");
+        list.observe(7,23,10400);check(!list.settled(10400),"a destination count that changed omits N of M");
+        list.observe(7,23,11000);check(!list.settled(11000),"a count held for less than the settle time omits N of M");
+        list.observe(7,23,11900);check(list.settled(11900),"a count held for the settle time speaks N of M");
+        list.observe(8,23,12000);check(!list.settled(12000),"a new room starts unsettled even with the same count");
+        list.observe(8,23,13600);list.observe(8,22,13700);check(!list.settled(13700),"a destination that appears or leaves unsettles the total");
     }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

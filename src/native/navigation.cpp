@@ -84,7 +84,7 @@ struct Owned {
     speechq::Header header{};
     nav::Scene observation;Mesh mesh;std::vector<Entity> entities;std::deque<Pending> pending;
     std::map<int,std::wstring> areas;nav::AreaNameDemand names;
-    EntityKey selection;unsigned epoch=0,revision=0,requested=0,category=0,selected=0;int step=1;bool ready=false,haveMesh=false;
+    nav::ListStability list;EntityKey selection;unsigned epoch=0,revision=0,requested=0,category=0,selected=0;int step=1;bool ready=false,haveMesh=false;
     nav::NativeGeometryContext meshContext;
 };
 ProcessStorage<Owned> storage;
@@ -120,7 +120,10 @@ void announce(const Pending& event,bool interrupt=true,bool index=true) {
     const auto& target=*rows[s.selected];const auto player=s.observation.player;
     auto text=label(target)+(target.swimDepth?L". "+nav::sceneSwimmingInstruction(s.observation):(index?L", ":L": ")+decimal(distanceXZ(player,target.position)/UnitsPerStep)+L" steps "+direction({target.position.x-player.x,0,target.position.z-player.z}));
     if(target.inactive) text+=L", currently inactive";if(target.pushControl) {const auto side=describePedestalSide(target.position,player);if(!side.empty()) text+=L". "+side;}
-    if(index) text+=menuIndex(s.selected,static_cast<unsigned>(rows.size()));emit(event,std::move(text),"navigation-selection",interrupt);
+    // Totals wait until the room's destination set and reachability verdicts have settled.
+    if(index && s.list.settled(GetTickCount64()) && nav::rowCountSettled(setting(Setting::HideUnreachable)!=0,ownedReachabilityChecking()))
+        text+=menuIndex(s.selected,static_cast<unsigned>(rows.size()));
+    emit(event,std::move(text),"navigation-selection",interrupt);
 }
 void intent(const Pending& event,const Entity& target,nav::Intent kind) {
     const auto refusal=nav::intentRefusalText(owned().observation.controlled);
@@ -215,7 +218,7 @@ void execute(const Pending& event) {
             s.selected=row<0?0u:static_cast<unsigned>(row);
         }else if(s.selected>=filtered().size()) s.selected=0;
         emit(event,L"Hide unreachable destinations: "+settingValue(Setting::HideUnreachable)+(setting(Setting::HideUnreachable)?(ownedReachabilityChecking()?L". Checking reachability":L". Reachability unavailable; destinations remain listed"):L". "+std::to_wstring(filtered().size())+L" destinations"),"navigation-filter");
-        if(!filtered().empty()) {announce(event,false,nav::rowCountSettled(setting(Setting::HideUnreachable)!=0,ownedReachabilityChecking()));lockSelected();}break;
+        if(!filtered().empty()) {announce(event,false);lockSelected();}break;
     case nav::Query::Beacon:beacon(event);break;
     case nav::Query::AssistRoute:pathfind(event,true);break;
     case nav::Query::AssistInstruction: {
@@ -290,7 +293,7 @@ void receiveScene(const speechq::Header& header,const nav::SceneObservation& cap
     s.mesh.player=geometry.player;s.mesh.playerTriangle=geometry.floor;
     nav::stageAirshipPassages(observation,s.mesh,found);
     nav::orderEntities(found,s.entities,key,s.selection.valid);nav::keepVerdicts(found,s.entities,key);
-    s.entities=std::move(found);s.selected=0;
+    s.entities=std::move(found);s.selected=0;s.list.observe(generation(),s.entities.size(),GetTickCount64());
     s.meshContext=geometry;requestOwnedReachability(observation,s.entities,true);
     auto rows=filtered();bool kept=false;for(unsigned i=0;i<rows.size();++i) if(s.selection.valid && key(*rows[i])==s.selection) {s.selected=i;kept=true;break;}
     const bool lostSelection=s.selection.valid && !kept;

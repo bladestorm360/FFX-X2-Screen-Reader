@@ -35,6 +35,17 @@ template<class Key,class Selection,class Visible> int visibleRowOf(const std::ve
 // While Hide unreachable waits for its first verdicts every row is still visible, so a spoken
 // "N of M" would give the unfiltered count and change on the next press. Omit it until settled.
 inline bool rowCountSettled(bool hideUnreachable,bool checking) {return !hideUnreachable || !checking;}
+// After a room change the destination set fills in over several scans, so early totals
+// ("2 of 11", "5 of 23") are wrong. A total is spoken once the scanned destination count has
+// held for ListSettleMs in the same map generation.
+constexpr unsigned long long ListSettleMs=1500;
+struct ListStability {
+    unsigned epoch=0;size_t count=0;unsigned long long since=0;
+    void observe(unsigned scanEpoch,size_t found,unsigned long long at) {
+        if(!since || scanEpoch!=epoch || found!=count) {epoch=scanEpoch;count=found;since=at;}
+    }
+    bool settled(unsigned long long at) const {return since && at>=since && at-since>=ListSettleMs;}
+};
 // Row to select when a reachability verdict hides the selected entity. The list keeps its order:
 // verdicts are matched to targets by position, so reordering would drop them and the hidden row
 // would come back. A negative step picks the visible row before the lost one, otherwise the row after.
