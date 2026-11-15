@@ -108,7 +108,8 @@ void guideTargets(const nav::Scene& observation,std::vector<Entity>& found) {
         Point face;if(!e.pushControl || !ownedGuidePedestalFace(observation,e,face)) continue;
         const auto recess=std::find_if(found.begin(),found.end(),[&](const Entity& r) {return r.worker==e.worker && !r.pushControl && r.name==L"Pedestal sphere recess";});
         if(recess==found.end() || !recess->zone.valid) continue;
-        recess->zone.approach=face;e.zone=recess->zone;e.inactive=recess->inactive;
+        if(face.x!=0 || face.z!=0) recess->zone.approach=face;
+        e.zone=recess->zone;e.inactive=recess->inactive;
     }
 }
 std::wstring instruction(const Entity& target) {

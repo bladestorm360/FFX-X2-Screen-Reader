@@ -182,8 +182,12 @@ bool ownedGuideTargetsTile(const nav::Scene& observation,const Entity& tile) {
     return std::wstring_view(step.label).find(L"reset tile")!=std::wstring_view::npos;
 }
 bool ownedGuidePedestalFace(const nav::Scene& observation,const Entity& pedestal,Point& face) {
-    if(pedestal.pushControl!=3 || ownedGuidePedestalStep(observation,pedestal).empty()) return false;
-    const auto& state=storage.get();if(std::string_view(state.route->script)!="djyt0600") return false;
+    // Kilika (2), Djose (3) and Macalania (4) pedestals hold their sphere
+    // recess on the pedestal worker itself. A sphere step routes to that
+    // recess, at interaction range, not to the push position: touching the
+    // pedestal starts the original push script, which takes control.
+    if(pedestal.pushControl<2 || pedestal.pushControl>4 || ownedGuidePedestalStep(observation,pedestal).empty()) return false;
+    face={};const auto& state=storage.get();if(std::string_view(state.route->script)!="djyt0600") return true;
     try {
         // Djose W15 owns the east socket (0x9d) and W16 the west socket (0x9e).
         // An insert goes to an empty socket, a take to a loaded one; east first.
