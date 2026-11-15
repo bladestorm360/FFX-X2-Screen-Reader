@@ -470,8 +470,11 @@ next leg using the new camera direction. Slow camera pans do not repeat guidance
 destination, then press **Backslash** to walk its current collision route.
 The field controller route command (right trigger) also starts walking. Movement input or Escape cancels immediately. Dialogue, scripted
 scenes, menus, battle, lost focus and a map change stop it; press Backslash
-again to start a new walk. On arrival, Auto walk faces an interactible; confirm
-the interaction yourself. A destination listed as currently inactive is not
+again to start a new walk. On arrival, Auto walk walks in toward an
+interactible for up to one more step (stopping when its collision blocks the
+way; pedestals are never walked into), then stands still facing it; confirm
+the interaction yourself. If the walk ends without reaching the interaction
+range, it says **Auto walk stopped: not in interaction range**. A destination listed as currently inactive is not
 walked to: Backslash says **Auto walk unavailable: [destination] is currently
 inactive** and reads the route so you can walk it yourself.
 Blocked routes get bounded recovery attempts and stop if progress stalls.

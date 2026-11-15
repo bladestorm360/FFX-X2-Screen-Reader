@@ -59,13 +59,22 @@ const wchar_t* unsafeReason() {
     return nativeFieldControlReason();
 }
 bool safe() {return !unsafeReason();}
+// The route ends at the edge of the modelled interaction zone, which in Djose left the player
+// 1 to 1.3 steps short and facing the way it walked, so Enter did nothing. After the route
+// arrives, walk on toward the target for at most one step, ArrivalHomeMs, or until its
+// collision stops the player, then hold still and keep facing it for ArrivalSettleMs (a single
+// turn can be lost while the character is still moving). Pedestals are never walked into: that
+// would push them. An arrival that never gets inside the zone is reported, not ended as reached.
+constexpr uint64_t ArrivalHomeMs=1500,ArrivalBlockedMs=300,ArrivalSettleMs=300;
+constexpr double ArrivalHomeUnits=11.13,ArrivalCloseUnits=2.0;
+struct Arrival {bool active=false,settling=false,faced=false;uint64_t since=0,still=0;Point origin,seen;} arrival;
 void announceStop(const wchar_t* spokenReason) {
     TextPlan announcement;prepareTextPlan(announcement,"auto-walk",false);
     announcement.headline=planConcat(announcement,planLiteral(announcement,L"Auto walk stopped: "),planLiteral(announcement,spokenReason));
     commitTextPlan(announcement);
 }
 void stop(const char* reason,const wchar_t* spokenReason=nullptr,bool routeFailure=false) {
-    const bool was=engaged.exchange(false); mask=0; cancel=false; stamp=0;messageGuard={};
+    const bool was=engaged.exchange(false); mask=0; cancel=false; stamp=0;messageGuard={};arrival={};
     if(was) {
         recordLog("auto walk stopped: %s",reason);
         if(spokenReason && epoch==generation() && (!routeFailure || claimNavRouteStopSpeech())) announceStop(spokenReason);
@@ -182,7 +191,32 @@ void updateAutoWalk() {
     if(!std::isfinite(player.x) || !std::isfinite(player.y) || !std::isfinite(player.z)) { stop("unreadable player",L"player position unavailable"); return; }
     const double delta=distanceXZ(player,last);
     if(delta>55.65) { stop("player relocated",L"player relocated"); return; }
-    if(leg.arrived) { if(!leg.target.butterfly && !leg.target.swimDepth) faceNavigationTarget(leg.target); stop("arrived"); return; }
+    if(leg.arrived) {
+        const auto& target=leg.target;
+        if(target.butterfly || target.swimDepth || !target.zone.valid || target.zone.crossing) {
+            if(!target.butterfly && !target.swimDepth) faceNavigationTarget(target);
+            stop("arrived");return;
+        }
+        if(!arrival.active) {arrival={};arrival.active=true;arrival.since=arrival.still=now;arrival.origin=arrival.seen=player;arrival.settling=target.pushControl!=0;}
+        const Point center=target.pushControl?target.position:target.zone.center;
+        if(!arrival.settling) {
+            if(distanceXZ(player,arrival.seen)>.1) {arrival.seen=player;arrival.still=now;last=player;}
+            double pan=0,front=0;
+            const bool done=distanceXZ(player,center)<=ArrivalCloseUnits || distanceXZ(player,arrival.origin)>=ArrivalHomeUnits ||
+                now-arrival.still>=ArrivalBlockedMs || now-arrival.since>=ArrivalHomeMs || !relativeBearing({center.x-player.x,0,center.z-player.z},pan,front);
+            if(!done) {
+                const auto degrees=std::atan2(pan,front)*180/3.14159265358979323846;
+                mask=octMasks[(static_cast<int>(std::round(degrees/45))+8)&7];stamp=now;return;
+            }
+            recordLog("auto walk homed %.2f units toward the target",distanceXZ(player,arrival.origin));
+            arrival.settling=true;arrival.since=now;
+        }
+        mask=0;stamp=now;
+        arrival.faced=faceNavigationTarget(target) || arrival.faced;
+        if(now-arrival.since<ArrivalSettleMs) return;
+        if(!arrival.faced && !target.pushControl) {stop("arrived outside the interaction zone",L"not in interaction range");return;}
+        stop("arrived");return;
+    }
     if(leg.target.swimDepth) {
         if(!swimmingGoalActive(leg.target) || player.y>250) { stop("swimming transition",L"swimming transition"); return; }
         const double depth=std::max(0.0,251-player.y)+distanceXZ(player,leg.final);

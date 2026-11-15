@@ -126,7 +126,8 @@ bool commitTextPlan(const TextPlan& plan) {
     return output(rendered[plan.headline-1],plan.interrupt,plan.producer);
 }
 unsigned faceCalls=0;
-bool faceNavigationTarget(const NativeRouteTarget&) { ++faceCalls; return true; }
+bool faceResult=true;
+bool faceNavigationTarget(const NativeRouteTarget&) { ++faceCalls; return faceResult; }
 void log(const char*,...) {}
 }
 using namespace ffx;
@@ -189,6 +190,26 @@ int main() {
     begin(); clockValue+=251; check(!keyboard()[0xc8],"stale input expires after 250 ms");
     clockValue+=400; updateAutoWalk(); check(!keyboard()[0xc8],"interrupted field event cancels instead of resuming");
     begin(); leg.arrived=true; updateAutoWalk(); check(!keyboard()[0xc8] && faceCalls==1,"central route arrival releases input and faces the interactible");
+    {
+        // Djose: arrival stopped at the edge of the modelled zone, facing the way it walked, 1 to 1.3
+        // steps short; Enter did nothing until the player turned or nudged in. Home in toward the
+        // target (bounded), then hold still and keep facing it before the walk ends.
+        const auto frames=[](unsigned count) {for(unsigned i=0;i<count;++i) {clockValue+=50;updateAutoWalk();}};
+        const auto talkTarget=[] {leg.target.zone.valid=true;leg.target.zone.talk=true;leg.target.zone.range=20;leg.target.zone.center={0,0,20};leg.arrived=true;};
+        begin({0,0,0});talkTarget();speech.clear();faceCalls=0;faceResult=true;clockValue+=50;updateAutoWalk();
+        check(autoWalkActive() && keyboard()[0xc8]==0x80,"arrival at a talk zone's edge keeps walking in toward the target");
+        player={0,0,12};frames(1);check(autoWalkActive() && !keyboard()[0xc8],"homing ends after one step inward and holds still");
+        frames(8);check(!autoWalkActive() && faceCalls>=2 && speech.empty(),"the settled arrival faces the target repeatedly and ends silently");
+        begin({0,0,0});talkTarget();speech.clear();faceCalls=0;frames(8);
+        check(autoWalkActive() && !keyboard()[0xc8],"homing blocked by the target's collision settles without pushing on");
+        frames(8);check(!autoWalkActive() && speech.empty(),"a blocked homing still ends as an arrival");
+        begin({0,0,0});talkTarget();leg.target.pushControl=1;leg.target.position={0,0,20};speech.clear();faceCalls=0;clockValue+=50;updateAutoWalk();
+        check(autoWalkActive() && !keyboard()[0xc8] && faceCalls==1,"a pedestal is never walked into, only faced");
+        frames(8);check(!autoWalkActive() && speech.empty(),"a pedestal arrival ends silently after facing");
+        begin({0,0,0});talkTarget();speech.clear();faceResult=false;frames(30);
+        check(!autoWalkActive() && speech.size()==1 && speech.back()==L"Auto walk stopped: not in interaction range","an arrival that never gets inside the interaction zone says so instead of ending as reached");
+        faceResult=true;
+    }
     begin(); Event e; hooks.at(0x4b8980)(e); check(!keyboard()[0xc8],"native dialogue installation releases input immediately");
     begin(); swimmingHud=true; hooks.at(0x4b8980)(e);
     check(keyboard()[0xc8]==0x80,"nonblocking swimming HUD refresh retains keyboard auto walk");
