@@ -317,6 +317,12 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
         const auto [low,high]=declarations[i];auto& row=part.bindings.rows[i];row.binding=low;row.high=high;
         row.value=utilityValue(script,low,high);
     }
+    // Array checks (Bevelle sphere locations) read one element per binding row.
+    for(const auto& route:puzzleRoutes) if(script.name==route.script) for(const auto& step:route.steps) if(step.check && step.done.element) {
+        check(part.bindings.count<part.bindings.rows.size(),"Native guide fixture element row bound");
+        auto& row=part.bindings.rows[part.bindings.count++];row.binding=step.done.low;row.high=step.done.high;row.element=step.done.element;
+        row.value=utilityValue(script,step.done.low,step.done.high,step.done.element);
+    }
     speechq::Header header{};header.generation=guideScene.epoch;
     struct WorkerGuard {bool previous;WorkerGuard():previous(fixtureNativeOwner){fixtureNativeOwner=false;}~WorkerGuard(){fixtureNativeOwner=previous;}} guard;
     return puzzleGuideOwned(action,guideScene,Mesh{},std::vector<Entity>{},header,0,0);
@@ -363,6 +369,7 @@ void retirePuzzleGuideTargets() { std::abort(); }
 #include "trial_collection_fixture.inc"
 #include "gagazet_fixture.inc"
 #include "gagazet_timing_fixture.inc"
+#include "puzzle_guide_route_fixture.inc"
 int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std::setvbuf(stdout,nullptr,_IONBF,0);installUtilities();
     nativeQueuedKilikaFixture();
     trialCollectionFixtures();
@@ -399,6 +406,7 @@ int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std:
     setValue(0x5c0000dc,1,1);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 7 of")!=std::wstring::npos,"durable checkpoint recovers expected step past emptied carried sphere");
     resetOwnedPuzzleGuide();
+    puzzleGuideRouteFixtures();
     // Both Kilika entry sphere/recess choices activate the same full native
     // destruction insertion. Only its one owned window1 choice is automatic.
     for(unsigned local:{28u,29u}) {

@@ -42,7 +42,7 @@ TRIAL_LABELS = {
    29:"Entry door recess",30:"Side-wall storage recess 1",31:"Wall glyph recess",32:"Side-wall storage recess 2",
    33:"Fire chamber wall recess",34:"Destruction Sphere",35:"Lower Kilika Sphere recess",
    36:"Antechamber door recess",37:"Exit to the antechamber",41:"Pedestal reset tile"},
- "djyt0600":{1:"Pedestal",6:"Upper pedestal",24:"Destruction Sphere treasure",61:"Gap switch",62:"Pedestal reset glyph",63:"Central lift",64:"Hidden glyph",66:"Exit to the antechamber"},
+ "djyt0600":{1:"Pedestal",6:"Upper pedestal",24:"Destruction Sphere treasure",61:"Gap switch",62:"Destruction Sphere recess",63:"Central lift",64:"Hidden glyph",66:"Exit to the antechamber",67:"Pedestal reset tile"},
  "mcyt0500":{1:"Pedestal",46:"Main floor pedestal reset tile",47:"Upper walkway pedestal reset tile",19:"Destruction Sphere treasure",45:"Exit to the antechamber"},
  "bvyt1100":{13:"Rail pedestal",16:"Destruction Sphere treasure",17:"Second treasure chest",56:"Exit to the antechamber"},
  "dome0700":{32:"Destruction Sphere treasure",33:"Trial encounter",41:"Lift to the Chamber of the Fayth",42:"Exit to the trial encounter",

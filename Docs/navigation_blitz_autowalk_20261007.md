@@ -22,9 +22,9 @@ Point-only floor controls use a tighter arrival distance in Auto walk mode.
   glyph 31, fire-chamber recess 33, Destruction Sphere 34, lower treasure recess
   35, final door 36, reset tile 41. The glyph activates at 31, not the original
   sphere source. The treasure goes in 35, not the final door.
-- Djose: reset 62 and lift 63 are distinct. Charging, door and circuit sockets
-  have distinct labels. Sphere transfers, upper pedestals and treasure actions
-  are separate guide steps.
+- Djose: reset tile 67, Destruction Sphere recess 62 and lift 63 are distinct.
+  Charging, door and circuit sockets have distinct labels. Sphere transfers,
+  upper pedestals and treasure actions are separate guide steps.
 - Macalania: the movable pedestal is 1, treasure socket 40, Glyph reveal 41,
   revealed sphere 42 and bridge-support socket 43. Reset tiles are 46/47;
   worker 20 is Auron. The guide keeps pedestal loading separate from pillar
