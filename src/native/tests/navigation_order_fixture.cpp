@@ -127,6 +127,27 @@ int main() {
         list.observe(7,23,11900);check(list.settled(11900),"a count held for the settle time speaks N of M");
         list.observe(8,23,12000);check(!list.settled(12000),"a new room starts unsettled even with the same count");
         list.observe(8,23,13600);list.observe(8,22,13700);check(!list.settled(13700),"a destination that appears or leaves unsettles the total");
+        // Djose - Great Hall, 7 destinations, standing still: ] presses 0.5 to 1.3 seconds apart lost
+        // their totals long after the room settled; presses 3 seconds apart kept them. Every press
+        // rescans, so a scan whose count differs once, or a press that restarts the reachability check,
+        // must not take the totals away again once this room has settled.
+        {
+            ffx::nav::ListStability hall;bool all=true;
+            hall.observe(9,7,20000);check(!hall.totals(20000,true,true),"Great Hall entry omits N of M before the list settles");
+            hall.observe(9,7,21600);check(hall.totals(21600,true,false),"Great Hall speaks N of M once its seven destinations settle and are checked");
+            unsigned long long at=50000;
+            for(unsigned press=0;press<8;++press,at+=500) {
+                hall.observe(9,press%2?8:7,at);
+                all=hall.totals(at,true,press%3==0) && all;
+            }
+            check(all,"fast ] presses in a settled room keep N of M even when a rescan's count or reachability check changes");
+            for(unsigned press=0;press<4;++press,at+=1300) {hall.observe(9,7,at);all=hall.totals(at,true,true) && all;}
+            check(all,"presses 1.3 seconds apart in a settled room keep N of M");
+            check(hall.totals(at,false,true),"with Hide unreachable off a settled room keeps N of M");
+            check(!hall.totals(at,true,true),"turning Hide unreachable on in a settled room still omits N of M until it is checked");
+            check(hall.totals(at+100,true,false),"the count returns once the filter has checked the room");
+            hall.observe(10,7,at+200);check(!hall.totals(at+200,true,false),"a new room starts unsettled again");
+        }
     }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

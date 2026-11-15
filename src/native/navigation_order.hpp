@@ -37,14 +37,25 @@ template<class Key,class Selection,class Visible> int visibleRowOf(const std::ve
 inline bool rowCountSettled(bool hideUnreachable,bool checking) {return !hideUnreachable || !checking;}
 // After a room change the destination set fills in over several scans, so early totals
 // ("2 of 11", "5 of 23") are wrong. A total is spoken once the scanned destination count has
-// held for ListSettleMs in the same map generation.
+// held for ListSettleMs in the same map generation. Every ] or [ rescans, and a rescan can count
+// one destination more or less or restart the reachability check; once the room has settled, that
+// must not take the totals away again, so settling is latched per map generation and the current
+// count is spoken. Turning Hide unreachable on, by U or the mod menu, waits for its first check again.
 constexpr unsigned long long ListSettleMs=1500;
 struct ListStability {
-    unsigned epoch=0;size_t count=0;unsigned long long since=0;
+    unsigned epoch=0;size_t count=0;unsigned long long since=0;bool counted=false,checked=false,hidden=false;
     void observe(unsigned scanEpoch,size_t found,unsigned long long at) {
-        if(!since || scanEpoch!=epoch || found!=count) {epoch=scanEpoch;count=found;since=at;}
+        if(since && scanEpoch==epoch && settled(at)) counted=true;
+        if(!since || scanEpoch!=epoch) {epoch=scanEpoch;count=found;since=at;counted=checked=false;}
+        else if(found!=count) {count=found;since=at;}
     }
     bool settled(unsigned long long at) const {return since && at>=since && at-since>=ListSettleMs;}
+    bool totals(unsigned long long at,bool hideUnreachable,bool checking) {
+        if(settled(at)) counted=true;
+        if(hideUnreachable!=hidden) {hidden=hideUnreachable;checked=false;}
+        if(rowCountSettled(hideUnreachable,checking)) checked=true;
+        return counted && (!hideUnreachable || checked);
+    }
 };
 // Row to select when a reachability verdict hides the selected entity. The list keeps its order:
 // verdicts are matched to targets by position, so reordering would drop them and the hidden row

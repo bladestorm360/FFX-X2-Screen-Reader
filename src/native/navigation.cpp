@@ -121,7 +121,7 @@ void announce(const Pending& event,bool interrupt=true,bool index=true) {
     auto text=label(target)+(target.swimDepth?L". "+nav::sceneSwimmingInstruction(s.observation):(index?L", ":L": ")+decimal(distanceXZ(player,target.position)/UnitsPerStep)+L" steps "+direction({target.position.x-player.x,0,target.position.z-player.z}));
     if(target.inactive) text+=L", currently inactive";if(target.pushControl) {const auto side=describePedestalSide(target.position,player);if(!side.empty()) text+=L". "+side;}
     // Totals wait until the room's destination set and reachability verdicts have settled.
-    if(index && s.list.settled(GetTickCount64()) && nav::rowCountSettled(setting(Setting::HideUnreachable)!=0,ownedReachabilityChecking()))
+    if(index && s.list.totals(GetTickCount64(),setting(Setting::HideUnreachable)!=0,ownedReachabilityChecking()))
         text+=menuIndex(s.selected,static_cast<unsigned>(rows.size()));
     emit(event,std::move(text),"navigation-selection",interrupt);
 }

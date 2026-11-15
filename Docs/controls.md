@@ -441,7 +441,8 @@ NPCs keep their browsing order. Selection follows the same native worker.
 **]** — cycle to the next entity in the current category and announce it with
 distance, direction and its position such as "6 of 10". Just after entering a
 room, or while Hide unreachable destinations is still checking, the position is
-left out until the list stops changing.
+left out until the list has settled; after that it is read on every press in
+that room.
 
 **[** — cycle to the previous entity.
 
