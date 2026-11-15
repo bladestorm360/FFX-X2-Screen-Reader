@@ -408,6 +408,27 @@ void bevelleGuideRouteFixture() {
             bevelleSphere(2,1,0),bevelleSphere(2,5,1),{0x0c000025,1}},4},
     });
 }
+void guideTargetNameFixture() {
+    // Each guide step says "Target: <name>." The player finds that target in
+    // the navigation list by name, so <name> must be the list row's name.
+    for(const auto& route:puzzleRoutes) {
+        const NavigationScript* catalog=nullptr;
+        for(const auto& record:navigationScripts) if(!std::strcmp(record.name,route.script)) {catalog=&record;break;}
+        check(catalog!=nullptr,"guide route has a navigation catalog");
+        for(const auto& step:route.steps) {
+            const std::wstring text=step.instruction;
+            if(text.rfind(L"Target: ",0)!=0) continue;
+            const auto name=text.substr(8,text.find(L'.')-8);
+            const auto target=navigationTarget(catalog,step.worker);
+            check(target && target->label,"guide target worker has a navigation row");
+            const std::wstring row=target->category==4?navigationChestName(target):target->label;
+            if(row!=name || name!=step.label)
+                std::printf("%s worker %u: guide target \"%ls\", label \"%ls\", list row \"%ls\"\n",route.script,step.worker,name.c_str(),step.label,row.c_str());
+            check(row==name && name==step.label,"guide target name equals its navigation list row");
+        }
+    }
+    check(!std::wcscmp(navigationChestName(nullptr),L"Treasure Chest"),"a chest without a catalog row keeps the generic name");
+}
 void zanarkandGuideRouteFixture() {
     // dome0700: 0x5c000004 pattern stage (0 floor, 1-4 pedestals, 5 return);
     // 0x22 floor pattern counter (6 = complete); 0x20 completed patterns and
@@ -466,4 +487,5 @@ void puzzleGuideRouteFixtures() {
     macalaniaGuideRouteFixture();
     bevelleGuideRouteFixture();
     zanarkandGuideRouteFixture();
+    guideTargetNameFixture();
 }

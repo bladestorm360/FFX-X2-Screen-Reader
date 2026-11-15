@@ -8,6 +8,7 @@
 #include "../utility_trials_data.hpp"
 #include "../utility_warps.hpp"
 #include "../navigation_targets.hpp"
+#include "../navigation_targets_data.hpp"
 #include "../puzzle_solver.hpp"
 #include "../puzzle_solver_data.hpp"
 #include "../puzzle_completion.hpp"

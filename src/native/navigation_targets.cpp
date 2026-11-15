@@ -12,6 +12,13 @@ const NavigationScript* navigationCatalog(const AtelScript& script) {
             return &record;
     return nullptr;
 }
+const wchar_t* navigationChestName(const NavigationTarget* target) {
+    // Only the trial chests carry their own catalog name; every other chest
+    // row is the generic "Treasure chest".
+    if (target && target->category == 4 && target->label && std::wstring_view(target->label) != L"Treasure chest")
+        return target->label;
+    return L"Treasure Chest";
+}
 const NavigationTarget* navigationTarget(const NavigationScript* script, unsigned worker) {
     if (!script) return nullptr;
     for (const auto& record : navigationPassageTargets)

@@ -180,7 +180,8 @@ void scanExits(Point player, std::vector<Entity>& entities) {
                 const auto result=scanWorker(script,index,&entries);
                 if(!result.interactive && !result.request && !result.exit && !result.truncated && !result.unresolved) { ++excluded; continue; }
             }
-            entity.category = entity.name = saveSphere ? L"Save Sphere" : L"Treasure Chest";
+            entity.category = saveSphere ? L"Save Sphere" : L"Treasure Chest";
+            entity.name = saveSphere ? L"Save Sphere" : navigationChestName(target);
         } else if (target || presence) {
             entity.category = categories[navigationEntityCategory(target,model,bound)]; room = target?target->room:-1;
             entity.name=navigationEntityName(target,model,bound);

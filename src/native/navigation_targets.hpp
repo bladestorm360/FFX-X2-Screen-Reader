@@ -15,4 +15,7 @@ bool navigationSaveSphereModel(unsigned model);
 bool navigationActorPresence(const NavigationScript*,unsigned model,bool actor);
 const NavigationScript* navigationCatalog(const AtelScript&);
 const NavigationTarget* navigationTarget(const NavigationScript*, unsigned worker);
+// The list name of a native treasure chest. A trial chest keeps its catalog
+// label, so the puzzle guide can name it; other chests are "Treasure Chest".
+const wchar_t* navigationChestName(const NavigationTarget*);
 }

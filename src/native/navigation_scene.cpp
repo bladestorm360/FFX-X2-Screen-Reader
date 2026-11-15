@@ -367,7 +367,7 @@ void buildPart(const OwnedAtelGuardView& view,void* opaque) {
         if(w.type==1 && !bound) continue;int room=-1;
         if(nativeObject) {
             if(model==0x5002 && !target) {const auto result=scanWorker(script,index,&activeEntries);if(!result.interactive && !result.request && !result.exit && !result.truncated && !result.unresolved) continue;}
-            e.category=e.name=saveSphere?L"Save Sphere":L"Treasure Chest";
+            e.category=saveSphere?L"Save Sphere":L"Treasure Chest";e.name=saveSphere?L"Save Sphere":navigationChestName(target);
         } else if(target || presence) {e.category=categories[navigationEntityCategory(target,model,bound)];room=target?target->room:-1;e.name=navigationEntityName(target,model,bound,context.people);}
         else if(!catalog) {
             const auto result=scanWorker(script,index,&activeEntries);
