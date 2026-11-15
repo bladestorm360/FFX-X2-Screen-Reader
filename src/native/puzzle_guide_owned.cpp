@@ -22,7 +22,7 @@
 #include <cstring>
 namespace ffx {
 namespace {
-struct State {unsigned epoch=0,revision=0,step=0,expected=0,part=0,begin=0,end=0;const PuzzleRoute* route=nullptr;int pattern=-1,progress=-1,placed=-1,removed=-1;std::set<unsigned> visited;};
+struct State {unsigned epoch=0,revision=0,step=0,expected=0,part=0,begin=0,end=0;const PuzzleRoute* route=nullptr;int pattern=-1,progress=-1;std::uint64_t placed=0,removed=0;std::set<unsigned> visited;};
 ProcessStorage<State> storage;
 std::atomic<unsigned> revision{1};std::atomic<bool> enabled{false};
 std::atomic<bool> refreshPending{false};
@@ -54,7 +54,7 @@ bool context(const nav::Scene& observation,State& state) {
         else if(visit==ZanarkandPhase::ReturnVisit) begin=route->returnStep;
         else end=0;
     }
-    if(state.epoch!=observation.epoch || state.revision!=current || state.route!=route || state.begin!=begin || state.end!=end) {state.visited.clear();state.step=state.expected=begin;state.pattern=state.progress=state.placed=state.removed=-1;state.epoch=observation.epoch;state.revision=current;state.route=route;state.begin=begin;state.end=end;}
+    if(state.epoch!=observation.epoch || state.revision!=current || state.route!=route || state.begin!=begin || state.end!=end) {state.visited.clear();state.step=state.expected=begin;state.pattern=state.progress=state.placed=state.removed=0;state.epoch=observation.epoch;state.revision=current;state.route=route;state.begin=begin;state.end=end;}
     return true;
 }
 void synchronizeTiles(const nav::Scene& observation,State& state) {
