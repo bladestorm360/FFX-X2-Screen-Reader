@@ -88,6 +88,30 @@ void djoseGuideRouteFixture() {
     walkGuideRoute("djyt0600",{{"late start after hidden glyph",{{0x0000028e,1},{0x0c000095,1},{0x0c000096,1},{0x0c00009c,3},{0x0c00009f,10},
         {0x0c0000a1,2},{0x0c0000da,1},{0x0c0000db,1},{0x0c0000e5,2}},27}});
     walkGuideRoute("djyt0600",{{"late start after door",{{0x0000028e,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10},{0x0c000094,1}},6}});
+    // In game the spheres from the charging wall went back into the same wall
+    // recesses. Only a pedestal socket insert finishes steps 14 and 16.
+    walkGuideRoute("djyt0600",{
+        {"entry",{{0x0c000095,1},{0x0c000096,1},{0x0c00009b,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10}},1},
+        {"take entry sphere 1",{{0x0c000094,1},{0x0c000095,0}},2},
+        {"insert door recess 1",{{0x0c000097,1},{0x0c000094,0}},3},
+        {"take entry sphere 2",{{0x0c000094,1},{0x0c000096,0}},4},
+        {"insert door recess 2 opens door",{{0x0c000098,1},{0x0c000094,0},{0x0000028e,1}},5},
+        {"take charged-door recess sphere",{{0x0c000094,1},{0x0c00009b,0}},6},
+        {"insert charging recess 1",{{0x0c000099,1},{0x0c000094,0}},7},
+        {"take left circuit sphere",{{0x0c000094,1},{0x0c00009c,0}},8},
+        {"insert charging recess 2 powers charger",{{0x0c00009a,1},{0x0c000094,0},{0x0c0000a1,1}},9},
+        {"push loaded pedestal under charger",{{0x0c00009d,3},{0x0c0000a1,2}},0},
+        {"take charged sphere",{{0x0c000094,3},{0x0c00009d,0}},0},
+        {"insert charged door recess",{{0x0c00009b,3},{0x0c000094,0}},13},
+        {"take charging recess 1",{{0x0c000094,1},{0x0c000099,0}},14},
+        {"put it back in charging recess 1",{{0x0c000099,1},{0x0c000094,0}},14},
+        {"take charging recess 1 again",{{0x0c000094,1},{0x0c000099,0}},14},
+        {"insert west pedestal socket",{{0x0c00009e,1},{0x0c000094,0}},15},
+        {"take charging recess 2",{{0x0c000094,1},{0x0c00009a,0}},16},
+        {"put it back in charging recess 2",{{0x0c00009a,1},{0x0c000094,0}},16},
+        {"take charging recess 2 again",{{0x0c000094,1},{0x0c00009a,0}},16},
+        {"insert east pedestal socket",{{0x0c00009d,1},{0x0c000094,0}},17},
+    });
     // Upper pedestal 1 (0xde) is never cleared, so it is a checkpoint after the
     // unseen lift ride. Pedestals pushed out of order do not skip the first one.
     walkGuideRoute("djyt0600",{

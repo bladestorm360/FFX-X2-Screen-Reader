@@ -10,6 +10,9 @@ struct PuzzleStep {
     UtilityBinding done;
     bool check = false, platform = false, checkpoint = false;
     const wchar_t* label = L"Puzzle control";
+    // A second binding that must also match, when the first one is shared
+    // with other steps (the carried-sphere variable). low 0 means none.
+    UtilityBinding also{0,1,0};
 };
 struct PuzzleRoute { const char* script; std::vector<PuzzleStep> steps; unsigned returnStep=0; };
 std::wstring puzzleGuide(std::wstring_view action);

@@ -30,7 +30,9 @@ int value(const nav::Scene& observation,const State& state,unsigned low,unsigned
     for(unsigned i=0;i<facts.bindings.count;++i) {const auto& row=facts.bindings.rows[i];if(row.binding==low && row.high==high && row.element==element) return row.value;}
     throw std::runtime_error("Required puzzle observation is missing");
 }
-bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
+bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
+    if(step.also.low && value(observation,state,step.also.low,step.also.high,step.also.element)!=step.also.value) return false;
+    return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
 void advance(const nav::Scene& observation,State& state) {
     for(unsigned i=state.expected;i+1<state.end;++i) if(state.route->steps[i].checkpoint && done(observation,state,state.route->steps[i])) state.expected=i+1;
     while(state.expected+1<state.end && done(observation,state,state.route->steps[state.expected])) ++state.expected;
