@@ -218,6 +218,9 @@ namespace FfxScreenReader.Setup
                 throw;
             }
             bool prismInstalled = false;
+            // Files this run creates or replaces. Rollback deletes only these when no backup exists,
+            // so a file another program creates during setup is left alone.
+            var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string stage = Path.Combine(game, StagePrefix + Guid.NewGuid().ToString("N"));
             try
             {
@@ -244,18 +247,22 @@ namespace FfxScreenReader.Setup
                     bool planned = before.ContainsKey(name);
                     if (!planned && File.Exists(Path.Combine(game, name)))
                         throw new IOException(name + " appeared during setup. Close the program that created it and try again.");
+                    written.Add(name);
                     File.Move(Path.Combine(stage, name), Path.Combine(game, name), planned);
                 }
                 status("Configuring launcher speech");
                 string pending = config + ".ffx_sr_pending";
+                written.Add(ConfigName + ".ffx_sr_pending");
                 using (var stream = new FileStream(InstallerPaths.Native(pending), FileMode.Create, FileAccess.Write, FileShare.None)) xml.Save(stream);
                 PrepareConfiguration(pending); // Parse the staged merged XML before changing the live configuration.
                 string original = config + ".ffx_sr_original";
                 if (!File.Exists(original))
                 {
+                    written.Add(ConfigName + ".ffx_sr_original");
                     if (File.Exists(config)) File.Copy(config, original);
                     else File.WriteAllText(original, "<?xml version=\"1.0\" encoding=\"utf-8\"?><configuration/>");
                 }
+                written.Add(ConfigName);
                 File.Copy(pending, config, true);
                 File.Delete(pending);
                 foreach (string name in PayloadNames)
@@ -288,7 +295,7 @@ namespace FfxScreenReader.Setup
                             Directory.CreateDirectory(Path.GetDirectoryName(target));
                             File.Copy(old, target, true);
                         }
-                        else File.Delete(target);
+                        else if (written.Contains(name)) File.Delete(target);
                     }
                     catch (Exception restore) { restoreFailures.Add(name + ": " + restore.Message); }
                 }

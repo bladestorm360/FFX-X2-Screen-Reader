@@ -155,6 +155,9 @@ internal static class InstallerSafetyTests
         Reject(delegate { Engine().Install(game, delegate(string text) {
             if (text == "Configuring launcher speech") File.WriteAllText(Path.Combine(game, "frida-gadget.dll"), "legacy file restored by another tool");
         }); }, "appeared during setup", "Legacy file reappearing during setup");
+        assert(File.ReadAllText(Path.Combine(game, "frida-gadget.dll")) == "legacy file restored by another tool",
+            "Rollback keeps a legacy file that another tool restored during setup");
+        File.Delete(Path.Combine(game, "frida-gadget.dll"));
         Unchanged(game, before, "Legacy reappearance rollback");
     }
 
@@ -198,7 +201,10 @@ internal static class InstallerSafetyTests
         Reject(delegate { Engine().Install(appeared, delegate(string text) {
             if (text == "Installing SDL3.dll") File.WriteAllText(Path.Combine(appeared, "SDL3.dll"), "another program's SDL3");
         }); }, "SDL3.dll appeared during setup", "Payload appears during setup");
-        Unchanged(appeared, before, "Payload that appeared during setup is rolled back");
+        assert(File.Exists(Path.Combine(appeared, "SDL3.dll")) && File.ReadAllText(Path.Combine(appeared, "SDL3.dll")) == "another program's SDL3",
+            "Rollback keeps a payload-named file that another program created during setup");
+        File.Delete(Path.Combine(appeared, "SDL3.dll"));
+        Unchanged(appeared, before, "Payload that appeared during setup: everything else is rolled back");
     }
 
 
@@ -331,6 +337,7 @@ internal static class InstallerSafetyTests
         Engine().Uninstall(game, delegate { });
         assert(File.ReadAllText(config) == stock, "Uninstall restores the saved original, not a configuration that loads the removed reader");
         Unchanged(game, stockSnapshot, "Uninstall after a hand-removed 1.x install leaves the stock game");
+
 
         string unusable = Game("Leftover 1.x launcher configuration without a usable original");
         config = Path.Combine(unusable, "FFX&X-2_LAUNCHER.exe.config");
