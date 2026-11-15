@@ -147,7 +147,10 @@ void pathfind(const Pending& event,bool assist=false) {
         if(assist) return;
         if(target.butterfly) {emit(event,label(target)+(target.butterflyStart?L": within start range":L": within catching range"),"navigation-facing");return;}
         if(setting(Setting::AutoWalk)) intent(event,target,target.pushControl?nav::Intent::ArmAndFace:nav::Intent::Face);
-        if(target.pushControl) {emit(event,label(target)+L": at the push position. "+instruction(target),"navigation-facing");return;}
+        // A guide step that uses this pedestal without pushing it (a sphere
+        // socket) replaces the push plan in the arrival text.
+        if(target.pushControl) {const auto guided=ownedGuidePedestalStep(s.observation,target);
+            emit(event,label(target)+(guided.empty()?L": at the push position. "+instruction(target):L": "+guided),"navigation-facing");return;}
         const auto facing=direction({target.zone.center.x-player.x,0,target.zone.center.z-player.z});
         if(facing==L"here" || facing==L"unknown") emit(event,label(target)+L": within interaction range. Facing direction is unavailable at this position","navigation-facing");
         else emit(event,label(target)+L": within interaction range. "+(target.inactive?L"Currently inactive. ":L"")+L"Face "+facing,"navigation-facing");return;

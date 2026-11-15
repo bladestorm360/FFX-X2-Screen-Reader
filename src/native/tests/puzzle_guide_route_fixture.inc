@@ -134,6 +134,60 @@ void djoseGuideRouteFixture() {
         {"take a door sphere back",{{0x0c000097,0},{0x0c000094,1}},6},
     });
 }
+bool guideSays(OwnedGuideAction action,const wchar_t* expected,const char* reason) {
+    const auto text=fixturePuzzleGuideSync(action);const bool ok=text.find(expected)!=std::wstring::npos;
+    if(!ok) std::fprintf(stderr,"%s: %ls\n",reason,text.c_str());
+    check(ok,reason);return ok;
+}
+// Navigation asks from its own owner thread, not the native game thread.
+std::wstring guidePedestalStep(const Entity& pedestal) {
+    const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;
+    auto text=ownedGuidePedestalStep(*fixtureGuideScene,pedestal);fixtureNativeOwner=previous;return text;
+}
+// The guide holds its last exact step while a scene or an assisted push owns
+// the player, because the script is part-way through its writes. Manual F9 and
+// F10 selection starts from the last exact step, and pedestal arrival text
+// follows a selected step that is not a push.
+void guideSelectionFixture() {
+    const std::vector<GuideStage> stages={
+        {"entry",{{0x0c000095,1},{0x0c000096,1},{0x0c00009b,1},{0x0c00009c,1},{0x0c00009d,1},{0x0c00009f,10}},0},
+        {"door",{{0x0c000097,1},{0x0c000098,1},{0x0000028e,1},{0x0c0000a1,1}},0}};
+    loadGuideRoute("djyt0600",stages);
+    for(const auto& write:stages[0].writes) setValue(write.low,write.high,write.value,write.element);
+    setValue(0x0c000094,1,1);setValue(0x0c000095,1,0);setValue(0x0c000097,1,1);setValue(0x0c000094,1,0);
+    setValue(0x0c000094,1,1);setValue(0x0c000096,1,0);
+    guideSays(OwnedGuideAction::Expected,L"Step 4 of","Djose expected step before the door scene");
+    guideSays(OwnedGuideAction::Next,L"Step 5 of","manual next starts from the last exact step");
+    guideSays(OwnedGuideAction::Previous,L"Step 4 of","manual previous returns to the last exact step");
+    // Door scene: the insert, then the scene resets the first door socket.
+    fixtureGuideControl=false;
+    setValue(0x0c000098,1,1);setValue(0x0c000094,1,0);setValue(0x0c000097,1,0);
+    fixturePuzzleGuideSync(OwnedGuideAction::Completed);
+    guideSays(OwnedGuideAction::Expected,L"Step 4 of","guide holds the last exact step during a scene");
+    guideSays(OwnedGuideAction::Expected,L"Wait for the current scene or push to finish","guide says it is waiting during a scene");
+    setValue(0x0000028e,1,1);fixtureGuideControl=true;
+    fixturePuzzleGuideSync(OwnedGuideAction::Completed);
+    guideSays(OwnedGuideAction::Step,L"Step 5 of","manual selection follows the guide once the scene ends");
+    // Charge the sphere; an assisted push in progress holds the step too.
+    const auto act=[](std::initializer_list<GuideWrite> writes) {for(const auto& w:writes) setValue(w.low,w.high,w.value,w.element);fixturePuzzleGuideSync(OwnedGuideAction::Completed);};
+    act({{0x0c000094,1},{0x0c00009b,0}});act({{0x0c000099,1},{0x0c000094,0}});
+    act({{0x0c000094,1},{0x0c00009c,0}});act({{0x0c00009a,1},{0x0c000094,0},{0x0c0000a1,1}});
+    guideSays(OwnedGuideAction::Expected,L"Step 9 of","Djose expected step before the charger push");
+    fixtureGuidePedestal.armed=fixtureGuidePedestal.held=true;
+    setValue(0x0c0000a1,1,2);
+    guideSays(OwnedGuideAction::Expected,L"Step 9 of","guide holds the push step while the push is held");
+    fixtureGuidePedestal={};
+    guideSays(OwnedGuideAction::Expected,L"does not identify an exact puzzle step","guide reaches the unseen reset tile after the push");
+    guideSays(OwnedGuideAction::Next,L"Step 11 of","manual next from the unseen reset tile");
+    Entity pedestal;configurePedestalTarget(pedestal,"djyt0600",1);
+    const auto text=guidePedestalStep(pedestal);
+    if(text.find(L"Guide step 11: Stand centred on the east face")!=0) std::fprintf(stderr,"pedestal arrival: %ls\n",text.c_str());
+    check(text.find(L"Guide step 11: Stand centred on the east face")==0,"pedestal arrival follows the selected sphere step");
+    guideSays(OwnedGuideAction::Previous,L"Step 10 of","manual previous to the reset tile");
+    guideSays(OwnedGuideAction::Previous,L"Step 9 of","manual previous to the push step");
+    check(guidePedestalStep(pedestal).empty(),"pedestal arrival keeps push text for a push step");
+    resetOwnedPuzzleGuide();
+}
 void besaidGuideRouteFixture() {
     // bsyt0100: 0xac carried sphere (1 Besaid, 2 Glyph, 3 Destruction);
     // 0xb0 Glyph source (w39), 0xb4 door recess (w40, w41), 0xb8 hidden
@@ -364,6 +418,7 @@ void zanarkandGuideRouteFixture() {
 }
 void puzzleGuideRouteFixtures() {
     djoseGuideRouteFixture();
+    guideSelectionFixture();
     besaidGuideRouteFixture();
     kilikaGuideRouteFixture();
     macalaniaGuideRouteFixture();

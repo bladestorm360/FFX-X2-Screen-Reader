@@ -103,9 +103,9 @@ int main() {try {
     check(guide(OwnedGuideAction::Previous).find(L"Step 1 of")!=std::wstring::npos,"owned previous clamps at first step");
     changeGuideValue(0x5c0000ec,1);check(guide(OwnedGuideAction::Step).find(L"Step 1 of")!=std::wstring::npos,"state change cannot auto-advance manual selection");
     check(guide(OwnedGuideAction::Expected).find(L"Step 2 of")!=std::wstring::npos,"expected follows actual copied durable checkpoint");
-    check(guide(OwnedGuideAction::Step).find(L"Step 1 of")!=std::wstring::npos,"expected cannot move manual selection");
-    check(guide(OwnedGuideAction::Next).find(L"Step 2 of")!=std::wstring::npos,"manual next advances one step");guide(OwnedGuideAction::Completed);
-    check(guide(OwnedGuideAction::Step).find(L"Step 2 of")!=std::wstring::npos,"completion leaves manual selection unchanged");
+    check(guide(OwnedGuideAction::Step).find(L"Step 2 of")!=std::wstring::npos,"expected moves manual selection to the exact step");
+    check(guide(OwnedGuideAction::Next).find(L"Step 3 of")!=std::wstring::npos,"manual next advances one step");guide(OwnedGuideAction::Completed);
+    check(guide(OwnedGuideAction::Step).find(L"Step 3 of")!=std::wstring::npos,"completion without a new exact step leaves manual selection unchanged");
     for(unsigned i=0;i<20;++i) guide(OwnedGuideAction::Next);check(guide(OwnedGuideAction::Step).find(L"Step 13 of 13")!=std::wstring::npos,"last-step clamp preserved");
     check(guide(OwnedGuideAction::Step).find(L"Besaid Sphere must be in the pedestal")!=std::wstring::npos,"missing original prerequisite preserved");
     changeGuideValue(0x5c0000cc,1);check(guide(OwnedGuideAction::Step).find(L"push it onto the final floor depression")!=std::wstring::npos,"original final objective preserved");

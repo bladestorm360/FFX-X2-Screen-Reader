@@ -298,6 +298,10 @@ std::wstring join(const std::vector<std::wstring>& parts,const wchar_t* sep) { s
 }
 #include "via_purifico_fixture.inc"
 namespace {
+// Player control and assisted-push state copied into the guide scene.
+bool fixtureGuideControl=true;
+ffx::PedestalNavigationState fixtureGuidePedestal{};
+const ffx::nav::Scene* fixtureGuideScene=nullptr;
 std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     using namespace ffx;
     UtilityScript script=utilityScript();
@@ -306,6 +310,7 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     script.worker=worker0;script.header=read<uintptr_t>(worker0);
     nav::Scene& guideScene=*([]()->nav::Scene* { static nav::Scene value{};return &value; })();
     std::memset(&guideScene,0,sizeof(guideScene));guideScene.epoch=generation();guideScene.revision=1;guideScene.primary=script.chunk;guideScene.partCount=1;
+    guideScene.control=fixtureGuideControl;guideScene.pedestal=fixtureGuidePedestal;fixtureGuideScene=&guideScene;
     auto& part=guideScene.parts[0];
     check(nativeAtelSpan(script.chunk,part.span),"Native guide fixture captures resource span");
     part.span.epoch=guideScene.epoch;part.guideReady=true;part.bindingsReady=true;part.identityReady=true;

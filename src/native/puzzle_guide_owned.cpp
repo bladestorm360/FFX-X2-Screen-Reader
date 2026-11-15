@@ -93,6 +93,17 @@ std::wstring instruction(const nav::Scene& observation,const Entity& target) {
     const auto binding=join(choices,L" or ");const auto consent=binding.empty()?single?std::wstring(L"Confirm"):std::wstring(L"the configured push control"):binding;
     const auto side=describePedestalApproach(plan,target.position,observation.player);return (side.empty()?L"":side+L" ")+describePedestalPlan(plan,target.position,consent);
 }
+// A scene or an assisted push owns the player while the script is part-way
+// through its writes (a door scene briefly empties a socket), so the guide
+// holds its last exact step until the player has control again.
+bool settling(const nav::Scene& observation) {return !observation.control || (observation.pedestal.armed && observation.pedestal.held);}
+// Manual F9 and F10 selection starts from the step the guide last found.
+void follow(const nav::Scene& observation,State& state) {
+    if(settling(observation)) return;
+    const auto before=state.expected;advance(observation,state);
+    if(state.expected!=before) state.step=state.expected;
+}
+bool pushStep(const State& state,const PuzzleStep& step) {return step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);}
 std::wstring path(const nav::Scene& observation,const Mesh& mesh,const std::vector<Entity>& entities,const Entity& target,bool platform,unsigned manual,unsigned intentRevision,const std::wstring& finish={}) {
     constexpr double UnitsPerStep=11.13;resetNavAudio();
     if(target.pushControl && !target.zone.valid) return L"The pedestal collision data is unavailable.";
@@ -136,6 +147,16 @@ std::wstring puzzleTargetPathOwned(const nav::Scene& observation,const Mesh& mes
     }
     return path(observation,mesh,entities,target,false,manual,intentRevision,finish);
 }
+std::wstring ownedGuidePedestalStep(const nav::Scene& observation,const Entity& pedestal) {
+    if(nativeGameThread() || !pedestal.pushControl || !enabled.load(std::memory_order_acquire) || !storage.ready()) return {};
+    const auto& state=storage.get();
+    if(!state.route || state.epoch!=observation.epoch || state.revision!=revision.load(std::memory_order_acquire) || state.step>=state.end) return {};
+    const auto& step=state.route->steps[state.step];if(step.worker!=pedestal.pushLocal || pushStep(state,step)) return {};
+    Entity probe;configurePedestalTarget(probe,state.route->script,step.worker);if(probe.pushControl!=pedestal.pushControl) return {};
+    std::wstring text=step.instruction;const auto tag=L"Target: "+std::wstring(step.label)+L". ";
+    if(!text.compare(0,tag.size(),tag)) text.erase(0,tag.size());
+    return L"Guide step "+std::to_wstring(state.step-state.begin+1)+L": "+text;
+}
 void resetOwnedPuzzleGuide() {enabled=false;refreshPending=false;revision.fetch_add(1,std::memory_order_acq_rel);}
 bool ownedPuzzleGuideActive() {return enabled.load(std::memory_order_acquire);}
 unsigned ownedPuzzleGuideRevision() {return revision.load(std::memory_order_acquire);}
@@ -145,15 +166,18 @@ std::wstring puzzleGuideOwned(OwnedGuideAction action,const nav::Scene& observat
     if(nativeGameThread()) return {};nav::CameraScope camera(observation.forward,observation.right,observation.cameraValid);
     if(!storage.ready()) storage.prepare();auto& state=storage.get();if(!context(observation,state)) {enabled=false;if(action==OwnedGuideAction::Completed) refreshPending=false;return action==OwnedGuideAction::Completed || action==OwnedGuideAction::TileCompleted?std::wstring{}:L"No supported trial is active";}
     if(state.begin==state.end) {enabled=false;refreshPending=false;return action==OwnedGuideAction::Completed || action==OwnedGuideAction::TileCompleted?std::wstring{}:L"Finish Zanarkand's native story and encounter sequence before the return-visit puzzle guide becomes available.";}
-    if(action==OwnedGuideAction::Completed) {refreshPending=false;try {if(enabled.load()) advance(observation,state);}catch(...) {enabled=false;}return {};}
+    if(action==OwnedGuideAction::Completed) {refreshPending=false;try {if(enabled.load()) follow(observation,state);}catch(...) {enabled=false;}return {};}
     if(action==OwnedGuideAction::TileCompleted) {if(!std::strcmp(state.route->script,"dome0700") && chunk==observation.parts[state.part].span.chunk && serial==observation.parts[state.part].span.serial && local>=57 && local<=83) {synchronizeTiles(observation,state);for(const auto& candidate:puzzleTiles) if(candidate.worker==local && static_cast<int>(candidate.stage)==state.pattern) state.visited.insert(local);}return {};}
-    enabled=true;if(action==OwnedGuideAction::Next) {if(state.step+1<state.end) ++state.step;}else if(action==OwnedGuideAction::Previous) {if(state.step>state.begin) --state.step;}else if(action==OwnedGuideAction::Expected) advance(observation,state);
+    enabled=true;if(action==OwnedGuideAction::Next || action==OwnedGuideAction::Previous) follow(observation,state);
+    if(action==OwnedGuideAction::Next) {if(state.step+1<state.end) ++state.step;}else if(action==OwnedGuideAction::Previous) {if(state.step>state.begin) --state.step;}else if(action==OwnedGuideAction::Expected) {follow(observation,state);state.step=state.expected;}
     const unsigned selected=action==OwnedGuideAction::Expected?state.expected:state.step;if(action==OwnedGuideAction::Expected && !state.route->steps[selected].check && selected+1<state.end) return L"The current trial state does not identify an exact puzzle step. Use F9 and F10 to select the step you have reached.";
     const auto& current=state.route->steps[selected];const auto prefix=(state.route->returnStep?state.begin>=state.route->returnStep?std::wstring(L"Return-visit treasure. "):std::wstring(L"First-visit trial. "):std::wstring{})+L"Step "+std::to_wstring(selected-state.begin+1)+L" of "+std::to_wstring(state.end-state.begin)+L". ";
     if(!std::strcmp(state.route->script,"dome0700") && ((selected>0 && selected<=5) || selected==11)) {
         const int stage=value(observation,state,0x5c000004);if(selected==11 || (selected==1 && stage==0) || (selected>=2 && stage==static_cast<int>(selected-1))) {Point point;std::wstring label;if(tile(observation,state,point,label)) {Entity panel;panel.name=L"Floor puzzle panel";panel.position=point;return prefix+label+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,panel,false,manual,intentRevision):L"");}}}
     if(!std::strcmp(state.route->script,"bsyt0100") && current.worker==7 && value(observation,state,0x5c0000cc)!=1) return prefix+L"The Besaid Sphere must be in the pedestal before the final push. Insert it into the pedestal sphere recess first."+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,state.route->steps[8],entities),false,manual,intentRevision):L"");
-    std::wstring push;if(current.platform || (!std::strcmp(state.route->script,"dome0700") && current.worker>=44 && current.worker<=47)) {try {push=instruction(observation,target(observation,state,current,entities));}catch(...) {}}
+    const bool held=settling(observation);
+    std::wstring push;if(pushStep(state,current) && !held) {try {push=instruction(observation,target(observation,state,current,entities));}catch(...) {}}
+    if(held && action!=OwnedGuideAction::Path) push=L"Wait for the current scene or push to finish, then ask again.";
     return prefix+current.instruction+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,current,entities),current.platform,manual,intentRevision):push.empty()?L"":L" "+push);
 }
 }
