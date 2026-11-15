@@ -108,6 +108,10 @@ int main() {
         const std::wstring refusal=ffx::nav::intentRefusalText(false)?ffx::nav::intentRefusalText(false):L"";
         check(refusal.find(L"controlled character")!=std::wstring::npos,"an observation without the controlled character refuses Auto walk before queueing it");
         check(ffx::nav::intentRefusalText(true)==nullptr,"an observation of the controlled character queues Auto walk");
+        // Turning Hide unreachable on starts a check; until verdicts arrive the visible count is the
+        // unfiltered one, so "6 of 35" would later become "6 of 10". Speak the row without "N of M".
+        check(!ffx::nav::rowCountSettled(true,true),"turning Hide unreachable on omits N of M while reachability is checked");
+        check(ffx::nav::rowCountSettled(true,false) && ffx::nav::rowCountSettled(false,true) && ffx::nav::rowCountSettled(false,false),"a settled or unfiltered list keeps N of M");
     }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

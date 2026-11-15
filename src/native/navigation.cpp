@@ -211,7 +211,7 @@ void execute(const Pending& event) {
             s.selected=row<0?0u:static_cast<unsigned>(row);
         }else if(s.selected>=filtered().size()) s.selected=0;
         emit(event,L"Hide unreachable destinations: "+settingValue(Setting::HideUnreachable)+(setting(Setting::HideUnreachable)?(ownedReachabilityChecking()?L". Checking reachability":L". Reachability unavailable; destinations remain listed"):L". "+std::to_wstring(filtered().size())+L" destinations"),"navigation-filter");
-        if(!filtered().empty()) {announce(event,false);lockSelected();}break;
+        if(!filtered().empty()) {announce(event,false,nav::rowCountSettled(setting(Setting::HideUnreachable)!=0,ownedReachabilityChecking()));lockSelected();}break;
     case nav::Query::Beacon:beacon(event);break;
     case nav::Query::AssistRoute:pathfind(event,true);break;
     case nav::Query::AssistInstruction: {

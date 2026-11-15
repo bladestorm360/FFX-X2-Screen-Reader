@@ -32,6 +32,9 @@ template<class Key,class Selection,class Visible> int visibleRowOf(const std::ve
     for(const auto& e:entities) if(visible(e)) {if(key(e)==selection) return static_cast<int>(row);++row;}
     return -1;
 }
+// While Hide unreachable waits for its first verdicts every row is still visible, so a spoken
+// "N of M" would give the unfiltered count and change on the next press. Omit it until settled.
+inline bool rowCountSettled(bool hideUnreachable,bool checking) {return !hideUnreachable || !checking;}
 // Row to select when a reachability verdict hides the selected entity. The list keeps its order:
 // verdicts are matched to targets by position, so reordering would drop them and the hidden row
 // would come back. A negative step picks the visible row before the lost one, otherwise the row after.
