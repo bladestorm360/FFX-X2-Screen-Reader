@@ -30,6 +30,16 @@ if ($xml.SelectNodes('/configuration/runtime/appDomainManagerType').Count -ne 1 
     [IO.File]::ReadAllText($backup) -ne $original) { throw 'Configuration merge / idempotency / original backup failed.' }
 & $installer -GameDirectory $fixture -StagingDirectory $staging -Restore
 if ([IO.File]::ReadAllText($config) -ne $original) { throw 'Restore failed.' }
+# A missing backup must not be recreated from a config that already loads the reader.
+& $installer -GameDirectory $fixture -StagingDirectory $staging
+Remove-Item -LiteralPath $backup
+& $installer -GameDirectory $fixture -StagingDirectory $staging
+$saved = New-Object Xml.XmlDocument; $saved.Load($backup)
+if ($saved.SelectNodes('/configuration/runtime/appDomainManagerType|/configuration/runtime/appDomainManagerAssembly').Count -ne 0 -or
+    $saved.SelectSingleNode('/configuration/appSettings/add').GetAttribute('value') -ne 'yes' -or
+    $null -eq $saved.SelectSingleNode('/configuration/runtime/gcConcurrent')) { throw 'Recreated original backup still loads the reader.' }
+[IO.File]::WriteAllText($backup, $original)
+& $installer -GameDirectory $fixture -StagingDirectory $staging -Restore
 [IO.File]::WriteAllText($config, '<configuration><runtime><appDomainManagerType value="Other.Manager"/></runtime></configuration>')
 $before = [IO.File]::ReadAllBytes($config)
 $rejected = $false

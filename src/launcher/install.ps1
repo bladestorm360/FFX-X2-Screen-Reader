@@ -41,7 +41,21 @@ $document.Save($temporary)
 $verified = New-Object System.Xml.XmlDocument
 $verified.Load($temporary)
 if (-not (Test-Path -LiteralPath $backup)) {
-    if (Test-Path -LiteralPath $config) { Copy-Item -LiteralPath $config -Destination $backup }
+    if (Test-Path -LiteralPath $config) {
+        # A config that already loads the reader is not the original; save it without the reader's entries.
+        $saved = New-Object System.Xml.XmlDocument
+        $saved.PreserveWhitespace = $true
+        $saved.Load($config)
+        $entries = @($saved.SelectNodes('/configuration/runtime/appDomainManagerAssembly|/configuration/runtime/appDomainManagerType') |
+            Where-Object { $_.GetAttribute('value') -eq $assembly -or $_.GetAttribute('value') -eq $type })
+        if ($entries.Count -eq 0) { Copy-Item -LiteralPath $config -Destination $backup }
+        else {
+            foreach ($node in $entries) { [void]$node.ParentNode.RemoveChild($node) }
+            $savedRuntime = $saved.SelectSingleNode('/configuration/runtime')
+            if ($null -ne $savedRuntime -and $null -eq $savedRuntime.SelectSingleNode('*')) { [void]$savedRuntime.ParentNode.RemoveChild($savedRuntime) }
+            $saved.Save($backup)
+        }
+    }
     else { [IO.File]::WriteAllText($backup,'<?xml version="1.0" encoding="utf-8"?><configuration/>') }
 }
 foreach ($name in @('FFXLauncherReader.dll','FFXLauncherNative.dll')) {
