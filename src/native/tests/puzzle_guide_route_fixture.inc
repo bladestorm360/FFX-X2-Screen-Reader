@@ -479,11 +479,17 @@ void bevelleGuideRouteFixture() {
         {"insert Destruction Sphere in former Glyph recess",{bevelleSphere(5,1,0),bevelleSphere(5,7,1),{0x0c000026,1}},10},
         {"retrieve lower power recess sphere",{bevelleSphere(3,8,0),bevelleSphere(3,1,1)},11},
         {"open Destruction treasure",{{0x01000a70,16}},12},
+        // w54 (the chest edge) turns on w53. Stepping into w53 calls the
+        // pedestal (1cd48 0x09=15) before any push. w38 entry 16 then puts
+        // the push zone beside it at z 263.1 for 0x09 14 or 15.
+        {"step into the w53 zone that calls the pedestal",{{0x0c000007,81},{0x0c000009,15}},12},
         {"insert upper platform recess",{bevelleSphere(3,1,0),bevelleSphere(3,10,1),{0x0c000029,1}},13},
-        // w53 is the push zone for the emptied pedestal; it alone writes
-        // 0x09=15. w15 then rides to 0x08=66, gives the second chest (w17
-        // entry 7) and sets 0x2a, and only then rests the pedestal at 0x09=17.
-        {"push pedestal to upper platform",{{0x0c000009,15}},14},
+        // The push is w38 entry 15 (gated on 0x29=1): 1c413 0x07=87. w0 then
+        // writes 0x09=16 (2be0) and rides w13 to z 203.59, where w13 writes
+        // 0x08=65 (557b). w15 rides on to 0x08=66, gives the second chest (w17
+        // entry 7), sets 0x2a, and only then rests the pedestal at 0x09=17.
+        {"push pedestal off the upper platform",{{0x0c000007,87},{0x0c000009,16}},14},
+        {"ride reaches the lower stop",{{0x0c000008,65}},14},
         {"ride reaches the second chest",{{0x0c000008,66}},14},
         {"ride opens second chest",{{0x0c00002a,1},{0x0c000009,17}},15},
     });
