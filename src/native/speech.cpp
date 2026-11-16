@@ -10,6 +10,7 @@
 #include "prism_backend.hpp"
 #include "nonblocking_snapshots.hpp"
 #include "speech_queue.hpp"
+#include "mod_state.hpp"
 #include "process_storage.hpp"
 
 namespace ffx {
@@ -42,6 +43,7 @@ static_assert(std::is_trivially_copyable<BackendInfo>::value, "backend snapshot 
 static_assert(sizeof(BackendInfo) % sizeof(std::uint32_t) == 0, "backend snapshot word alignment");
 async::AtomicSnapshot<BackendInfo> backendSnapshot;
 std::atomic<int> requestedBackend{-1};
+std::atomic<unsigned> requestedToggle{0};
 std::atomic<HANDLE> speechWake{nullptr};
 void wakeSpeech() noexcept {
     const HANDLE event=speechWake.load(std::memory_order_acquire);
@@ -116,10 +118,10 @@ DWORD WINAPI speechThread(void*) {
     recordLog("speech worker=%lu Prism=%s",GetCurrentThreadId(),ready?"ready":"unavailable");
     starting=false;SetEvent(initialized);
     if(!ready) return 0;
-    unsigned stopped=0;
+    unsigned stopped=0,toggled=0;bool arrivalSpeech=false;
     for(;;) {
         if(requestedBackend.load(std::memory_order_acquire)<0 &&
-            speechq::silenceRequest()==stopped && !speechq::pending()) {
+            speechq::silenceRequest()==stopped && requestedToggle.load()==toggled && !speechq::pending()) {
 #ifdef FFX_SPEECH_WAKE_TEST
             ffx::speechBeforeWaitForTest();
 #endif
@@ -133,10 +135,10 @@ DWORD WINAPI speechThread(void*) {
             if(backend.choose(preference)) {
                 appliedPreference=preference;setSetting(Setting::SpeechBackend,preference);
                 (void)snapshotBackend(backend,currentBackendInfo);
-                (void)backend.output(L"Speech backend: "+backend.name(),true);
+                if(modEnabled.load()) (void)backend.output(L"Speech backend: "+backend.name(),true);
             } else {
                 setSetting(Setting::SpeechBackend,appliedPreference);
-                (void)backend.output(L"Requested speech backend unavailable. Keeping "+backend.name(),true);
+                if(modEnabled.load()) (void)backend.output(L"Requested speech backend unavailable. Keeping "+backend.name(),true);
             }
             continue;
         }
@@ -145,6 +147,15 @@ DWORD WINAPI speechThread(void*) {
             stopped=stop;
             if(speechq::silenceGeneration()==generation())
                 recordLog("input silence worker=%lu accepted=%d",GetCurrentThreadId(),backend.stop());
+            continue;
+        }
+        const auto toggle=requestedToggle.load();
+        if(toggle!=toggled) {
+            toggled=toggle;
+            if(toggle==modToggleSerial.load()) {
+                arrivalSpeech=modEnabled.load();
+                (void)backend.output(arrivalSpeech?L"Screen reader mod on":L"Screen reader mod off",false);
+            }
             continue;
         }
         speechq::Utterance item;
@@ -162,7 +173,9 @@ DWORD WINAPI speechThread(void*) {
         const int mode=(h.flags&speechq::Voiced)?setting(Setting::VoicedDialogue):2;
         if(mode==0) {recordLog("dialogue suppressed seq=%u",h.sequence);continue;}
         const auto submitted=GetTickCount64();
-        const bool success=backend.output(item.text,(h.flags&speechq::Interrupt)!=0,mode==1);
+        if(!speechq::current(h)) continue;
+        const bool success=backend.output(item.text,(h.flags&speechq::Interrupt)!=0 && !arrivalSpeech,mode==1);
+        arrivalSpeech=false;
         recordLog("output seq=%u gen=%u owner=%lu accepted=%d mode=%d queue-ms=%llu prism-ms=%llu",
             h.sequence,h.generation,h.owner,success,mode,submitted-h.queuedAt,GetTickCount64()-submitted);
     }
@@ -264,6 +277,12 @@ bool outputAt(const std::wstring& text,bool interrupt,const char* producer,unsig
 }
 bool output(const wchar_t* text,bool interrupt,const char* producer) {
     if(!text || (!ready && !starting)) return false;
+    // Toggle feedback has a reserved control slot, so full ordinary capture
+    // queues cannot discard it. PRISM still runs exclusively on its worker.
+    if(producer && !std::strcmp(producer,"mod-toggle") &&
+       !std::wcscmp(text,modEnabled.load()?L"Screen reader mod on":L"Screen reader mod off")) {
+        requestedToggle.store(modToggleSerial.load());wakeSpeech();return true;
+    }
     const auto length=readyWideLength(text);
     if(length>speechq::CharacterLimit) return false;
     return speechq::output(text,length,interrupt,producer,false,generation());

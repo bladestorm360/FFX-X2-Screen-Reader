@@ -58,7 +58,7 @@ Key itemKey(uintptr_t p) {
     }
     k[9] = 1; return k;
 }
-void itemBefore(Event& e) { e.before = itemKey(e.args[0]); }
+void itemBefore(Event& e) { e.before = itemKey(e.args[0]);if(e.arrival) e.before.fill(-1); }
 void itemAfter(Event& e) {
     if (scene != 2 && scene != 3) return;
     const auto k = itemKey(e.args[0]);
@@ -118,7 +118,7 @@ void itemRejected(Event& e) {
     if(e.parentRva==0x4c6da0 && e.args[0]==0x80000003 && (scene==2 || scene==3))
         queueMenuRejectionCue();
 }
-void listBefore(Event& e) { e.before = listKey(e.args[0]); }
+void listBefore(Event& e) { e.before = listKey(e.args[0]);if(e.arrival) e.before.fill(-1); }
 void listAfter(Event& e) {
     if (scene != 4 && scene != 7 && scene != 9 && scene != 0x15) return;
     auto k = listKey(e.args[0]);
@@ -151,7 +151,7 @@ void listAfter(Event& e) {
     else planSelectionDetail(p,planRecordDescription(p,0x39a4c0,static_cast<unsigned>(k[5])),setting(Setting::AutoDetail)!=0);
     commitTextPlan(p);
 }
-void barBefore(Event& e) { e.before = windowKey(e.args[0]); }
+void barBefore(Event& e) { e.before = windowKey(e.args[0]);if(e.arrival) e.before.fill(-1); }
 void barAfter(Event& e) {
     auto k = windowKey(e.args[0]);
     if (k[0] != 5 || k[3] < 0 || k[1] < 0 || k[1] >= k[2] || k[1] >= 64 || k == e.before) return;
@@ -189,7 +189,7 @@ Key mainKey(uintptr_t p) {
     }
     return k;
 }
-void mainBefore(Event& e) { e.before = mainKey(e.args[0]); }
+void mainBefore(Event& e) { e.before = mainKey(e.args[0]);if(e.arrival) e.before.fill(-1); }
 void mainAfter(Event& e) {
     const auto k = mainKey(e.args[0]);
     if(k!=e.before && (k[0]==5 || k[0]==7)) resetSelectionDetail();
@@ -220,7 +220,7 @@ void mainAfter(Event& e) {
         }
 }
 unsigned aeon() { using Getter = uint8_t(__cdecl*)(); return reinterpret_cast<Getter>(address(0x4a9830))(); }
-void aeonBefore(Event& e) { e.before[0] = read<int>(e.args[0] + 0x28, -1); e.before[1] = aeon(); }
+void aeonBefore(Event& e) { e.before[0] = read<int>(e.args[0] + 0x28, -1); e.before[1] = aeon();if(e.arrival) e.before.fill(-1); }
 void aeonAfter(Event& e) {
     if (scene != 7 || read<int>(e.args[0] + 0x28) != 3) return;
     auto id = aeon();

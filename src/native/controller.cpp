@@ -1,5 +1,6 @@
 // Maps copied SDL state to context commands and consumes those inputs immediately; Grid commands queue to the keyboard phase. See Docs/features/index.md, Docs/features/runtime/index.md#input-and-settings and Docs/dylan_reports_20261018.md.
 #include "input_device.hpp"
+#include "mod_state.hpp"
 #include "controller.hpp"
 #include "blitz_review.hpp"
 #include "field_controls.hpp"
@@ -33,6 +34,7 @@ physical::Frame latestFrame;
 physical::Edge pendingEdge;
 bool havePending=false,haveFrame=false,gameSelect=false;
 unsigned contextEpoch=0; // verified native input owner only
+uint64_t commandResumeAt=0;
 std::atomic<bool> importsReady{false};
 // Only the native input owner observes battle/grid state. Foreign XInput
 // callers consume this copied generation token, never native UI pointers.
@@ -72,6 +74,7 @@ void maskConsumed(XINPUT_GAMEPAD& game) {
     if(mask&MaskLeftStick) game.sThumbLX=game.sThumbLY=0;
 }
 bool currentState(XINPUT_STATE& state,physical::Frame* current=nullptr) {
+    if(!modEnabled.load()) return false;
     if(!owned.load(std::memory_order_acquire) || !nativeReaderResourcesReady()) return false;
     Bridge copied;physical::Frame frame;
     if(!bridge.tryRead(copied) || !physical::snapshot(frame) || !frame.connected || frame.pressure ||
@@ -89,6 +92,7 @@ using SetState=DWORD(WINAPI*)(DWORD,XINPUT_VIBRATION*);
 GetState nativeGet=nullptr;
 SetState nativeSet=nullptr;
 DWORD WINAPI getState(DWORD index,XINPUT_STATE* state) {
+    if(!modEnabled.load()) return nativeGet?nativeGet(index,state):ERROR_DEVICE_NOT_CONNECTED;
     XINPUT_STATE copied;
     if(!currentState(copied)) {
         const auto result=nativeGet?nativeGet(index,state):ERROR_DEVICE_NOT_CONNECTED;
@@ -101,6 +105,7 @@ DWORD WINAPI getState(DWORD index,XINPUT_STATE* state) {
     *state=copied;return ERROR_SUCCESS;
 }
 DWORD WINAPI setState(DWORD index,XINPUT_VIBRATION* vibration) {
+    if(!modEnabled.load()) return nativeSet?nativeSet(index,vibration):ERROR_DEVICE_NOT_CONNECTED;
     XINPUT_STATE copied;physical::Frame frame;
     if(!currentState(copied,&frame)) return nativeSet?nativeSet(index,vibration):ERROR_DEVICE_NOT_CONNECTED;
     if(!vibration) return ERROR_BAD_ARGUMENTS;
@@ -279,6 +284,7 @@ void installController() {
     recordLog("SDL game input imports state=%d vibration=%d",input,rumble);
 }
 void pumpController() {
+    if(!modEnabled.load()) return;
     if(!nativeGameThread()) return;
     physical::requestReady();
 #if defined(FFX_READER_TEST) && !defined(FFX_SDL_OWNER_TEST)
@@ -308,7 +314,7 @@ void pumpController() {
     for(unsigned i=0;i<8;++i) {
         physical::Edge edge;
         if(havePending) {edge=pendingEdge;havePending=false;}else if(!physical::nextEdge(edge)) break;
-        if(edge.device!=latestFrame.device || edge.focus!=latestFrame.focus || edge.overflow!=latestFrame.overflow ||
+        if(edge.stamp<=commandResumeAt || edge.device!=latestFrame.device || edge.focus!=latestFrame.focus || edge.overflow!=latestFrame.overflow ||
             now-edge.stamp>250 || !controllerEventCurrent(edge.stamp)) continue;
         if(edge.stamp>latestFrame.stamp) {pendingEdge=edge;havePending=true;break;}
         // Replay discrete quick presses for the command router, but always
@@ -385,6 +391,12 @@ void pumpController() {
     publish(result.exclusive || modMenuActive() || utilityConsoleActive());
 }
 bool controllerOwned() { XINPUT_STATE state{};return currentState(state); }
+void resetControllerInput() {
+    commandResumeAt=GetTickCount64();
+    owned=false;consumedMask=0;reservedContext=0;
+    router={};consumed=0;havePending=haveFrame=gameSelect=false;contextEpoch=0;
+    cancelControllerBinding();
+}
 void drainController() { drain=true; }
 #if defined(FFX_READER_TEST) && !defined(FFX_SDL_OWNER_TEST)
 GetState swapControllerNativeStateForTest(GetState get) {const auto previous=nativeGet;nativeGet=get;return previous;}

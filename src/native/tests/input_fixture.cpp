@@ -1,6 +1,7 @@
 #include <atomic>
 #include "../input_device.hpp"
 #include "../events.hpp"
+#include "../mod_state.hpp"
 #include "../controller.hpp"
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
@@ -450,5 +451,23 @@ int main() {
     punctuation=0;keys.fill(0);fire(0xfffe0001,state);keys[DIK_LBRACKET]=0x80;fire(0xfffe0001,state);drain();
     check(punctuation==VK_OEM_6 && pressed==beforeJapanese+1,"Japanese keyboard type: physical ] reaches ], not [");
     directInputKeyboardTypeForTest(4);
+    keys.fill(0);fire(0xfffe0001,state);keys[DIK_N]=0x80;fire(0xfffe0001,state);
+    check(!keys[DIK_N],"mod owns held shortcut before disabling");
+    skipped.message=WM_KEYDOWN;fire(0xffff0000,pending);
+    check(skipped.message==WM_NULL,"message path also owns a shortcut before toggle");
+    modEnabled=false;
+    resetModInput();resetDirectInput();
+    const auto beforeOff=pressed;
+    check(!consumeKey('N',false) && !capturesKey('N'),"disabled mod keys pass through");
+    keys[DIK_N]=0x80;fire(0xfffe0001,state);drain();
+    check(keys[DIK_N]==0x80 && pressed==beforeOff,"disabled DirectInput releases capture and discards queued commands");
+    skipped.message=WM_KEYUP;fire(0xffff0000,pending);
+    check(skipped.message==WM_KEYUP,"disabled message key releases pass through");
+    modEnabled=true;
+    drain();check(pressed==beforeOff,"reenable never replays pre-toggle queued keys");
+    keys[DIK_N]=0x80;fire(0xfffe0001,state);drain();
+    check(pressed==beforeOff && keys[DIK_N]==0x80,"key held while off is not a fresh mod press on reenable");
+    keys.fill(0);fire(0xfffe0001,state);keys[DIK_N]=0x80;fire(0xfffe0001,state);drain();
+    check(pressed==beforeOff+1,"shortcut rearms after physical release");
     std::puts("PASS: native keyboard, Escape PInput manual help/retirement, exclusive Shift-F1 under queue pressure/console focus, plain F1 and NVDA F12 passthrough, modifier/context shortcuts, exclusive menus, buffered Peek, focus, generation and SDL isolation.");
 }

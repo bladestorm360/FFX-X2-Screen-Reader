@@ -1,4 +1,5 @@
 #include "../runtime.hpp"
+#include "../mod_state.hpp"
 #include "../settings.hpp"
 #include "../wakka.hpp"
 #include "../speech_backends.hpp"
@@ -407,6 +408,53 @@ int main() {
             require(ffx::domainResetEpoch==resetEpoch,"owned domains retire despite rejected full-queue generation marker");
             puts("PASS: full capture pressure cannot retain old-generation audio domain state after reset.");
         }
+        const auto beforeToggle=count();
+        ffx::toggleMod();
+        require(!ffx::output(L"Must not speak",true,"mod-repeat"),"no mod speech while off");
+        require(!ffx::output(L"Must not speak",true,"dialogue"),"no game speech while off");
+        auto until=GetTickCount64()+2000;
+        while(count()<beforeToggle+1 && GetTickCount64()<until) Sleep(1);
+        wchar_t toggleText[256]{};
+        record(beforeToggle,toggleText,256);
+        require(count()==beforeToggle+1 && !wcscmp(toggleText,L"Screen reader mod off"),"off announcement is the only speech while off");
+        ffx::toggleMod();
+        until=GetTickCount64()+2000;
+        while(count()<beforeToggle+2 && GetTickCount64()<until) Sleep(1);
+        record(beforeToggle+1,toggleText,256);
+        require(count()==beforeToggle+2 && !wcscmp(toggleText,L"Screen reader mod on"),"on announcement reaches the real speech worker");
+        ffx::repeatSpeech(false);
+        until=GetTickCount64()+2000;
+        while(count()<beforeToggle+3 && GetTickCount64()<until) Sleep(1);
+        record(beforeToggle+2,toggleText,256);
+        require(count()==beforeToggle+3 && !wcscmp(toggleText,L"Nothing to repeat"),"toggle never replays speech from before/off interval");
+        puts("PASS: real speech toggle stops old speech, rejects all off-state producers, permits exact feedback and clears repeat history.");
+        // Fill the physical capture slots, not just the character budget.
+        HANDLE toggleHeld=CreateEventW(nullptr,TRUE,FALSE,nullptr),toggleResume=CreateEventW(nullptr,TRUE,FALSE,nullptr);
+        ffx::speechq::captureHoldEntered=toggleHeld;ffx::speechq::captureHoldResume=toggleResume;
+        ffx::output(L"Hold for toggle pressure",false,"mod-test");
+        require(WaitForSingleObject(toggleHeld,2000)==WAIT_OBJECT_0,"toggle pressure preparation held");
+        ffx::output(L"Old speech",false,"pressure-history");
+        ffx::DomainFixture pressureData{};
+        unsigned filled=0;while(filled<3000 && ffx::speechq::captureDomain(4,pressureData,ffx::generation())) ++filled;
+        require(filled>1900 && filled<3000,"ordinary speech capture store is full");
+        const auto pressureOutputs=count();ffx::toggleMod();
+        until=GetTickCount64()+2000;
+        while(count()<pressureOutputs+1 && GetTickCount64()<until) Sleep(1);
+        record(pressureOutputs,toggleText,256);
+        require(count()==pressureOutputs+1 && !wcscmp(toggleText,L"Screen reader mod off"),"full speech storage cannot lose off feedback");
+        ffx::toggleMod();
+        until=GetTickCount64()+2000;
+        while(count()<pressureOutputs+2 && GetTickCount64()<until) Sleep(1);
+        require(count()==pressureOutputs+2,"full speech storage cannot lose on feedback");
+        ffx::speechq::captureHoldEntered=nullptr;ffx::speechq::captureHoldResume=nullptr;SetEvent(toggleResume);
+        until=GetTickCount64()+3000;
+        while(ffx::speechq::capturesPending() && GetTickCount64()<until) Sleep(1);
+        ffx::repeatSpeech(false);
+        until=GetTickCount64()+2000;
+        while(count()<pressureOutputs+3 && GetTickCount64()<until) Sleep(1);
+        record(pressureOutputs+2,toggleText,256);
+        require(count()==pressureOutputs+3 && !wcscmp(toggleText,L"Nothing to repeat"),"lost reset markers and stale records cannot restore old repeat history");
+        puts("PASS: full capture storage preserves toggle feedback and prevents old history replay even when reset markers are dropped.");
         puts("Native runtime tests passed: copied speech, repeated events, bounded queues, nonblocking input cancellation, one Prism worker, ordered current-action details and paused reel-choice highlights.");
         return 0;
     } catch (const std::exception& error) { fprintf(stderr, "%s\n", error.what()); return 1; }

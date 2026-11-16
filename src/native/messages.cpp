@@ -215,6 +215,15 @@ void clearDialogueReviewOwned() {auto& s=storage.get();s.review={};s.reviewText.
 void resetDialogueReview() {reviewRevision.fetch_add(1,std::memory_order_acq_rel);protectTutorialSpeech(false);}
 void resetMessageViews() {resetDialogueReview();stateRevision.fetch_add(1,std::memory_order_release);resetFieldControls();resetBlitzReview();resetHelp();}
 void resetMessages() {resetMessageViews();resetDialogueVoice();resetMovieDialogue();}
+bool refreshMessageScreen() {
+    bool visible=false;Event e;e.epoch=generation();
+    for(unsigned slot=0;slot<8;++slot) {
+        const auto s=tk(slot);
+        const auto state=read<uint16_t>(s.window+0x2c);
+        if(s.window && state>0 && state<3) {capturePage(slot,s.visible==1?Selector:Page,&e);visible=true;}
+    }
+    return visible;
+}
 void installMessages() {
     storage.prepare();registerTextPlanReceiver(Receiver,receive);registerTextPlanMaintenance(Receiver,maintain);
     installFieldControls();installBlitzReview();installButtonGlyphs();installDialogueVoice();installMovieDialogue();

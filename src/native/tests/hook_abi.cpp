@@ -1,4 +1,5 @@
 #include "../events.hpp"
+#include "../mod_state.hpp"
 #include <MinHook.h>
 #include <cstdio>
 #include <stdexcept>
@@ -79,6 +80,11 @@ int main() {
             require(_mm_getcsr() == 0x3f80, "SSE state restoration");
         }
         require(entered == 11000 && left == entered, "entry/return count");
+        const auto enabledEntries=entered,enabledReturns=left;
+        ffx::modEnabled=false;
+        require(cdeclCall(2,3,4)==20 && recursiveCall(5)==15,"disabled hooks preserve original arguments and nested return");
+        require(entered==enabledEntries && left==enabledReturns,"disabled hooks call no readers");
+        ffx::modEnabled=true;
         require(ffx::hookAddress(reinterpret_cast<uintptr_t>(errorCall),4,before,after),"native Windows error-state hook");
         require(ffx::applyAddedHooks(),"enable native Windows error-state hook");
         SetLastError(ERROR_FILE_NOT_FOUND);

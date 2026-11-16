@@ -85,6 +85,74 @@ be presented as verified in every language. See
 
 ## Input and settings
 
+### Whole-mod toggle — November16
+
+Ctrl+Shift+F12 toggles the process-lifetime, default-On `modEnabled` atomic in
+`mod_state.hpp`. It is separate from the saved Speech preference. The shared
+proxy starts `mod_toggle.cpp`'s foreground-qualified keyboard listener for FFX,
+FFX-2 and Will; unsupported fixture executables never install a desktop hook.
+The listener keeps press/repeat/release ownership and only requests work from
+the verified FFX PInput owner. FFX-2 retains its existing unsupported-reader
+status but can speak the two toggle confirmations.
+
+`hooks.cpp` skips every registered enter/return reader when Off; installed
+trampolines stay in place. DirectInput COM adapters and XInput imports also
+forward the original result. Pending native actions and input commands lose
+their generation. The PInput transition cancels Auto walk including battle
+resume, pedestal/puzzle/minigame assistance, console context, captured keys,
+controller mode and audio previews. Controller edges collected before the
+transition are discarded; held controls drain before accepting fresh commands.
+The first DirectInput snapshot seeds physical holds without firing old shortcuts;
+the first buffered batch remains game-owned, including Peek/consume pairing.
+The SDL mixer submits silence while Off.
+The existing speech worker owns stop and exact toggle feedback through a
+reserved control slot independent of full ordinary queues. A durable toggle
+serial clears repeat history even when generation markers are dropped.
+
+On re-enable, the owner retries a temporarily unavailable reset, then captures
+the current game context, visible dialogue, battle or Grid state. Initial menu
+observations use `Event.arrival` to read an unchanged native focus. No missed
+event queue is replayed. Allocation receipts from before Off are untrusted:
+ATEL-dependent navigation/puzzle helpers wait for the next observed native
+resource load, normally an area transition while On. Stale receipts are
+reclaimed when admitting fresh allocations. There is no safe current-allocation
+rehydration path proven by this offline change; do not bypass the lifetime floor.
+
+Offline coverage includes installed mixed-ABI hook passthrough, native keyboard
+and XInput handback, speech queue pressure/history, unchanged menu arrival,
+mixed audio silence and full stale ATEL receipt recovery. See
+`src/native/tests/run_tests.bat` and its `--atel-resources` target. Real gameplay,
+audible output and physical input timing remain unverified. No deployment or
+game access is authorized for this worktree task.
+
+Prioritized nonvisual gameplay procedure after an independently authorized
+deployment:
+
+1. In a field, start Auto walk or pedestal assistance and a cue/preview. Hold a
+   captured key, toggle Off and release it. Expect only "Screen reader mod off",
+   stopped movement/cues and normal game keys. Footsteps must stop when native
+   movement is released. Repeated held toggle presses must not toggle again.
+2. In an unchanged menu, toggle Off/On. Expect "Screen reader mod on" followed
+   by the current focus. Repeat on a shop row/quantity, Save/Load, confirmation,
+   naming and Grid screen; I/U must describe the current selection. While Off,
+   change native focus and confirm no old selection is read on return.
+3. In battle, toggle Off across a native turn, then On. Expect current battle
+   state without old damage/dialogue or a suspended Auto walk resuming. Repeat
+   with rapid Off/On pairs and focus changes; no key or controller latch.
+4. Cross a normal area boundary while On before checking script-dependent
+   navigation/puzzle helpers. Their dependency on a new resource receipt is an
+   explicit recovery limit. Report unavailable helpers after that fresh load,
+   any wrong-map data, missed current focus, speech/cue leak or held movement.
+5. In FFX-2, verify both toggle confirmations and native key passthrough only;
+   this does not add FFX-2 reading. Verify plain F12 still reaches NVDA.
+
+Luna made the player documentation and three mechanical shop/naming arrival
+edits; the implementation owner reviewed those changes. A separate code review
+identified the dialogue, snapshot, pressure, reset-retry and receipt repairs.
+Build/test evidence and final counts are recorded in `CODEX_MEMORY.md`.
+
+### Native input and saved settings
+
 `input.cpp` routes context-owned commands through a64-command FIFO, draining at
 qualified native PInput/Help/field returns. Focus, generation, revision and
 feature context retire obsolete requests. Keyboard bindings remain independent

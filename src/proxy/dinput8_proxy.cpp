@@ -1,5 +1,6 @@
 // Native bootstrap: DirectInput's first export call executes outside loader lock.
 #include "../native/events.hpp"
+#include "../native/mod_state.hpp"
 #include <unknwn.h>
 #include <exception>
 
@@ -12,6 +13,7 @@ static DWORD WINAPI bootstrap(void*) {
     try { if (ffx::startSpeech(selfModule)) ffx::startReader();else ffx::cancelSpeechStartup(); }
     catch(const std::exception& error) { ffx::cancelSpeechStartup();ffx::recordLog("native bootstrap refused: %s",error.what()); }
     catch(...) { ffx::cancelSpeechStartup();ffx::recordLog("native bootstrap refused: unexpected exception"); }
+    ffx::startModToggle();
     return 0;
 }
 

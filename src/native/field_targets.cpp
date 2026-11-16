@@ -39,6 +39,7 @@ TargetValues targetValues(const Key& k) {
 void targetBefore(Event& e) {
     e.before=targetKey(e.args[0]);const auto values=targetValues(e.before);
     e.copiedCount=values.count;std::copy_n(values.values.begin(),values.count,e.copied.begin());
+    if(e.arrival) e.before.fill(-1);
 }
 void targetAfter(Event& e) {
     const auto k=targetKey(e.args[0]); const auto values=targetValues(k);
@@ -65,7 +66,7 @@ Key slotKey(uintptr_t window) {
     k[2]=reinterpret_cast<Character>(address(0x4a9810))();
     return k;
 }
-void slotBefore(Event& e) { e.before=slotKey(e.args[0]); }
+void slotBefore(Event& e) { e.before=slotKey(e.args[0]);if(e.arrival) e.before.fill(-1); }
 void slotAfter(Event& e) {
     const auto k=slotKey(e.args[0]);
     if(!k[0] || k==e.before || k[1]>1 || k[2]<0 || k[2]>=18) return;

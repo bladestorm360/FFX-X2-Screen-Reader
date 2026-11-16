@@ -1,5 +1,6 @@
 #include <atomic>
 #include "../nav_audio.hpp"
+#include "../mod_state.hpp"
 #include "../sdl_runtime.hpp"
 #include "../settings.hpp"
 #include "../audio_sample.hpp"
@@ -213,7 +214,11 @@ int main() {
     navAudioTimingBeep(1100,epoch,Setting::GagazetCues);mix();check(!silent(),"independent gated timing event is not blanket muted in search");mix();
     setFieldAudioAllowed(true);mix(48000);check(silent(),"leaving search cannot replay old field commands or fade tails");
     previewNavAudio(false);mix();check(!silent(),"fresh non-search audio remains available after return");
-    stopNavPreview();
+    modEnabled=false;
+    navAudioOverdriveBeep(880.f,epoch);navAudioLightningWarning(epoch);mix();
+    check(silent(),"mod off silences active previews and newly queued timing cues");
+    stopNavPreview();pauseNavAudio();++epoch;
+    modEnabled=true;mix();check(silent(),"reenable cannot replay pre-toggle preview or cue tails");
     SDL_DestroyAudioStream(testStream); SDL_QuitSubSystem(SDL_INIT_AUDIO);
     puts("PASS: real x86 SDL dummy stream, production mixed audio, stereo beacon, immediate toggles, gated/cancelled arrival, independent walls, preview, focus and pause.");
 }

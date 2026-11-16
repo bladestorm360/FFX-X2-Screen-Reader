@@ -59,6 +59,18 @@ Triangle or the configured menu key: open the field menu
 
 ### Mod Controls
 
+**Ctrl+Shift+F12** toggles the whole screen reader mod. It starts on each
+launch. When off, speech, cues and assistance stop, and normal keys pass to the
+game. Turning it on announces **Screen reader mod on** and re-reads the current
+supported state without replaying a backlog; turning it off says **Screen reader
+mod off**. The toggle listener also works in FFX-2, where screen reading remains
+unsupported.
+
+After turning the mod back on, script-dependent navigation and puzzle helpers
+wait for a newly observed resource load. Cross a normal area boundary with the
+mod on to restore those helpers. Menu, dialogue and battle state are read from
+their current native screen; old allocation receipts are never reused.
+
 **F8** opens the spoken accessibility menu. Speech is the first row, followed by
 Navigation audio, Navigation, Miscellaneous and Close.
 Up/Down select, Left/Right change settings, Right or Enter opens a submenu,

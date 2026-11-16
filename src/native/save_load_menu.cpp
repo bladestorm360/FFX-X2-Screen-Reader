@@ -18,7 +18,7 @@ Key mainKey(uintptr_t root) {
     k[0]=popup; k[1]=row; k[2]=read<uint8_t>(address(0x1466228)+row); k[9]=1;
     return k;
 }
-void mainBefore(Event& e) { e.before=mainKey(e.args[0]); }
+void mainBefore(Event& e) { e.before=mainKey(e.args[0]);if(e.arrival && e.before[9]) e.before.fill(-1); }
 void mainAfter(Event& e) {
     const auto k=mainKey(e.args[0]);
     if(!k[9]) { if(e.before[9]) resetSelectionDetail(); return; }
@@ -42,7 +42,7 @@ Key destinationKey(uintptr_t window) {
     k[0]=window; k[1]=row; k[2]=read<uint8_t>(address(0x1466250)+row);
     k[3]=read<uint8_t>(address(0x146624a)); k[9]=1; return k;
 }
-void destinationBefore(Event& e) { e.before=destinationKey(e.args[0]); }
+void destinationBefore(Event& e) { e.before=destinationKey(e.args[0]);if(e.arrival && e.before[9]) e.before.fill(-1); }
 void destinationAfter(Event& e) {
     const auto k=destinationKey(e.args[0]);
     if(!k[9]) { if(e.before[9]) resetSelectionDetail(); return; }

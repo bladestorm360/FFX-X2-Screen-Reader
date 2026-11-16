@@ -1,6 +1,7 @@
 #include "external_fixture.hpp"
 #include "../atel_resources.hpp"
 #include "../events.hpp"
+#include "../mod_state.hpp"
 #include "../native_worker_index.hpp"
 #include "../owned_atel_decoder.hpp"
 #include <fstream>
@@ -171,6 +172,24 @@ int main() {
     };
     std::thread readerOne(concurrentReader),readerTwo(concurrentReader);readerOne.join();readerTwo.join();
     check(!concurrentMisses,"stable immutable metadata serves simultaneous Native/preparation readers without contention negatives");
+    observing=true;
+    modEnabled=false;modLifetimeEpoch=++epoch;
+    check(!nativeAtelSpan(b,span),"off hides native allocation receipts");
+    modEnabled=true;
+    check(!readyAtelIdentity(b,identity),"reenable rejects pre-off lifetimes even at the same address");
+    capture(residentB);observing=false;drain();
+    check(readyAtelIdentity(b,identity),"fresh observed native allocation restores metadata after toggle");
+    std::vector<std::vector<uint8_t>> staleReceipts(64,std::vector<uint8_t>(0x40));
+    modLifetimeEpoch=++epoch;
+    for(auto& bytes:staleReceipts) {
+        std::memcpy(bytes.data(),"EV01",4);put(bytes,4,0x30);put(bytes,8,0x40);put(bytes,12,0xffffffff);
+        observing=true;capture(bytes);observing=false;drain();
+    }
+    for(const auto& bytes:staleReceipts)
+        check(nativeAtelSpan(reinterpret_cast<uintptr_t>(bytes.data())+0x30,span),"all64 native receipt slots hold distinct allocations");
+    auto freshReceipt=staleReceipts.front();modLifetimeEpoch=++epoch;
+    observing=true;capture(freshReceipt);observing=false;drain();
+    check(nativeAtelSpan(reinterpret_cast<uintptr_t>(freshReceipt.data())+0x30,span),"full stale receipt registry admits next distinct native allocation after toggle");
     check(!foreignCopies && !allocations && !frees,"Native heap0/0 and worker engine-read0");
     std::printf("PASS: exact loader receipt/owned real Blitz and race decode/ready indexed declarations/source reuse/generation/same-address/pressure; Native heap0/0, worker native copies0. Cold held-Blitz preparation %.3f ms; fixture only.\n",work);
 }

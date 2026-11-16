@@ -1,5 +1,6 @@
 // Owns bounded command transport to the SDL mixer plus separate cue cancellation/gates; gameplay callbacks never initialize devices. See Docs/features/index.md and Docs/dylan_reports_20261018.md.
 #include "nav_audio.hpp"
+#include "mod_state.hpp"
 #include "sdl_runtime.hpp"
 #include "settings.hpp"
 #include "audio_sample.hpp"
@@ -206,6 +207,7 @@ void callback(void*,SDL_AudioStream* output,int additional,int) {
             buffer[2*i]=std::clamp(left,-1.f,1.f); buffer[2*i+1]=std::clamp(right,-1.f,1.f);
             ++mixer.clock; if(mixer.previewFrames>0) --mixer.previewFrames;
         }
+        if(!modEnabled.load()) std::fill(std::begin(buffer),std::end(buffer),0.f);
         if(!sdl::SDL_PutAudioStreamData(output,buffer,chunk*static_cast<int>(sizeof(float)*2))) break;
         frames-=chunk;
     }

@@ -14,6 +14,12 @@ After the opening notices, press the spoken keyboard advance key (B in the teste
 
 - **F8:** open accessibility settings during play.
 - **F7:** toggle Autodetail.
+- **Ctrl+Shift+F12:** toggle the screen reader mod on or off. The mod starts on
+  each launch. When off, speech, cues and assistance stop, and normal keys pass
+  to the game. Turning it on announces **Screen reader mod on** and re-reads
+  the current supported state without replaying a backlog. Turning it off says
+  **Screen reader mod off**. The toggle listener also works in FFX-2, but FFX-2
+  screen reading is not supported.
 - **I:** read available native descriptions.
 
 Optional assistance settings default Off unless the guide says otherwise.

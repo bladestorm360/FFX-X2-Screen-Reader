@@ -36,4 +36,5 @@ void installGameContext() {
     hook(0x4aad20,nullptr,changed);
     hook(0x4aaad0,nullptr,changed);
 }
+void refreshGameContext() {Event e;changed(e);}
 }

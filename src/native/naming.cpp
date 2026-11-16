@@ -80,7 +80,7 @@ Key focus(uintptr_t window) {
     k[5]=read<int>(address(0x146a218),-2);
     return k;
 }
-void before(Event& e) { e.before=focus(e.args[0]); }
+void before(Event& e) { e.before=focus(e.args[0]); if (e.arrival) e.before.fill(-1); }
 void after(Event& e) {
     const auto k=focus(e.args[0]);
     // The native renderer reads one terminated glyph per four-byte name cell.

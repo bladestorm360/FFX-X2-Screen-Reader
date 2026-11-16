@@ -23,6 +23,9 @@
 #include "owned_retirement.hpp"
 #include "resource_reset.hpp"
 #include "atel_resources.hpp"
+#include "mod_state.hpp"
+#include "auto_walk.hpp"
+#include "sphere_grid.hpp"
 #include <MinHook.h>
 #include <atomic>
 
@@ -31,6 +34,11 @@ std::atomic<int> scene{0};
 void resetStatusReview();
 void installIntroCue();
 void resetMessageViews();
+void refreshGameContext();
+bool refreshMessageScreen();
+void refreshBattleScreen();
+void refreshSphereScreen();
+void announceCurrentMap();
 namespace {
 std::atomic<unsigned> features{0};
 void teardown(Event& e) {
@@ -63,6 +71,31 @@ void fieldFinished(Event& e) {
 }
 void completedArrival(unsigned room,unsigned epoch) {
     Event e; e.args[0]=room; e.epoch=epoch; announceMapArrival(e);
+}
+void toggleOnOwner(unsigned requests) {
+    static unsigned pending=0;
+    if(requests) {
+        toggleMod();
+        if(!(requests&1)) toggleMod(); // Rapid off/on must still cancel assistance.
+        stopAutoWalk();stopNavPreview();
+        resetModInput();resetDirectInput();resetControllerInput();
+        invalidateUtilityContext();
+        pending=modEnabled.load()?generation():0;
+        if(!modEnabled.load()) {serviceOwnerReset();return;}
+    }
+    if(!pending) return;
+    if(pending!=generation()) {pending=0;return;}
+    if(!serviceOwnerReset()) return;
+    pending=0;
+    modResumeEpoch=generation();
+    refreshGameContext();
+    // Capture only what is visible now, using the ordinary arrival producers.
+    protectSpeech(true);
+    const bool message=refreshMessageScreen();
+    if(inBattle()) refreshBattleScreen();
+    else if(sphereGridOpen()) refreshSphereScreen();
+    else if(!scene && !message) announceCurrentMap();
+    protectSpeech(false);
 }
 }
 unsigned initializeReader(bool& initializedHooks) {
@@ -107,6 +140,7 @@ unsigned initializeReader(bool& initializedHooks) {
     if(!retirement::start(module)) {recordLog("native retirement worker unavailable");return 0;}
     configureOwnerReset(resetOwnedReaders,completedArrival);
     if (!enableHooks()) { recordLog("native reader batch failed; restore_before_native.bat provides rollback"); return 0; }
+    modToggleOnOwner=toggleOnOwner;
     features = 0x1ff;
     recordLog("native production readers enabled: field,message,system,sphere,battle,navigation,minigames,input,utilities; Gadget unused");
     return features;

@@ -191,4 +191,5 @@ void installSphereGrid() {
     hook(0x648c80,preparingMovement,nullptr);
 }
 void resetSphereGrid() { resetSphereJump();visible=false; previousNode = previousCharacter = -1; inputDepth = 0; previousList={}; invalidateSphereText();clearSphereTargets(); }
+void refreshSphereScreen() {Event e;e.epoch=generation();if(opened()) {openingAfter(e);selectionAfter(e);}}
 }

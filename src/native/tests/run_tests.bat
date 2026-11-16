@@ -67,6 +67,13 @@ if not "%errorlevel%"=="0" goto failed
 .\menu_speech_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--menu-speech" goto success
+if /I "%~1"=="--atel-resources" goto atelresources
+:modtoggle
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:mod_toggle_fixture.exe "%TEST_SRC%mod_toggle_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+mod_toggle_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--mod-toggle" goto success
 cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:log_history_fixture.exe "%TEST_SRC%log_history_fixture.cpp" "%TEST_SRC%..\log_history.cpp"
 if not "%errorlevel%"=="0" goto failed
 .\log_history_fixture.exe
@@ -76,7 +83,7 @@ if /I "%~1"=="--logs" goto success
 if not exist PrismRuntime mkdir PrismRuntime
 cl /nologo /W4 /EHsc /std:c++17 /MT /LD /Fe:PrismRuntime\prism.dll "%TEST_SRC%fake_prism.cpp" /link /DEF:"%TEST_SRC%fake_prism.def"
 if not "%errorlevel%"=="0" goto failed
-cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_SPEECH_WAKE_TEST /Fe:runtime_tests.exe "%TEST_SRC%runtime_tests.cpp" "%TEST_SRC%..\prism_backend.cpp" "%TEST_SRC%..\speech.cpp" "%TEST_SRC%..\log_capture.cpp" "%TEST_SRC%..\speech_capture.cpp" "%TEST_SRC%..\speech_queue.cpp" "%TEST_SRC%..\speech_domains.cpp" "%TEST_SRC%..\log_history.cpp" "%TEST_SRC%..\text.cpp" "%TEST_SRC%..\settings.cpp" /link user32.lib
+cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_SPEECH_WAKE_TEST /Fe:runtime_tests.exe "%TEST_SRC%runtime_tests.cpp" "%TEST_SRC%..\mod_toggle.cpp" "%TEST_SRC%..\prism_backend.cpp" "%TEST_SRC%..\speech.cpp" "%TEST_SRC%..\log_capture.cpp" "%TEST_SRC%..\speech_capture.cpp" "%TEST_SRC%..\speech_queue.cpp" "%TEST_SRC%..\speech_domains.cpp" "%TEST_SRC%..\log_history.cpp" "%TEST_SRC%..\text.cpp" "%TEST_SRC%..\settings.cpp" /link user32.lib
 if not "%errorlevel%"=="0" goto failed
 .\runtime_tests.exe
 if not "%errorlevel%"=="0" goto failed
@@ -444,6 +451,11 @@ goto success
 :sdlowner
 call "%~dp0run_sdl_owner_tests.bat"
 exit /b %errorlevel%
+:atelresources
+cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_READER_TEST /Fe:atel_resources_fixture.exe "%TEST_SRC%atel_resources_fixture.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\navigation_targets.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+atel_resources_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 :success
 popd
 exit /b 0

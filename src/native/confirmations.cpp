@@ -14,7 +14,7 @@ void after(Event& e) {
     const auto win = e.args[0];
     const int phase = read<int>(win + 0x28), row = read<int16_t>(win + 0x48);
     if (phase != 1 && phase != 2 && phase != 3) return;
-    const bool opening = e.before[0] == 0;
+    const bool opening = e.arrival || e.before[0] == 0;
     if (opening) {
         TextPlan p;prepareTextPlan(p,"confirmation-prompt",true);
         p.headline=planEncoded(p,read<uintptr_t>(win+0x24),256,TextPlanOp::Lines);
