@@ -31,13 +31,20 @@ int value(const nav::Scene& observation,const State& state,unsigned low,unsigned
     for(unsigned i=0;i<facts.bindings.count;++i) {const auto& row=facts.bindings.rows[i];if(row.binding==low && row.high==high && row.element==element) return row.value;}
     throw std::runtime_error("Required puzzle observation is missing");
 }
-bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
+bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;
+    if(!step.done.low) {
+        if(std::strcmp(state.route->script,"klyt1000") || step.worker!=41) return false;
+        for(unsigned i=0;i<observation.count;++i) {const auto& worker=observation.workers[i];
+            if(worker.valid && worker.part==state.part && worker.local==6) return kilikaResetReached(worker.position);}
+        return false;
+    }
+    const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
     if(step.also.low && value(observation,state,step.also.low,step.also.high,step.also.element)!=step.also.value) return false;
     return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
 void advance(const nav::Scene& observation,State& state) {
     PuzzleProgress progress{state.expected,state.placed,state.removed};
     advancePuzzleProgress(*state.route,state.begin,state.end,progress,[&](const PuzzleStep& step) {return done(observation,state,step);},
-        [&](const PuzzleStep& step) {const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
+        [&](const PuzzleStep& step) {if(!step.done.low) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
             return step.done.low==0x01000a70?(current&step.done.value)==0:current==0;});
     state.expected=progress.expected;state.placed=progress.placed;state.removed=progress.removed;
 }

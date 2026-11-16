@@ -1,13 +1,22 @@
 #pragma once
 #include "puzzle_guide.hpp"
 #include <cstdint>
+#include <cmath>
 namespace ffx {
+// Reset PC 2FB2 and the verified three-leg corridor identify worker 6 after
+// reset, including a guide reopened between legs. No sphere flag records it.
+inline bool kilikaResetReached(Point pedestal) {
+    if(std::abs(pedestal.y+9.990234375)>=2) return false;
+    return (std::abs(pedestal.x-.2215200067)<1 && pedestal.z>=143.1042022705 && pedestal.z<=171) ||
+        (std::abs(pedestal.z-170)<1 && pedestal.x>=-.7784799933 && pedestal.x<=51.0109901428) ||
+        (std::abs(pedestal.x-50.0109901428)<1 && pedestal.z>=169 && pedestal.z<=199.2762908936);
+}
 // A checked step whose done binding no other checked step shares records one
 // placement (a glyph touched, a sphere put in a recess or pedestal). Steps
 // that share a binding read the carried-sphere variable, which changes as
 // play moves on, so it cannot show that an earlier step was undone.
 inline bool puzzleStepPlaced(const PuzzleRoute& route,unsigned index) {
-    const auto& step=route.steps[index];if(!step.check) return false;
+    const auto& step=route.steps[index];if(!step.check || !step.done.low) return false;
     for(unsigned i=0;i<route.steps.size();++i) {const auto& other=route.steps[i];
         if(i!=index && other.check && other.done.low==step.done.low && other.done.high==step.done.high && other.done.element==step.done.element) return false;}
     return true;

@@ -7,7 +7,7 @@ struct PuzzleStep {
     const wchar_t* instruction;
     unsigned worker;
     Point fallback;
-    UtilityBinding done;
+    UtilityBinding done; // Checked low 0 uses an explicitly supported native position witness.
     bool check = false, platform = false, checkpoint = false;
     const wchar_t* label = L"Puzzle control";
     // A second binding that must also match, when the first one is shared

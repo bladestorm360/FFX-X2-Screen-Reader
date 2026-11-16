@@ -1,5 +1,6 @@
 // Synthetic trial routes for the expected-step tracker. Needs no game data.
 #include "../puzzle_guide_progress.hpp"
+#include "../puzzle_guide_data.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -110,6 +111,37 @@ unsigned expected(PuzzleProgress& progress,const PuzzleRoute& r=route) {
 }
 }
 int main() {
+    const auto& kilikaRoute=puzzleRoutes[1];
+    check(kilikaRoute.steps[13].check,"Kilika reset step has an observable completion check");
+    {
+        std::map<unsigned,int> native{{0x0c00005f,4},{0x0c00005a,2}};
+        Point pedestalAt{-20.0963,-9.9902,-30.4666};PuzzleProgress progress;
+        const auto next=[&]() {
+            advancePuzzleProgress(kilikaRoute,0,22,progress,[&](const PuzzleStep& s) {
+                if(!s.check) return false;
+                if(!s.done.low) return kilikaResetReached(pedestalAt);
+                const int v=native[s.done.low];
+                return (!s.also.low || native[s.also.low]==s.also.value) &&
+                    (s.done.low==0x01000a70?(v&s.done.value)!=0:v==s.done.value);
+            },[&](const PuzzleStep& s) {return s.done.low && native[s.done.low]==0;});
+            return progress.expected+1;
+        };
+        check(next()==14,"Kilika Glyph Sphere wall state identifies reset step 14 from a fresh guide");
+        pedestalAt={.22152,-9.990234,144.104202};
+        check(next()==15,"Kilika reset position identifies push step 15");
+        pedestalAt={50.011,-9.990234,170};
+        check(next()==15,"leaving the reset position during the three-leg push keeps step 15");
+        progress={};check(next()==15,"a fresh guide recognizes the pedestal after leg two without asking for another reset");
+        native[0x0c000064]=1;check(next()==16,"Kilika depression completion expects lower sphere step 16");
+        native[0x0c00005b]=3;check(next()==17,"Kilika lower sphere expects door step 17");
+        native[0x0c00005b]=0;native[0x0c000062]=3;check(next()==18,"Kilika door placement expects Destruction Sphere step 18");
+        native[0x0c00005b]=6;check(next()==19,"Kilika Destruction Sphere expects lower recess step 19");
+        native[0x0c00005b]=0;native[0x0c000061]=6;check(next()==20,"Kilika lower recess expects treasure step 20");
+        native[0x01000a70]=2;check(next()==21,"Kilika chest completion expects door removal step 21");
+        native[0x0c000062]=0;native[0x0c000063]=3;check(next()==22,"Kilika cleared doorway expects antechamber exit step 22");
+        check(!kilikaResetReached({.22152,-23,144.1042}) && !kilikaResetReached({20,-10,150}),
+            "Kilika reset witness excludes another height and positions outside the verified push corridor");
+    }
     PuzzleProgress p;
     check(expected(p)==0,"fresh trial expects the first step");
     flags[carry]=2; check(expected(p)==1,"carrying the first sphere expects the door");

@@ -13,7 +13,7 @@ void loadGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
     const auto trial=std::find_if(std::begin(trialUtilities),std::end(trialUtilities),[&](const TrialUtility& t){return !std::strcmp(t.script,script);});
     check(trial!=std::end(trialUtilities),"guide trial exists");
     load(*trial,trial->collect);resetOwnedPuzzleGuide();
-    for(const auto& step:guideRoute(script).steps) if(step.check) {
+    for(const auto& step:guideRoute(script).steps) if(step.check && step.done.low) {
         declaration(step.done.low,step.done.high);
         if(step.also.low) declaration(step.also.low,step.also.high);
     }
