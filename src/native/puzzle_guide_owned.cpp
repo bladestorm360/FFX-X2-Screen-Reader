@@ -69,7 +69,7 @@ bool tile(const nav::Scene& observation,State& state,Point& point,std::wstring& 
         for(const auto& guard:candidate.blocked) if(value(observation,state,guard.low,guard.high,guard.element)==guard.value) blocked=true;if(blocked) continue;
         const auto distance=distanceXZ(observation.player,candidate.point);if(distance<best) {best=distance;target=&candidate;}}
     if(!target) {label=L"No remaining permitted tile for this pattern. Activate the next pedestal or follow the current sphere step.";return false;}
-    point=target->point;label=L"Pattern "+std::to_wstring(state.pattern)+L". Next permitted floor panel: "+zanarkandGlyphLabel(target->worker)+L". Step onto it; a wrong panel resets the pattern. Press F10 for its path.";return true;
+    point=target->point;label=L"Pattern "+std::to_wstring(state.pattern)+L". Next permitted floor panel: "+zanarkandGlyphLabel(target->worker)+L". Step onto it; a wrong panel resets the pattern. For its path, choose Read path to current step in the Cloister of Trials menu.";return true;
 }
 Entity target(const nav::Scene& observation,const State& state,const PuzzleStep& step,const std::vector<Entity>& entities) {
     Entity result;result.name=step.label;

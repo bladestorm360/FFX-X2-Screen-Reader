@@ -141,7 +141,7 @@ ROUTES = {
   ('Leave for the antechamber.',56,None,0,False),
  ],
  'zanarkand': [
-  ('Step onto the first floor control to activate the displayed pattern. Read the step again for the next permitted tile.',56,None,0,False),
+  ('Step onto the first floor control to activate the displayed pattern, then press F10 for the next step, which names each permitted floor panel.',56,None,0,False),
   ('Complete the first floor pattern. Read step or path to select the next unlit permitted tile.',58,None,0,False),
   ('Activate the first pedestal and complete its displayed pattern.',44,None,0,False),
   ('Activate the second pedestal and complete its displayed pattern.',45,None,0,False),

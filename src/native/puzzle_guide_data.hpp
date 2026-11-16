@@ -137,7 +137,7 @@ inline const PuzzleRoute puzzleRoutes[] = {
         {L"Target: Exit to the antechamber. Leave for the antechamber.", 56, {-18.67501735687256, -453.1286926269531, 383.51300048828125}, {0x0, 0x1, 0, 0}, false, false, false, L"Exit to the antechamber"},
     }, 0},
     {"dome0700", {
-        {L"Target: Trial floor activation tile. Step onto the first floor control to activate the displayed pattern. Read the step again for the next permitted tile.", 56, {105.0, 0.0, -57.0}, {0x0, 0x1, 0, 0}, false, false, false, L"Trial floor activation tile"},
+        {L"Target: Trial floor activation tile. Step onto the first floor control to activate the displayed pattern, then press F10 for the next step, which names each permitted floor panel.", 56, {105.0, 0.0, -57.0}, {0x0, 0x1, 0, 0}, false, false, false, L"Trial floor activation tile"},
         {L"Target: Floor panel 3: yellow straight line, four squares. Complete the first floor pattern. Read step or path to select the next unlit permitted tile.", 58, {135.0, 0.0, -35.0}, {0x0c000022, 0x1, 6, 0}, true, false, true, L"Floor panel 3: yellow straight line, four squares"},
         {L"Target: Pattern pedestal 1. Activate the first pedestal and complete its displayed pattern.", 44, {70.0, 0.0, 25.0}, {0x0c000020, 0x1, 1, 0}, true, false, true, L"Pattern pedestal 1"},
         {L"Target: Pattern pedestal 2. Activate the second pedestal and complete its displayed pattern.", 45, {70.0, 0.0, -25.0}, {0x0c000020, 0x1, 2, 0}, true, false, true, L"Pattern pedestal 2"},

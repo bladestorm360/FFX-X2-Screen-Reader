@@ -560,6 +560,21 @@ void zanarkandGuideRouteFixture() {
         {"insert Kilika recess",{{0x5c000008,0},{0x5c00001c,1},{0x0c000020,6}},11},
         {"gate opens",{{0x0c000020,7}},11},
     });
+    // W56 (the activation tile) only resets 0x22 and 0x23, which are already
+    // 0, so step 1 has no done signal. Its text must send the player to step
+    // 2, where tile guidance runs. F10 selects the next step; the path is the
+    // trial menu's "Read path to current step".
+    {
+        loadGuideRoute("dome0700",{{"entry",firstVisit,0}});
+        for(const auto& w:firstVisit) setValue(w.low,w.high,w.value,w.element);
+        guideSays(OwnedGuideAction::Step,L"press F10 for the next step","Zanarkand step 1 sends the player to step 2");
+        const auto tileText=fixturePuzzleGuideSync(OwnedGuideAction::Next);
+        check(tileText.find(L"Next permitted floor panel")!=std::wstring::npos,"Zanarkand step 2 names the next floor panel");
+        check(tileText.find(L"Press F10 for its path")==std::wstring::npos,"Zanarkand tile text does not send F10 for a path");
+        if(tileText.find(L"Read path to current step")==std::wstring::npos) std::fprintf(stderr,"tile text: %ls\n",tileText.c_str());
+        check(tileText.find(L"Read path to current step")!=std::wstring::npos,"Zanarkand tile text names the path action");
+        resetOwnedPuzzleGuide();
+    }
     // A sphere put back in its source recess asks for the pickup again.
     auto allPedestals=firstVisit;allPedestals.insert(allPedestals.end(),{{0x5c000004,4},{0x0c000020,4}});
     walkGuideRoute("dome0700",{
