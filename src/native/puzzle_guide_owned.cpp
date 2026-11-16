@@ -63,9 +63,21 @@ void synchronizeTiles(const nav::Scene& observation,State& state) {
     const int pattern=value(observation,state,0x5c000004),progress=value(observation,state,pattern==0?0x0c000022:pattern==5?0x0c000029:0x0c000024);
     if(state.pattern!=pattern || progress<state.progress) state.visited.clear();state.pattern=pattern;state.progress=progress;
 }
+// A lit floor panel turns its own touch shape off (dome0700 W58 a9a2
+// setCollisionShapeActive(0)), so the live scene shows it with no interaction
+// channel. Panels the session never saw lit (guide reset mid-pattern) are
+// skipped that way too. An all-dark read of the pattern is ignored.
+std::set<unsigned> darkTiles(const nav::Scene& observation,const State& state) {
+    std::set<unsigned> dark;unsigned seen=0;
+    for(const auto& candidate:puzzleTiles) if(static_cast<int>(candidate.stage)==state.pattern)
+        for(unsigned i=0;i<observation.count;++i) {const auto& fact=observation.workers[i];
+            if(!fact.valid || fact.part!=state.part || fact.local!=candidate.worker) continue;++seen;if(!fact.interactions.channels) dark.insert(candidate.worker);break;}
+    if(dark.size()==seen) dark.clear();return dark;
+}
 bool tile(const nav::Scene& observation,State& state,Point& point,std::wstring& label) {
     if(std::strcmp(state.route->script,"dome0700")) return false;synchronizeTiles(observation,state);const PuzzleTile* target=nullptr;double best=std::numeric_limits<double>::infinity();
-    for(const auto& candidate:puzzleTiles) {nav::checkComputation();if(static_cast<int>(candidate.stage)!=state.pattern || state.visited.count(candidate.worker)) continue;bool blocked=false;
+    const auto dark=darkTiles(observation,state);
+    for(const auto& candidate:puzzleTiles) {nav::checkComputation();if(static_cast<int>(candidate.stage)!=state.pattern || state.visited.count(candidate.worker) || dark.count(candidate.worker)) continue;bool blocked=false;
         for(const auto& guard:candidate.blocked) if(value(observation,state,guard.low,guard.high,guard.element)==guard.value) blocked=true;if(blocked) continue;
         const auto distance=distanceXZ(observation.player,candidate.point);if(distance<best) {best=distance;target=&candidate;}}
     if(!target) {label=L"No remaining permitted tile for this pattern. Activate the next pedestal or follow the current sphere step.";return false;}

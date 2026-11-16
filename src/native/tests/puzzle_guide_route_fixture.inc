@@ -573,6 +573,29 @@ void zanarkandGuideRouteFixture() {
         check(tileText.find(L"Press F10 for its path")==std::wstring::npos,"Zanarkand tile text does not send F10 for a path");
         if(tileText.find(L"Read path to current step")==std::wstring::npos) std::fprintf(stderr,"tile text: %ls\n",tileText.c_str());
         check(tileText.find(L"Read path to current step")!=std::wstring::npos,"Zanarkand tile text names the path action");
+        // A lit floor panel turns its own touch shape off (W58 a9a2
+        // setCollisionShapeActive(0)), so stepping on it again does nothing.
+        // A guide that lost its session record (reset mid-pattern) must not
+        // name it again; the live scene shows it with no interaction channel.
+        std::vector<const PuzzleTile*> order;
+        for(const auto& tile:puzzleTiles) if(tile.stage==0) order.push_back(&tile);
+        std::sort(order.begin(),order.end(),[](const PuzzleTile* a,const PuzzleTile* b) {return std::hypot(a->point.x,a->point.z)<std::hypot(b->point.x,b->point.z);});
+        check(order.size()>=2 && tileText.find(zanarkandGlyphLabel(order[0]->worker))!=std::wstring::npos,"Zanarkand names the nearest unlit panel");
+        resetOwnedPuzzleGuide();
+        for(const auto* tile:order) fixtureGuideWorkers.push_back({tile->worker,tile==order[0]?0u:0x20u});
+        fixturePuzzleGuideSync(OwnedGuideAction::Step);
+        const auto liveText=fixturePuzzleGuideSync(OwnedGuideAction::Next);fixtureGuideWorkers.clear();
+        const auto litLabel=std::wstring(zanarkandGlyphLabel(order[0]->worker)),nextLabel=std::wstring(zanarkandGlyphLabel(order[1]->worker));
+        if(litLabel!=nextLabel) {
+            if(liveText.find(nextLabel)==std::wstring::npos) std::fprintf(stderr,"live tile text: %ls\n",liveText.c_str());
+            check(liveText.find(nextLabel)!=std::wstring::npos,"Zanarkand skips a panel the scene shows as already lit");
+        }
+        // If the scene shows every panel with no channel (a transient read),
+        // the guide still names a panel instead of giving up.
+        for(const auto* tile:order) fixtureGuideWorkers.push_back({tile->worker,0u});
+        resetOwnedPuzzleGuide();fixturePuzzleGuideSync(OwnedGuideAction::Step);
+        const auto allText=fixturePuzzleGuideSync(OwnedGuideAction::Next);fixtureGuideWorkers.clear();
+        check(allText.find(L"Next permitted floor panel")!=std::wstring::npos,"Zanarkand ignores an all-dark scene read");
         resetOwnedPuzzleGuide();
     }
     // A sphere put back in its source recess asks for the pickup again.
