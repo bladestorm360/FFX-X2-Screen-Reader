@@ -166,6 +166,10 @@ double guidePedestalFace(const Entity& pedestal) {
 // A guide step that puts a sphere in or takes one out of a pedestal routes
 // to the pedestal's sphere recess, which stops at interaction range. The push
 // position touches the pedestal and starts the native push.
+double guidePedestalFaceZ(const Entity& pedestal) {
+    const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;Point face{};
+    const bool found=ownedGuidePedestalFace(*fixtureGuideScene,pedestal,face);fixtureNativeOwner=previous;return found?face.z:0;
+}
 bool guidePedestalRecess(const Entity& pedestal) {
     const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;Point face{};
     const bool found=ownedGuidePedestalFace(*fixtureGuideScene,pedestal,face);fixtureNativeOwner=previous;return found;
@@ -401,6 +405,27 @@ void macalaniaGuideRouteFixture() {
     // The treasure flag is permanent save data, but the room resets on each
     // entry. A collected treasure must not skip the room steps.
     walkGuideRoute("mcyt0500",{{"room reset after treasure",{{0x0c000095,4},{0x0c000096,4},{0x0c000098,11},{0x0c00009b,4},{0x0c00009d,10},{0x01000a70,8}},1}});
+    // W1 entry 2 (mcyt0500 pc 1666) only runs the sphere action when W29
+    // set side 0xc5=2: the player 2 to 9.6 units south of the pedestal and
+    // within 1.6 west to 2.4 east of it. Side 8 (north) counts only when the
+    // pedestal is on the walkway (0xa3=5). The guide must route there.
+    {
+        const std::vector<GuideStage> stages={
+            {"entry",{{0x0c000095,4},{0x0c000096,4},{0x0c000098,11},{0x0c00009b,4},{0x0c00009d,10}},1},
+            {"push into first ice mound",{{0x0c0000a3,1}},2},
+            {"push down opened ramp",{{0x0c0000a3,3}},3},
+            {"take central Glyph Sphere",{{0x0c000094,11},{0x0c000098,0}},4},
+            {"insert lower reveal recess",{{0x0c0000c8,1},{0x0c000094,0}},5},
+            {"take revealed Macalania Sphere",{{0x0c000094,4},{0x0c00009b,0}},6}};
+        loadGuideRoute("mcyt0500",stages);
+        for(const auto& stage:stages) {for(const auto& w:stage.writes) setValue(w.low,w.high,w.value,w.element);expectGuide("mcyt0500",stage.action,stage.expected);}
+        Entity pedestal;configurePedestalTarget(pedestal,"mcyt0500",1);
+        check(guidePedestalFaceZ(pedestal)==-1,"Macalania pedestal insert routes to the south face");
+        guideSays(OwnedGuideAction::Expected,L"Step 6 of 38. Target: Pedestal. Stand centred on the south face","Macalania insert names the south face");
+        setValue(0x0c0000a3,1,5);fixturePuzzleGuideSync(OwnedGuideAction::Completed);
+        check(guidePedestalFaceZ(pedestal)==1,"Macalania pedestal on the walkway routes to the north face");
+        resetOwnedPuzzleGuide();
+    }
     // A sphere put back in its source recess asks for the pickup again.
     walkGuideRoute("mcyt0500",{
         {"entry",{{0x0c000095,4},{0x0c000096,4},{0x0c000098,11},{0x0c00009b,4},{0x0c00009d,10}},1},

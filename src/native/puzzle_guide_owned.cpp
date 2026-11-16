@@ -187,7 +187,14 @@ bool ownedGuidePedestalFace(const nav::Scene& observation,const Entity& pedestal
     // recess, at interaction range, not to the push position: touching the
     // pedestal starts the original push script, which takes control.
     if(pedestal.pushControl<2 || pedestal.pushControl>4 || ownedGuidePedestalStep(observation,pedestal).empty()) return false;
-    face={};const auto& state=storage.get();if(std::string_view(state.route->script)!="djyt0600") return true;
+    face={};const auto& state=storage.get();
+    if(std::string_view(state.route->script)=="mcyt0500") try {
+        // W1 entry 2 (pc 1666) runs the sphere action only from W29 side
+        // 0xc5=2, south of the pedestal, or side 8, north of it, while the
+        // pedestal is on the walkway (0xa3=5).
+        face={0,0,value(observation,state,0x0c0000a3)==5?1.0:-1.0};return true;
+    } catch(...) {return false;}
+    if(std::string_view(state.route->script)!="djyt0600") return true;
     try {
         // Djose W15 owns the east socket (0x9d) and W16 the west socket (0x9e).
         // An insert goes to an empty socket, a take to a loaded one; east first.
