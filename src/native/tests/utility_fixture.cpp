@@ -329,6 +329,15 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
         auto& row=part.bindings.rows[part.bindings.count++];row.binding=step.done.low;row.high=step.done.high;row.element=step.done.element;
         row.value=utilityValue(script,step.done.low,step.done.high,step.done.element);
     }
+    // A pickup's source check (`also`) can read another array element.
+    for(const auto& route:puzzleRoutes) if(script.name==route.script) for(const auto& step:route.steps) if(step.check && step.also.element) {
+        bool have=false;for(unsigned i=0;i<part.bindings.count;++i) {const auto& row=part.bindings.rows[i];
+            if(row.binding==step.also.low && row.high==step.also.high && row.element==step.also.element) have=true;}
+        if(have) continue;
+        check(part.bindings.count<part.bindings.rows.size(),"Native guide fixture element row bound");
+        auto& row=part.bindings.rows[part.bindings.count++];row.binding=step.also.low;row.high=step.also.high;row.element=step.also.element;
+        row.value=utilityValue(script,step.also.low,step.also.high,step.also.element);
+    }
     speechq::Header header{};header.generation=guideScene.epoch;
     struct WorkerGuard {bool previous;WorkerGuard():previous(fixtureNativeOwner){fixtureNativeOwner=false;}~WorkerGuard(){fixtureNativeOwner=previous;}} guard;
     return puzzleGuideOwned(action,guideScene,Mesh{},std::vector<Entity>{},header,0,0);

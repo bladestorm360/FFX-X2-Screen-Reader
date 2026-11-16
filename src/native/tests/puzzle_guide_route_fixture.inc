@@ -13,7 +13,10 @@ void loadGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
     const auto trial=std::find_if(std::begin(trialUtilities),std::end(trialUtilities),[&](const TrialUtility& t){return !std::strcmp(t.script,script);});
     check(trial!=std::end(trialUtilities),"guide trial exists");
     load(*trial,trial->collect);resetOwnedPuzzleGuide();
-    for(const auto& step:guideRoute(script).steps) if(step.check) declaration(step.done.low,step.done.high);
+    for(const auto& step:guideRoute(script).steps) if(step.check) {
+        declaration(step.done.low,step.done.high);
+        if(step.also.low) declaration(step.also.low,step.also.high);
+    }
     for(const auto& stage:stages) for(const auto& write:stage.writes) declaration(write.low,write.high);
     put(chunk,0x402,static_cast<uint16_t>(declarations.size()));
     utility_fixture_resources::prepareUtilityResources(ptr(chunk),chunk.data(),chunk.size());
@@ -295,6 +298,14 @@ void kilikaGuideRouteFixture() {
         {"open Destruction treasure",{{0x01000a70,2}},21},
         {"remove antechamber door sphere",{{0x0c000062,0},{0x0c00005b,3},{0x0c000063,3}},22},
     });
+    // A sphere put back in its source recess (0x58 refilled, hand 0x5b
+    // empty) asks for the pickup again.
+    walkGuideRoute("klyt1000",{
+        {"entry",{{0x0c000058,1},{0x0c00005a,4},{0x0c00005f,2},{0x0c000060,6},{0x0c000061,3}},1},
+        {"take entry sphere",{{0x0c00005b,1},{0x0c000058,0}},2},
+        {"put entry sphere back",{{0x0c000058,1},{0x0c00005b,0}},1},
+        {"take entry sphere again",{{0x0c00005b,1},{0x0c000058,0}},2},
+    });
     {
         const std::vector<GuideStage> stages={
             {"entry",{{0x0c000058,1},{0x0c00005a,4},{0x0c00005f,2},{0x0c000060,6},{0x0c000061,3}},1},
@@ -390,6 +401,15 @@ void macalaniaGuideRouteFixture() {
     // The treasure flag is permanent save data, but the room resets on each
     // entry. A collected treasure must not skip the room steps.
     walkGuideRoute("mcyt0500",{{"room reset after treasure",{{0x0c000095,4},{0x0c000096,4},{0x0c000098,11},{0x0c00009b,4},{0x0c00009d,10},{0x01000a70,8}},1}});
+    // A sphere put back in its source recess asks for the pickup again.
+    walkGuideRoute("mcyt0500",{
+        {"entry",{{0x0c000095,4},{0x0c000096,4},{0x0c000098,11},{0x0c00009b,4},{0x0c00009d,10}},1},
+        {"push into first ice mound",{{0x0c0000a3,1}},2},
+        {"push down opened ramp",{{0x0c0000a3,3}},3},
+        {"take central Glyph Sphere",{{0x0c000094,11},{0x0c000098,0}},4},
+        {"put Glyph Sphere back",{{0x0c000098,11},{0x0c000094,0}},3},
+        {"take central Glyph Sphere again",{{0x0c000094,11},{0x0c000098,0}},4},
+    });
     // Taking the bridge sphere back keeps the durable bridge checkpoint.
     walkGuideRoute("mcyt0500",{
         {"bridge restored",{{0x0c0000c8,1},{0x0c0000ca,1},{0x0c000098,4}},12},
@@ -448,6 +468,15 @@ void bevelleGuideRouteFixture() {
     // entry. A collected treasure must not skip the room steps.
     walkGuideRoute("bvyt1100",{{"room reset after treasure",{bevelleSphere(1,2,1),bevelleSphere(2,4,1),bevelleSphere(3,6,1),bevelleSphere(4,7,1),bevelleSphere(5,9,1),{0x01000a70,16}},1}});
     walkGuideRoute("bvyt1100",{{"late start after treasure",{{0x0c000025,1},bevelleSphere(4,11,1),{0x0c000026,1},{0x01000a70,16}},12}});
+    // A Bevelle Sphere put back in its source place asks for the pickup again.
+    walkGuideRoute("bvyt1100",{
+        {"entry",{bevelleSphere(1,2,1),bevelleSphere(2,4,1),bevelleSphere(3,6,1),bevelleSphere(4,7,1),bevelleSphere(5,9,1)},1},
+        {"push rail pedestal onto track",{{0x0c000008,1}},2},
+        {"ride the rail",{{0x0c000008,19}},2},
+        {"take upper Bevelle Sphere",{bevelleSphere(2,4,0),bevelleSphere(2,1,1)},3},
+        {"put it back",{bevelleSphere(2,1,0),bevelleSphere(2,4,1)},2},
+        {"take it again",{bevelleSphere(2,4,0),bevelleSphere(2,1,1)},3},
+    });
     // Taking a Bevelle Sphere back out of w31 clears 0x25 (w31 writes
     // 0x25=0 at 1685a, 169b0 and 16b06); putting it back sets it again.
     // After the put-back the guide must expect step 4 again.
@@ -505,6 +534,14 @@ void zanarkandGuideRouteFixture() {
         {"take Kilika Sphere",{{0x5c00000c,0},{0x5c000008,1}},10},
         {"insert Kilika recess",{{0x5c000008,0},{0x5c00001c,1},{0x0c000020,6}},11},
         {"gate opens",{{0x0c000020,7}},11},
+    });
+    // A sphere put back in its source recess asks for the pickup again.
+    auto allPedestals=firstVisit;allPedestals.insert(allPedestals.end(),{{0x5c000004,4},{0x0c000020,4}});
+    walkGuideRoute("dome0700",{
+        {"after four pedestal patterns",allPedestals,7},
+        {"take Besaid Sphere",{{0x5c000010,0},{0x5c000008,2}},8},
+        {"put Besaid Sphere back",{{0x5c000010,2},{0x5c000008,0}},7},
+        {"take Besaid Sphere again",{{0x5c000010,0},{0x5c000008,2}},8},
     });
     auto lateStart=firstVisit;lateStart.push_back({0x0c000020,3});
     walkGuideRoute("dome0700",{{"late start after three pedestals",lateStart,6}});
