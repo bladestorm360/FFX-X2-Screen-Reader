@@ -73,9 +73,12 @@ void clearCallOverflow(uintptr_t stack,uintptr_t returnAddress,bool returning) {
     if(overflowLogs.fetch_add(1,std::memory_order_relaxed)<OverflowLogLimit)
         recordLog("native call overflow recovered owner=%lu",GetCurrentThreadId());
 }
+// These four reviewed POD/copy observers track physical allocation lifetimes,
+// including loads/frees while Off. Ordinary readers and other snapshots stop.
+bool allocationLifetimeCall(unsigned rva) {return rva==0x48d230 || rva==0x2871c0 || rva==0x48d490 || rva==0x46ca90;}
 
 void dispatch(Handler fn, Event& event) {
-    if(!modEnabled.load()) return;
+    if(!modEnabled.load() && !allocationLifetimeCall(event.rva)) return;
     if (!fn || (nativeResourceLoading() && !resourceCall(event.rva) && !event.captureOnly)) return;
     if(!resourceCall(event.rva) && !event.captureOnly && !nativeGameThread()) return;
     if(!resourceCall(event.rva) && !event.captureOnly && !ownerResetReady() && !serviceOwnerReset()) return;
@@ -143,7 +146,7 @@ extern "C" void __cdecl enterBridge(uintptr_t* r) {
             inReader=false;
         }
     }
-    if(!modEnabled.load()) return;
+    if(!modEnabled.load() && !allocationLifetimeCall(h->rva) && !resourceCall(h->rva)) return;
     // User32/DirectInput methods are process-wide. SDL and other native
     // workers can enter them while the input owner waits inside a callback.
     // Reject foreign producers before acquiring the shared reader lock.
@@ -270,7 +273,7 @@ extern "C" void __cdecl leaveBridge(uintptr_t* r) {
         // no old resource-dependent snapshot is revived for ordinary readers.
         if(h->rva==map_transition::Initialize && !resourceDepth) e.epoch=generation();
         // Teardown invalidates resource-dependent snapshots from older calls.
-        if (e.epoch == generation()) {
+        if (e.epoch == generation() || allocationLifetimeCall(h->rva)) {
             dispatch(h->listeners[i].leave, e);
             if(e.overrideResult) r[7]=e.result;
         }

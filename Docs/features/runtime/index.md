@@ -95,8 +95,12 @@ The listener keeps press/repeat/release ownership and only requests work from
 the verified FFX PInput owner. FFX-2 retains its existing unsupported-reader
 status but can speak the two toggle confirmations.
 
-`hooks.cpp` skips every registered enter/return reader when Off; installed
-trampolines stay in place. DirectInput COM adapters and XInput imports also
+`hooks.cpp` skips ordinary enter/return readers when Off; installed
+trampolines stay in place. Four allocation-lifetime observers continue bounded
+capture/invalidation: EV loader, allocator, free and ATEL worker construction.
+Native resource scopes also remain tracked without running their reader
+callbacks, so enabling waits for a safe owner boundary without blocking it.
+DirectInput COM adapters and XInput imports also
 forward the original result. Pending native actions and input commands lose
 their generation. The PInput transition cancels Auto walk including battle
 resume, pedestal/puzzle/minigame assistance, console context, captured keys,
@@ -131,15 +135,22 @@ filter is preserved.
 On re-enable, the owner retries a temporarily unavailable reset, then captures
 the current game context, visible dialogue, battle or Grid state. Initial menu
 observations use `Event.arrival` to read an unchanged native focus. No missed
-event queue is replayed. Allocation receipts from before Off are untrusted:
-ATEL-dependent navigation/puzzle helpers wait for the next observed native
-resource load, normally an area transition while On. Stale receipts are
-reclaimed when admitting fresh allocations. There is no safe current-allocation
-rehydration path proven by this offline change; do not bypass the lifetime floor.
+event queue is replayed. Allocation receipts and prepared immutable ATEL data
+now retain their actual allocation lifetime across Off/On. Speech generations
+still cancel old commands, speech and navigation snapshots; they no longer
+retire live resources. Frees and replacements observed while Off invalidate
+exact receipts, including address reuse. Worker cleanup preserves live banks
+while Off, and newly loaded files are captured/prepared while Off. A full
+receipt registry refuses a new capture until an actual free makes room; a
+toggle cannot evict a still-live receipt. No pointer scan or current-memory
+rehydration fallback was added. Field facts, geometry, names, destinations and
+puzzle state are freshly captured after enabling in the current area.
 
 Offline coverage includes installed mixed-ABI hook passthrough, native keyboard
 and XInput handback, speech queue pressure/history, unchanged menu arrival,
-mixed audio silence and full stale ATEL receipt recovery. See
+mixed audio silence, retained live ATEL receipts, Off-state frees/address reuse,
+full receipt pressure, same-area navigation/guide recovery, an area loaded while
+Off. See
 `src/native/tests/run_tests.bat` and its `--atel-resources` target. Real gameplay,
 audible output and physical input timing remain unverified for the repair.
 Only the user's explicitly supplied session log was read. No deployment,
@@ -148,28 +159,28 @@ game launch/control, Tester Logs access or commit occurred.
 Prioritized nonvisual gameplay procedure after an independently authorized
 deployment:
 
-1. On "Load this file?", toggle Off. Expect "Screen reader mod off" as the
+1. In a field, toggle Off/On without changing area. Press `]`: expect a current
+   destination. Then load or change area while Off and enable there:
+   destinations must belong to the new area. No old walk, puzzle action or
+   readiness announcement may resume.
+2. On "Load this file?", toggle Off. Expect "Screen reader mod off" as the
    final utterance. Change Yes/No while Off, then toggle On. Expect "Screen
    reader mod on", followed by the current answer without cutting off On.
    Leave the dialog idle for at least five seconds: no old answer, map-name
    error or navigation-unavailable announcement should follow. Repeat without
    changing focus. The log must record both toggle texts and accepted backend
    submissions; log acceptance alone does not prove audible NVDA delivery.
-2. In a field, start Auto walk or pedestal assistance and a cue/preview. Hold a
+3. In a field, start Auto walk or pedestal assistance and a cue/preview. Hold a
    captured key, toggle Off and release it. Expect only "Screen reader mod off",
    stopped movement/cues and normal game keys. Footsteps must stop when native
    movement is released. Repeated held toggle presses must not toggle again.
-3. In an unchanged menu, toggle Off/On. Expect "Screen reader mod on" followed
+4. In an unchanged menu, toggle Off/On. Expect "Screen reader mod on" followed
    by the current focus. Repeat on a shop row/quantity, Save/Load, confirmation,
    naming and Grid screen; I/U must describe the current selection. While Off,
    change native focus and confirm no old selection is read on return.
-4. In battle, toggle Off across a native turn, then On. Expect current battle
+5. In battle, toggle Off across a native turn, then On. Expect current battle
    state without old damage/dialogue or a suspended Auto walk resuming. Repeat
    with rapid Off/On pairs and focus changes; no key or controller latch.
-5. Cross a normal area boundary while On before checking script-dependent
-   navigation/puzzle helpers. Their dependency on a new resource receipt is an
-   explicit recovery limit. Report unavailable helpers after that fresh load,
-   any wrong-map data, missed current focus, speech/cue leak or held movement.
 6. In FFX-2, verify both toggle confirmations and native key passthrough only;
    this does not add FFX-2 reading. Verify plain F12 still reaches NVDA.
 

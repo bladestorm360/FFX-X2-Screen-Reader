@@ -52,11 +52,6 @@ std::array<AtelPreparedHandler,8> preparedHandlers{};std::atomic<unsigned> prepa
 struct Receipt {unsigned token=0,group=0,logical=0,allocated=0;uintptr_t stack=0,parent=0;};
 thread_local std::array<Receipt,16> frames{};
 thread_local unsigned depth=0,nextToken=0;
-thread_local unsigned receiptLifetime=0;
-void refreshReceiptLifetime() {
-    const auto lifetime=modLifetimeEpoch.load();
-    if(receiptLifetime!=lifetime) {depth=0;receiptLifetime=lifetime;}
-}
 unsigned claimCapture() {
     auto observed=claimed.load(std::memory_order_relaxed);
     for(unsigned slot=0;slot<AtelResourceSlots;++slot) if(!(observed&(1u<<slot)))
@@ -75,18 +70,10 @@ unsigned claimReceipt(uintptr_t parent) {
     for(unsigned i=0;i<NativeReceipts;++i) {
         uintptr_t empty=0;if(aliveParents[i].compare_exchange_strong(empty,1,std::memory_order_acq_rel,std::memory_order_relaxed)) return i;
     }
-    const auto floor=modLifetimeEpoch.load();
-    if(floor) for(unsigned i=0;i<NativeReceipts;++i) {
-        auto retainedParent=aliveParents[i].load(std::memory_order_acquire);Parts parts;
-        if(retainedParent<=1 || !nativeSpans[i].tryRead(parts) || parts.parent!=retainedParent || !parts.count ||
-           static_cast<int>(parts.spans[0].epoch-floor)>=0) continue;
-        if(aliveParents[i].compare_exchange_strong(retainedParent,1,std::memory_order_acq_rel,std::memory_order_relaxed)) return i;
-    }
     return NativeReceipts;
 }
 void capture(const Receipt& receipt) {
     const unsigned epoch=generation();
-    if(!modEnabled.load()) return;
     if(!captureStorage.ready() || !receipt.parent || receipt.logical<0x30 || receipt.logical>AtelResourceLimit ||
        receipt.allocated<receipt.logical || receipt.allocated!=((receipt.logical+0x7ffu) & ~0x7ffu) ||
        receipt.parent>UINTPTR_MAX-receipt.logical) {++rejected;return;}
@@ -114,7 +101,6 @@ void capture(const Receipt& receipt) {
         owned.parts.spans[owned.parts.count++]={receipt.parent+start,epoch,token,end-start};
     }
     if(!owned.parts.count) {releaseCapture(slot);++rejected;return;}
-    if(!modEnabled.load() || epoch!=generation()) {releaseCapture(slot);return;}
     owned.receipt=claimReceipt(receipt.parent);
     if(owned.receipt==NativeReceipts) {releaseCapture(slot);++rejected;return;}
     nativeSpans[owned.receipt].publish(owned.parts);
@@ -143,7 +129,6 @@ void resourceFreed(Event& e) {
     if(const auto event=wake.load(std::memory_order_acquire)) SetEvent(event);
 }
 void loaderBefore(Event& e) {
-    refreshReceiptLifetime();
     // The native hook stack grows downward. Discard abandoned loader receipts
     // after exception unwind before accepting a sibling/outer loader.
     while(depth && e.nativeStack && frames[depth-1].stack<=e.nativeStack) --depth;
@@ -152,7 +137,6 @@ void loaderBefore(Event& e) {
     frames[depth++]={token,static_cast<unsigned>(e.args[0]),0,0,e.nativeStack,0};
 }
 void allocationBefore(Event& e) {
-    refreshReceiptLifetime();
     if(!depth || e.caller!=address(Loader)+AllocationReturn || frames[depth-1].group!=12) return;
     e.before[0]=frames[depth-1].token;e.before[1]=e.args[0];e.before[2]=e.edi;
 }
@@ -165,7 +149,6 @@ void allocationAfter(Event& e) {
     retireParent(receipt.parent);
 }
 void loaderAfter(Event& e) {
-    refreshReceiptLifetime();
     if(!e.before[0]) return;
     unsigned found=depth;while(found && frames[found-1].token!=static_cast<unsigned>(e.before[0])) --found;
     if(!found) return;const auto receipt=frames[found-1];depth=found-1;
@@ -317,14 +300,15 @@ DWORD WINAPI worker(void*) {
 }
 }
 bool nativeAtelSpan(uintptr_t chunk,AtelSpan& span) {
-    if(!modEnabled.load()) return false;
+    // Allocation lifetime is independent of speech/input generations. The
+    // installed lifetime hooks continue observing replacements and frees Off.
     bool found=false;
     for(unsigned slot=0;slot<NativeReceipts;++slot) {
         const auto alive=aliveParents[slot].load(std::memory_order_acquire);if(alive<=1) continue;
         Parts parts;if(!nativeSpans[slot].tryRead(parts) || !parts.parent || parts.parent!=alive ||
             aliveParents[slot].load(std::memory_order_acquire)!=parts.parent) continue;
         for(unsigned i=0;i<parts.count && i<AtelResourceParts;++i)
-            if(parts.spans[i].chunk==chunk && (!modLifetimeEpoch.load() || static_cast<int>(parts.spans[i].epoch-modLifetimeEpoch.load())>=0) &&
+            if(parts.spans[i].chunk==chunk &&
                 (!found || static_cast<int32_t>(parts.spans[i].serial-span.serial)>0)) {span=parts.spans[i];span.epoch=generation();found=true;}
     }
     return found;
