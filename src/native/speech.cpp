@@ -145,6 +145,7 @@ DWORD WINAPI speechThread(void*) {
         const auto stop=speechq::silenceRequest();
         if(stop!=stopped) {
             stopped=stop;
+            arrivalSpeech=false;
             if(speechq::silenceGeneration()==generation())
                 recordLog("input silence worker=%lu accepted=%d",GetCurrentThreadId(),backend.stop());
             continue;
@@ -154,7 +155,10 @@ DWORD WINAPI speechThread(void*) {
             toggled=toggle;
             if(toggle==modToggleSerial.load()) {
                 arrivalSpeech=modEnabled.load();
-                (void)backend.output(arrivalSpeech?L"Screen reader mod on":L"Screen reader mod off",false);
+                const auto submitted=GetTickCount64();
+                recordLog("text seq=%u interrupt=1 %s",toggle,arrivalSpeech?"Screen reader mod on":"Screen reader mod off");
+                const bool success=backend.output(arrivalSpeech?L"Screen reader mod on":L"Screen reader mod off",true);
+                recordLog("output toggle=%u gen=%u accepted=%d prism-ms=%llu",toggle,generation(),success,GetTickCount64()-submitted);
             }
             continue;
         }
@@ -164,18 +168,20 @@ DWORD WINAPI speechThread(void*) {
         if(!speechq::current(h) || ((h.flags&speechq::Mod)==0 && !setting(Setting::Speech))) {
             recordLog("discard seq=%u gen=%u current=%u",h.sequence,h.generation,generation());continue;
         }
+        // All automatic resume observations queue behind On, including later
+        // menu hooks. A new input silence request restores normal interruption.
+        const bool interrupt=(h.flags&speechq::Interrupt)!=0 && !arrivalSpeech;
         const int size=WideCharToMultiByte(CP_UTF8,0,item.text.c_str(),-1,nullptr,0,nullptr,nullptr);
         if(size>0) {
             std::string utf8(static_cast<size_t>(size),'\0');
             WideCharToMultiByte(CP_UTF8,0,item.text.c_str(),-1,&utf8[0],size,nullptr,nullptr);
-            recordLog("text seq=%u interrupt=%d %s",h.sequence,(h.flags&speechq::Interrupt)!=0,utf8.c_str());
+            recordLog("text seq=%u interrupt=%d %s",h.sequence,interrupt,utf8.c_str());
         }
         const int mode=(h.flags&speechq::Voiced)?setting(Setting::VoicedDialogue):2;
         if(mode==0) {recordLog("dialogue suppressed seq=%u",h.sequence);continue;}
         const auto submitted=GetTickCount64();
         if(!speechq::current(h)) continue;
-        const bool success=backend.output(item.text,(h.flags&speechq::Interrupt)!=0 && !arrivalSpeech,mode==1);
-        arrivalSpeech=false;
+        const bool success=backend.output(item.text,interrupt,mode==1);
         recordLog("output seq=%u gen=%u owner=%lu accepted=%d mode=%d queue-ms=%llu prism-ms=%llu",
             h.sequence,h.generation,h.owner,success,mode,submitted-h.queuedAt,GetTickCount64()-submitted);
     }

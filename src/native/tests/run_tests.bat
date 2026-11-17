@@ -73,6 +73,10 @@ cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:mod_toggle_fixture.exe "%TEST_SRC%mo
 if not "%errorlevel%"=="0" goto failed
 mod_toggle_fixture.exe
 if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /WX /EHsc /Gy /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:mod_resume_fixture.exe "%TEST_SRC%mod_resume_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" "%TEST_SRC%..\navigation_observations.cpp" /link /OPT:REF user32.lib
+if not "%errorlevel%"=="0" goto failed
+mod_resume_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--mod-toggle" goto success
 cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:log_history_fixture.exe "%TEST_SRC%log_history_fixture.cpp" "%TEST_SRC%..\log_history.cpp"
 if not "%errorlevel%"=="0" goto failed

@@ -94,7 +94,7 @@ void toggleOnOwner(unsigned requests) {
     const bool message=refreshMessageScreen();
     if(inBattle()) refreshBattleScreen();
     else if(sphereGridOpen()) refreshSphereScreen();
-    else if(!scene && !message) announceCurrentMap();
+    else if(!scene && !message && activeField()) announceCurrentMap();
     protectSpeech(false);
 }
 }

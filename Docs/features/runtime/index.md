@@ -109,6 +109,25 @@ The existing speech worker owns stop and exact toggle feedback through a
 reserved control slot independent of full ordinary queues. A durable toggle
 serial clears repeat history even when generation markers are dropped.
 
+November16 follow-up: the user's 18:29 log shows generations 11/12 on the
+"Load this file?" dialog. The reserved toggle path bypassed the ordinary text
+log and discarded the requested interrupt flag. Thus the missing text record
+does not prove a generation or Off-gate rejection; the original backend result
+was not recorded. The worker now submits both confirmations with interruption
+and logs their text, toggle serial, acceptance and backend-call duration.
+The old one-utterance resume protection let a second automatic focus line cut
+off On. Protection now lasts until the next input-silence request, and text logs
+report the actual interrupt flag sent to PRISM.
+
+Resume previously treated `scene == 0` as a field, although title/save-load
+room 23 also has no field-window ID. Automatic map reading now requires
+`activeField()`. Native navigation collection excludes room 23, while genuine
+field-data failures still report explicit requests. These errors were fresh
+generation-12 output, not evidence of a replayed old speech queue. Native
+Yes/No callbacks re-read current focus after reset, including focus changed
+while Off; no cached answer is replayed. Claude's removal of the injected-key
+filter is preserved.
+
 On re-enable, the owner retries a temporarily unavailable reset, then captures
 the current game context, visible dialogue, battle or Grid state. Initial menu
 observations use `Event.arrival` to read an unchanged native focus. No missed
@@ -122,28 +141,36 @@ Offline coverage includes installed mixed-ABI hook passthrough, native keyboard
 and XInput handback, speech queue pressure/history, unchanged menu arrival,
 mixed audio silence and full stale ATEL receipt recovery. See
 `src/native/tests/run_tests.bat` and its `--atel-resources` target. Real gameplay,
-audible output and physical input timing remain unverified. No deployment or
-game access is authorized for this worktree task.
+audible output and physical input timing remain unverified for the repair.
+Only the user's explicitly supplied session log was read. No deployment,
+game launch/control, Tester Logs access or commit occurred.
 
 Prioritized nonvisual gameplay procedure after an independently authorized
 deployment:
 
-1. In a field, start Auto walk or pedestal assistance and a cue/preview. Hold a
+1. On "Load this file?", toggle Off. Expect "Screen reader mod off" as the
+   final utterance. Change Yes/No while Off, then toggle On. Expect "Screen
+   reader mod on", followed by the current answer without cutting off On.
+   Leave the dialog idle for at least five seconds: no old answer, map-name
+   error or navigation-unavailable announcement should follow. Repeat without
+   changing focus. The log must record both toggle texts and accepted backend
+   submissions; log acceptance alone does not prove audible NVDA delivery.
+2. In a field, start Auto walk or pedestal assistance and a cue/preview. Hold a
    captured key, toggle Off and release it. Expect only "Screen reader mod off",
    stopped movement/cues and normal game keys. Footsteps must stop when native
    movement is released. Repeated held toggle presses must not toggle again.
-2. In an unchanged menu, toggle Off/On. Expect "Screen reader mod on" followed
+3. In an unchanged menu, toggle Off/On. Expect "Screen reader mod on" followed
    by the current focus. Repeat on a shop row/quantity, Save/Load, confirmation,
    naming and Grid screen; I/U must describe the current selection. While Off,
    change native focus and confirm no old selection is read on return.
-3. In battle, toggle Off across a native turn, then On. Expect current battle
+4. In battle, toggle Off across a native turn, then On. Expect current battle
    state without old damage/dialogue or a suspended Auto walk resuming. Repeat
    with rapid Off/On pairs and focus changes; no key or controller latch.
-4. Cross a normal area boundary while On before checking script-dependent
+5. Cross a normal area boundary while On before checking script-dependent
    navigation/puzzle helpers. Their dependency on a new resource receipt is an
    explicit recovery limit. Report unavailable helpers after that fresh load,
    any wrong-map data, missed current focus, speech/cue leak or held movement.
-5. In FFX-2, verify both toggle confirmations and native key passthrough only;
+6. In FFX-2, verify both toggle confirmations and native key passthrough only;
    this does not add FFX-2 reading. Verify plain F12 still reaches NVDA.
 
 Luna made the player documentation and three mechanical shop/naming arrival

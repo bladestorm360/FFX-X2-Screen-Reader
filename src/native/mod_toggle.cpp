@@ -16,7 +16,7 @@ bool held=false,wasDown=false;
 LRESULT CALLBACK keyboardEvent(int code,WPARAM message,LPARAM data) {
     if(code==HC_ACTION) {
         const auto& key=*reinterpret_cast<const KBDLLHOOKSTRUCT*>(data);
-        if(key.vkCode==VK_F12 && !(key.flags&LLKHF_INJECTED)) {
+        if(key.vkCode==VK_F12) {
             DWORD process=0;GetWindowThreadProcessId(GetForegroundWindow(),&process);
             const bool down=message==WM_KEYDOWN || message==WM_SYSKEYDOWN;
             if(modToggleKey(key.vkCode,down,(GetAsyncKeyState(VK_CONTROL)&0x8000)!=0,
