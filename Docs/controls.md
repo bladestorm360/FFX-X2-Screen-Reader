@@ -290,7 +290,8 @@ HP or MP, for example **Kimahri: HP 340/340, poison, darkness**. Ailments are KO
 petrify, poison, the four breaks, confuse, berserk, provoke, threaten, sleep,
 silence, darkness, slow, curse and doom with its turn count. Positive effects
 such as Protect, Haste or Auto-Life are not added to targets; H still reads the
-turn owner's full status.
+turn owner's full status. Enemy ailments are read only while Sensor or Scan
+shows them; doom and its turn count are always read.
 
 When the game reveals **Sensor** information for a highlighted enemy, its
 exact current and maximum HP are read directly. **Ctrl+Left** selects the first

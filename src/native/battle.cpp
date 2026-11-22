@@ -309,14 +309,17 @@ TextRef wheelMechanic(TextPlan& p,const SeymourWheels& s,unsigned id) {
 }
 // Copies the target's status words (actor+606/+608..+614/+616, KO+DCC and
 // Doom's counter+5C8) as one node; names are chosen on the worker.
-TextRef targetAilments(TextPlan& p,uintptr_t chr) {
-    uint16_t permanent=read<uint16_t>(chr+0x606),temporal=0;
+// Without Sensor/Scan an enemy's statuses are not drawn, so only Doom and its
+// on-screen counter remain.
+TextRef targetAilments(TextPlan& p,uintptr_t chr,bool statuses) {
+    uint16_t permanent=read<uint16_t>(chr+0x606),temporal=0,extra=read<uint16_t>(chr+0x616);
     if(read<uint8_t>(chr+0xdcc)) permanent|=1;
     for(unsigned i=0;i<13;++i) if(read<uint8_t>(chr+0x608+i)) temporal|=static_cast<uint16_t>(1u<<i);
-    return planBattleAilments(p,permanent,temporal,read<uint16_t>(chr+0x616),read<uint8_t>(chr+0x5c8));
+    if(!statuses) {permanent=temporal=0;extra&=0x4000;}
+    return planBattleAilments(p,permanent,temporal,extra,read<uint8_t>(chr+0x5c8));
 }
-TextRef withAilments(TextPlan& p,TextRef target,uintptr_t chr) {
-    const auto ailments=targetAilments(p,chr);
+TextRef withAilments(TextPlan& p,TextRef target,uintptr_t chr,bool statuses=true) {
+    const auto ailments=targetAilments(p,chr,statuses);
     return ailments?planJoin(p,target,ailments):target;
 }
 void targets(Event& e) {
@@ -360,7 +363,7 @@ void targets(Event& e) {
             using Getter=uintptr_t(__cdecl*)(unsigned);const auto actor=reinterpret_cast<Getter>(address(0x394030))(bit+16);
             hp=read<int>(actor+0x5d0);maximum=read<int>(actor+0x594);kind=1;
         }
-        auto target=withAilments(p,planBattleTarget(p,name,hp,maximum,kind),chr);
+        auto target=withAilments(p,planBattleTarget(p,name,hp,maximum,kind),chr,battleSensorVisible(bit+16));
         if(selected==bit+16) {
             const auto mechanic=wheelMechanic(p,wheels,selected);
             if(mechanic)target=planSuffix(p,target,mechanic,L", ");
