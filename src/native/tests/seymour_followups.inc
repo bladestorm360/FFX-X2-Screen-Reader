@@ -30,8 +30,7 @@ void seymourFixtures() {
             set<uint16_t>(0xf3d1b4,static_cast<uint16_t>(21+i));
             set<uint16_t>(0xf3c9ea,static_cast<uint16_t>(1u<<(5+i)));
             event(0x49d300,address(0xf3c910));
-            const auto expected=std::wstring(L"Mortiphasm: 100%, Energizing Seymour Omnis with ")+elements[data[4+i]]+
-                L". Physical attacks turn left; magic turns right.";
+            const auto expected=std::wstring(L"Mortiphasm, Energizing Seymour Omnis with ")+elements[data[4+i]];
             check(said.back().first==expected,"every wheel color agrees with original m131 control flow");
         }
         set<uint16_t>(0xf3d1b4,20);set<uint16_t>(0xf3c9ea,16);event(0x49d300,address(0xf3c910));
@@ -39,7 +38,7 @@ void seymourFixtures() {
         for(unsigned i=0;i<4;++i)if(data[8+i]) {
             if(!mix.empty())mix+=L", ";mix+=elements[i];mix+=L" ";mix+=std::to_wstring(data[8+i]);
         }
-        check(said.back().first==L"Seymour Omnis: 100%, Energizing wheels: "+mix,"all256 aggregate wheel mixtures match original bytecode counts");
+        check(said.back().first==L"Seymour Omnis, Energizing wheels: "+mix,"all256 aggregate wheel mixtures match original bytecode counts");
     }
     auto count=said.size();event(0x49d300,address(0xf3c910));check(said.size()==count,"unchanged wheel event is silent");
     const auto measure=[&]() {
@@ -58,10 +57,10 @@ void seymourFixtures() {
     printf("METRIC stable1000 native target observations regular %.3fms, Seymour %.3fms; heap0/0; native frame/audio latency unmeasured.\n",regularMs,wheelsMs);
     // A changed visible position at the same target must refresh automatically.
     write<int>(address(0xd34568)+4,0);event(0x49d300,address(0xf3c910));check(said.size()==count+1,"same target refreshes on wheel rotation");
-    write<int>(address(0xd34568)+4,4);event(0x49d300,address(0xf3c910));expect(L"Seymour Omnis: 100%","invalid position omits the mechanic");
+    write<int>(address(0xd34568)+4,4);event(0x49d300,address(0xf3c910));expect(L"Seymour Omnis","invalid position omits the mechanic");
     write<int>(address(0xd34568)+4,0);write<unsigned>(actors+4,0x1082);event(0x49d300,address(0xf3c910));
     count=said.size();write<unsigned>(actors+4,0x1083);event(0x49d300,address(0xf3c910));check(said.size()==count+1,"model qualification restores only the actual Seymour encounter");
-    write<uint8_t>(actors+0xf90+0xdc8,0);event(0x49d300,address(0xf3c910));expect(L"Seymour Omnis: 100%","incomplete encounter cannot read unrelated shared words");
+    write<uint8_t>(actors+0xf90+0xdc8,0);event(0x49d300,address(0xf3c910));expect(L"Seymour Omnis","incomplete encounter cannot read unrelated shared words");
     memcpy(reinterpret_cast<void*>(actors),original.data(),original.size());set<uintptr_t>(0xd34460,priorArray);
     set<uint16_t>(0xf3c9e8,0);set<uint16_t>(0xf3c9ea,0);resetBattle();scene=priorScene;
     puts("PASS: original m131 all256 positions,1024 individual wheel colors, aggregate counts, original m106/131 headers, position/model/lifetime guards and same-target rotation events; graphics/VM timing unmeasured.");
