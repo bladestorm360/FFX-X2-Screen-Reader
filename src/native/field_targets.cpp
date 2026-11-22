@@ -49,7 +49,7 @@ void targetAfter(Event& e) {
         const auto name=planPlayerName(p,static_cast<int>(values.values[i]));
         const bool mp=k[3]==1;
         const auto resource=planVitals(p,mp?static_cast<int64_t>(values.values[i+1]):static_cast<int>(values.values[i+1]),
-            mp?static_cast<int64_t>(values.values[i+2]):static_cast<int>(values.values[i+2]),mp,setting(Setting::ShowMaximumHp)!=0);
+            mp?static_cast<int64_t>(values.values[i+2]):static_cast<int>(values.values[i+2]),mp);
         auto line=planConcat(p,planConcat(p,name,planLiteral(p,L": ")),resource);
         parts=planPair(p,TextPlanOp::Periods,parts,line);
     }

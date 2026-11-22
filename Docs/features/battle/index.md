@@ -2,7 +2,7 @@
 
 October21 follow-up: [HP/MP totals and effective Switch maximum](hp_sources_20261021.md)
 traces committed values, base/effective capacity and action scratch forecasts;
-percentages and the maximum-HP preference are preserved.
+HP/MP speech now follows what each screen draws; the maximum HP/MP settings were removed.
 
 October21: [Mortiphasm elements, gil amounts and learned-mode announcements](seymour_amount_prompts_20261021.md)
 documents the native producers, exact scripts/ABIs, copied substitutions,
@@ -50,12 +50,12 @@ being in the party/engine table alone does not make its meter visible.
 
 Shift+T/right stick right read visible turns. O or the battle mod face binding
 reads the active character's meter; Shift+O/right stick left read all visible
-meters. Shift+H/right stick down read visible HP/MP panels. Show maximum HP/MP
-settings control presentation; current HP can use percent versus maximum. Native
+meters. Shift+H/right stick down read visible HP/MP panels. HP/MP speech follows
+what each screen draws, without added percentages. Native
 right-stick input is consumed in battle for these commands. Existing saved face
 bindings are respected. Combat detail defaults Normal/off, Autodetail defaults
 Off, Overdrive auto-success defaults Off, manual Overdrive cues default On,
-maximum HP/MP defaults Off, and Speech defaults On; all values persist in the
+and Speech defaults On; all values persist in the
 Accessibility INI. Exact key/binding names and ranges are in the linked controls
 and settings references. `battle.cpp` owns these requests; do not add a competing
 controller HUD reader. [HUD and controls](../../battle_panels_controls_20261016.md)

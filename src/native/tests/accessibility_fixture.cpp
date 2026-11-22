@@ -236,16 +236,6 @@ int main() {
     setSetting(Setting::LightningAutoDodge,0); menuKeyForTest(VK_RIGHT); drainSettingsForTest();loadSettings();
     check(setting(Setting::LightningAutoDodge)==1,"Miscellaneous exposes and saves lightning auto-dodge independently");
     menuKeyForTest(VK_LEFT); check(!setting(Setting::LightningAutoDodge),"lightning auto-dodge can be disabled");
-    selectRow(L"Show maximum HP:");
-    check(settingInfo(Setting::ShowMaximumHp).initial==0,"battle HP defaults to bar percentage");
-    setSetting(Setting::ShowMaximumHp,0); menuKeyForTest(VK_RIGHT); drainSettingsForTest();loadSettings();
-    check(setting(Setting::ShowMaximumHp)==1,"Miscellaneous saves the numeric maximum HP toggle");
-    menuKeyForTest(VK_LEFT); check(!setting(Setting::ShowMaximumHp),"bar percentage can be restored");
-    selectRow(L"Speak maximum MP:");
-    check(settingInfo(Setting::ShowMaximumMp).initial==0,"H defaults to displayed current MP");
-    setSetting(Setting::ShowMaximumMp,0); menuKeyForTest(VK_RIGHT); drainSettingsForTest();loadSettings();
-    check(setting(Setting::ShowMaximumMp)==1 && !setting(Setting::ShowMaximumHp),"Miscellaneous persists independent maximum MP");
-    menuKeyForTest(VK_LEFT); check(!setting(Setting::ShowMaximumMp),"current MP can be restored");
     selectRow(L"Overdrive cues:"); setSetting(Setting::OverdriveCues,1); menuKeyForTest(VK_LEFT); drainSettingsForTest();loadSettings();
     check(!setting(Setting::OverdriveCues),"Miscellaneous persists manual overdrive audio independently");
     menuKeyForTest(VK_RIGHT); check(setting(Setting::OverdriveCues)==1,"manual overdrive audio can be restored");

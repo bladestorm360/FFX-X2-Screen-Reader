@@ -104,7 +104,6 @@ struct StatusPacket {
     CopiedControls controls;
     std::array<int,4> vitals{};
     unsigned epoch=0,kind=0;
-    bool maximumHp=false,maximumMp=false;
 };
 void processStatus(const speechq::Header& header,const std::wstring& owned) {
     if(owned.size()*sizeof(wchar_t)!=sizeof(StatusPacket)) return;
@@ -117,14 +116,8 @@ void processStatus(const speechq::Header& header,const std::wstring& owned) {
         if(changes.empty()) return;
         text=name+L": "+changes;
     } else {
-        auto hp=L"HP "+std::to_wstring(p.vitals[0]);
-        if(p.vitals[1]>0) {
-            if(p.maximumHp) hp+=L"/"+std::to_wstring(p.vitals[1]);
-            else hp+=L" ("+std::to_wstring(std::clamp<int64_t>((static_cast<int64_t>(p.vitals[0])*100+p.vitals[1]/2)/p.vitals[1],0,100))+L"%)";
-        }
-        auto mp=L"MP "+std::to_wstring(p.vitals[2]);
-        if(p.maximumMp && p.vitals[3]>0) mp+=L"/"+std::to_wstring(p.vitals[3]);
-        text=name+L" "+hp+L" "+mp+L". Status: "+statusText(p.after);
+        // The battle command panel draws current HP and current MP only.
+        text=name+L" HP "+std::to_wstring(p.vitals[0])+L" MP "+std::to_wstring(p.vitals[2])+L". Status: "+statusText(p.after);
     }
     if(p.epoch==generation()) speechq::emitOwned(std::move(text),header,p.kind?"battle-active-stats":"battle-status",false,p.kind!=0);
 }
@@ -229,7 +222,6 @@ void queueBattleActiveStats(unsigned id,uintptr_t actor) {
     // +54/+58 are effective battle maxima, including native capacity changes;
     // the base maxima at+5C/+60 are not interchangeable with them.
     p.vitals={read<int>(ram+0x90),read<int>(ram+0x54),read<int>(ram+0x94),read<int>(ram+0x58)};
-    p.maximumHp=setting(Setting::ShowMaximumHp)!=0;p.maximumMp=setting(Setting::ShowMaximumMp)!=0;
     speechq::captureDomain(speechq::BattleStatusDomain,p,p.epoch);
 }
 void resetBattleStatus() {++calculatedRevision;calculatedCount=0;}

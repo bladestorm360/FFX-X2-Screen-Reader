@@ -86,7 +86,7 @@ characters say Unknown character. F7 toggles Autodetail.
 - **Navigation audio:** beacon, wall and arrival sounds, their volumes, wall
   range, race pickup cues, Jecht Shot cues, Lightning warning and sound previews.
 - **Navigation:** Auto walk, Speak auto walk path, Hide unreachable destinations and Partial steps.
-- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Sphere Grid node numbers, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Show maximum HP, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
+- **Miscellaneous:** Autodetail, Automatically read extra info, voiced dialogue output, combat detail, Menu indexing, Sphere Grid node numbers, Overdrive assistance, Overdrive cues, Jecht Shot auto-success, Lightning auto dodge, Chocobo training auto-success, Remiem race auto-success, Butterfly hunt auto-success and Blitzball auto-win. Extra info and the four minigame assists default Off. Controller bindings and supported Cloister of Trials controls are submenus here.
 
 ### Optional minigame completion assistance
 
@@ -250,8 +250,7 @@ active).
 **H** — announce the current turn owner's HP, MP and status, including an active aeon.
 H is silent outside battle and when no character turn is active.
 
-H reads current MP by default, matching the battle panel. **Speak maximum MP**
-in **F8 > Miscellaneous** includes the maximum, independently of the HP setting.
+H reads current HP and current MP, matching the default battle panel.
 
 **O** — announce the current turn owner's Overdrive bar percentage, including an
 active aeon. No active player turn means silence. The existing Sphere Grid O
@@ -277,10 +276,11 @@ status-only pages. **H** continues to read the active turn owner's HP/MP/status.
 In the battle **Change** list, highlighting a character automatically reads their
 name, current HP and current MP. This works with Autodetail and combat detail Off.
 I repeats those highlighted vitals; H continues to read the current turn owner.
-HP reads as current HP followed by its bar percentage, such as **HP 321 (64%)**.
-Turn **Show maximum HP** On in **F8 > Miscellaneous** for **HP 321/500** instead.
-This applies to Change, Summon and H. The Change rows display current HP/MP and
-an HP bar; they do not display numeric maximum HP or status-effect labels.
+HP and MP read as the current numbers the rows draw, such as **HP 321, MP 9**.
+Summon rows read the same way. The Change rows do not draw maximum HP or MP, an
+HP bar or status-effect labels; the bar on each row is the Overdrive gauge.
+H reads the current HP and MP that the default battle panel draws, such as
+**Tidus HP 100 MP 17**, followed by status. No percentage is added.
 
 When selecting a party target in battle, a command such as Potion reads the
 target's HP, and a command such as Ether reads the target's MP. The preview
@@ -294,7 +294,8 @@ turn owner's full status. Enemy ailments are read only while Sensor or Scan
 shows them; doom and its turn count are always read.
 
 When the game reveals **Sensor** information for a highlighted enemy, its
-exact current and maximum HP are read directly. **Ctrl+Left** selects the first
+exact current and maximum HP are read directly. Without Sensor the game draws no
+enemy HP, so only the enemy name and any shown details are read. **Ctrl+Left** selects the first
 information line, **Ctrl+Up/Down** browse elemental weaknesses, absorption,
 nullification, resistance, status icons and the monster description;
 **Ctrl+Right** selects and reads the last line. **View/Select then D-pad** provides the same review
@@ -441,8 +442,8 @@ such as asterisk and slash for highlighted punctuation.
 
 Out-of-battle spell and item targeting reads the initially focused character
 and the HP or MP shown by the game. All-party targets follow native party order.
-HP uses the percentage/maximum-number preference in Miscellaneous; MP keeps its
-displayed current/maximum numbers. Healing refreshes the same highlighted target.
+HP and MP read as the current and maximum numbers the target list draws, such
+as **HP 75/300**. Healing refreshes the same highlighted target.
 Equipment selection reads Weapon/Armor and the equipped item.
 After successful customization, the updated equipment name is read even when
 the cursor stays on that equipment. I reads its updated abilities.
@@ -785,8 +786,8 @@ example *"Tidus 3, Yuna 5, Auron 0, Kimahri 0, Wakka 1, Lulu 2, Rikku 4"*.
 Only active while the Sphere Grid is open. Use this to decide who to
 switch to with L1 / R1 before planning a move.
 
-Battle speech additions: Mortiphasm targeting now reports its energizing element and physical-left/magic-right mechanic; Seymour targeting adds wheel counts. Spare Change/Yojimbo speaks amount and selected decimal step. Formation identifies active party/reserve. Parameter confirmations read prompt/No on entry and Yes/No on focus; I repeats the prompt. Learned Overdrive mode messages include the native character and mode names. No new controls/settings. These changes are implemented and offline verified; fresh gameplay confirmation is pending. [Technical evidence and remaining checks](features/battle/seymour_amount_prompts_20261021.md).
+Battle speech additions: Mortiphasm targeting now reports its energizing element (the physical-left/magic-right rule is no longer spoken, because the game does not show it); Seymour targeting adds wheel counts. Spare Change/Yojimbo speaks amount and selected decimal step. Formation identifies active party/reserve. Parameter confirmations read prompt/No on entry and Yes/No on focus; I repeats the prompt. Learned Overdrive mode messages include the native character and mode names. No new controls/settings. These changes are implemented and offline verified; fresh gameplay confirmation is pending. [Technical evidence and remaining checks](features/battle/seymour_amount_prompts_20261021.md).
 
-H and target totals use the game's committed HP/MP. Percentages remain and use the effective battle maximum. Change uses that effective maximum, including capacity effects;
-Shift+H keeps actual drawn HUD values. Existing maximum preferences and controls
-are unchanged. [Native source proof and remaining gameplay check](features/battle/hp_sources_20261021.md).
+H and target totals use the game's committed HP/MP. Party target maximums use the effective battle maximum, including capacity effects;
+Shift+H keeps actual drawn HUD values. HP/MP speech follows what each screen
+draws; the former maximum HP/MP settings were removed. [Native source proof and remaining gameplay check](features/battle/hp_sources_20261021.md).

@@ -40,7 +40,7 @@ TextRef planSettingValue(TextPlan&,int value,unsigned style); // 0=toggle,1=voic
 TextRef planBattleTarget(TextPlan&,TextRef name,int current,int maximum,unsigned kind);
 // Copied actor status words; returns 0 and adds no node without a target ailment.
 TextRef planBattleAilments(TextPlan&,uint16_t permanent,uint16_t temporal,uint16_t extra,unsigned doomTurns);
-TextRef planVitals(TextPlan&,int64_t current,int64_t maximum,bool mp,bool showMaximumHp);
+TextRef planVitals(TextPlan&,int64_t current,int64_t maximum,bool mp);
 TextRef planEquipmentFallback(TextPlan&,TextRef name,unsigned character,bool armor,unsigned id);
 TextRef planEncoded(TextPlan&,uintptr_t,unsigned limit=256,TextPlanOp=TextPlanOp::First,
     OwnedTextMode=OwnedTextMode::Terminated);

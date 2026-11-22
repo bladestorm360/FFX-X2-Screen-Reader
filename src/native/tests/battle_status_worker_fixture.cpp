@@ -18,7 +18,6 @@ uint8_t playerNames[20][40]{};
 uintptr_t actorArray=reinterpret_cast<uintptr_t>(actors);
 struct Hook {unsigned rva;ffx::Handler enter,leave;};
 Hook hooks[8]{};unsigned hookCount=0;
-bool showMaximumHp=false,showMaximumMp=false;
 void require(bool ok,const char* why) {if(!ok) {std::fprintf(stderr,"FAIL: %s\n",why);std::exit(1);}}
 void encode(uint8_t* out,const wchar_t* value) {
     constexpr wchar_t alphabet[]=L"0123456789 !\"#$%&'()*+,-./:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\u2018abcdefghijklmnopqrstuvwxyz";
@@ -60,8 +59,6 @@ void resetBattleStatus();
 void queueBattleActiveStats(unsigned,uintptr_t);
 unsigned generation() {return speechq::generation();}
 int setting(Setting s) {
-    if(s==Setting::ShowMaximumHp)return showMaximumHp;
-    if(s==Setting::ShowMaximumMp)return showMaximumMp;
     return s==Setting::Speech?1:0;
 }
 uintptr_t address(unsigned rva) {
@@ -103,14 +100,14 @@ int main() {
     calc={};calc.rva=0x38e680;calc.args[0]=0;calc.args[2]=0;calc.args[3]=reinterpret_cast<uintptr_t>(actors[0]);calc.args[6]=reinterpret_cast<uintptr_t>(actors[0]+0x774+0x18);calc.args[8]=reinterpret_cast<uintptr_t>(counter);
     nativeOwner=true;find(calc.rva).enter(calc);actors[0][0x65e]=1;find(calc.rva).leave(calc);nativeOwner=false;
     nativeOwner=true;resetBattleStatus();nativeOwner=false;apply(0,0,false);
-    // H must own the committed values and the per-request preference, even if
+    // H must own the committed current values, even if
     // native memory is reused while the real production worker is held.
     encode(actors[4]+0x540,L"Wakka");encode(playerNames[4],L"Wakka");
     const auto stat=[&](unsigned offset,int value){std::memcpy(actors[4]+offset,&value,sizeof(value));};
     stat(0x594,4618);stat(0x598,150);stat(0x5d0,329);stat(0x5d4,10);
     stat(0x6e4,9236);stat(0x6e8,300);
     nativeOwner=true;queueBattleActiveStats(4,reinterpret_cast<uintptr_t>(actors[4]));nativeOwner=false;
-    stat(0x5d0,4618);stat(0x5d4,150);showMaximumHp=showMaximumMp=true;
+    stat(0x5d0,4618);stat(0x5d4,150);
     nativeOwner=true;queueBattleActiveStats(4,reinterpret_cast<uintptr_t>(actors[4]));nativeOwner=false;
     stat(0x594,9236);stat(0x59c,4618);stat(0x5d0,6116);
     nativeOwner=true;queueBattleActiveStats(4,reinterpret_cast<uintptr_t>(actors[4]));nativeOwner=false;
@@ -118,9 +115,9 @@ int main() {
     std::memset(actors[0]+0x540,0,40);std::memset(playerNames[0],0,40);
     release();
     require(take()==L"Auron: poison"&&take()==L"Auron: poison cured"&&take()==L"Auron: Cheer 1","copied names and distinct ordered status and calculated-buff events survive source overwrite");
-    require(take()==L"Wakka HP 329 (7%) MP 10. Status: None","H preserves committed current values and gauge preference across worker delay");
-    require(take()==L"Wakka HP 4618/4618 MP 150/150. Status: None","fresh H captures restoration despite unchanged forecast");
-    require(take()==L"Wakka HP 6116/9236 MP 150/150. Status: None","H captures effective raised maximum rather than base capacity");
+    require(take()==L"Wakka HP 329 MP 10. Status: None","H preserves committed current values across worker delay");
+    require(take()==L"Wakka HP 4618 MP 150. Status: None","fresh H captures restoration despite unchanged forecast");
+    require(take()==L"Wakka HP 6116 MP 150. Status: None","H captures raised current HP above the base capacity");
     while(WaitForSingleObject(sinkSignal,0)==WAIT_OBJECT_0) {}
     require(WaitForSingleObject(sinkSignal,350)==WAIT_TIMEOUT&&!speechq::pending(),"reset suppresses stale prediction without a fabricated Miss");
     require(nativeAllocations.load()==0&&nativeFrees.load()==0,"all native status capture and event work remains allocation-free");

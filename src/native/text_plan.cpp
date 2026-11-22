@@ -82,16 +82,17 @@ std::wstring render(TextRef root) {
         if(n.op==TextPlanOp::IfText) {if(!left.empty()) out=right;continue;}
         if(n.op==TextPlanOp::Or) {out=left.empty()?right:left;continue;}
         if(n.op==TextPlanOp::Hp || n.op==TextPlanOp::Mp) {
-            out=(n.op==TextPlanOp::Mp?L"MP ":L"HP ")+std::to_wstring(n.value);
-            const auto maximum=static_cast<int>(n.offset);
-            if(n.op==TextPlanOp::Mp || (maximum>0 && n.length)) out+=L"/"+std::to_wstring(n.op==TextPlanOp::Mp?static_cast<int64_t>(n.offset):maximum);
-            else if(maximum>0) out+=L" ("+std::to_wstring(std::clamp<int64_t>((n.value*100+maximum/2)/maximum,0,100))+L"%)";
+            // Speaks exactly the current/maximum numbers the native target renderer draws.
+            out=(n.op==TextPlanOp::Mp?L"MP ":L"HP ")+std::to_wstring(n.value)+L"/"+std::to_wstring(static_cast<int64_t>(n.offset));
             continue;
         }
         if(n.op==TextPlanOp::BattleTarget) {
-            out=left+L": ";const auto maximum=static_cast<int>(n.offset);
-            if(!n.length) out+=std::to_wstring(maximum>0?static_cast<int>(std::floor(static_cast<double>(n.value)/maximum*100+.5)):0)+L"%";
-            else out+=(n.length==2?L"MP ":L"HP ")+std::to_wstring(n.value)+L"/"+std::to_wstring(maximum);
+            // Kind 0 is an enemy whose HP the game does not draw (no Sensor
+            // popup): only the name is spoken, never an invented percentage.
+            // Kinds 1/2 add the maximum the panel draws; 3/4 are current only.
+            out=left;const auto maximum=static_cast<int>(n.offset);
+            if(n.length) out+=std::wstring(L": ")+(n.length%2?L"HP ":L"MP ")+std::to_wstring(n.value);
+            if(n.length==1 || n.length==2) out+=L"/"+std::to_wstring(maximum);
             continue;
         }
         if(n.op==TextPlanOp::BattleAilments) {
@@ -196,8 +197,8 @@ TextRef planBattleAilments(TextPlan& p,uint16_t permanent,uint16_t temporal,uint
     TextPlanNode n;n.op=TextPlanOp::BattleAilments;n.offset=doomTurns;
     n.value=static_cast<int64_t>(permanent|static_cast<uint64_t>(temporal)<<16|static_cast<uint64_t>(extra)<<32);return node(p,n);
 }
-TextRef planVitals(TextPlan& p,int64_t current,int64_t maximum,bool mp,bool showMaximumHp) {
-    TextPlanNode n;n.op=mp?TextPlanOp::Mp:TextPlanOp::Hp;n.value=current;n.offset=static_cast<unsigned>(maximum);n.length=showMaximumHp;return node(p,n);
+TextRef planVitals(TextPlan& p,int64_t current,int64_t maximum,bool mp) {
+    TextPlanNode n;n.op=mp?TextPlanOp::Mp:TextPlanOp::Hp;n.value=current;n.offset=static_cast<unsigned>(maximum);return node(p,n);
 }
 TextRef planEquipmentFallback(TextPlan& p,TextRef name,unsigned character,bool armor,unsigned id) {
     TextPlanNode n;n.op=TextPlanOp::EquipmentName;n.left=name;n.value=character;n.length=armor;n.offset=id;return node(p,n);

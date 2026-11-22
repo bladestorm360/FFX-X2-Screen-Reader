@@ -33,10 +33,8 @@ older setting string still says H. [Controls](../../controls.md) is authoritativ
 | Menu indexing / `menu_index` | 0; 0..1; 1 | Announce the selected entry number and total in mod menus and destination lists. |
 | Lightning warning / `lightning_warning` | 1; 0..1; 1 | Play a short beep as the Thunder Plains warning flash begins, giving the full dodge window. Press dodge once when it sounds. Turn off Auto dodge to practise manually. |
 | Lightning auto-dodge / `lightning_auto_dodge` | 0; 0..1; 1 | Automatically dodge ordinary Thunder Plains lightning. Disabled during dialogue, menus and battle. |
-| Show maximum HP / `show_maximum_hp` | 0; 0..1; 1 | In battle and field targeting, read current HP followed by the maximum HP number. Off reads current HP and its percentage of maximum. |
 | Butterfly cues / `butterfly_cues` | 1; 0..1; 1 | In the Makalania hunt, continuous stereo guides toward a blue butterfly. A low pulsing tone warns of a nearby red butterfly; steer away from that tone. Both grow louder as you approach. F6 toggles this during the hunt. |
 | Overdrive cues / `overdrive_cues` | 1; 0..1; 1 | With auto-success off, speaks Auron's button sequence, beeps for Tidus's success zone and Wakka's symbols, and reads Lulu's cast count. |
-| Speak maximum MP / `show_maximum_mp` | 0; 0..1; 1 | With H in battle, include maximum MP. Off reads current MP shown on the battle panel. |
 | Polish text / `polish_text` | 0; 0..1; 1 | Automatically detect the installed Polish translation when its verified area names are ready. Polish forces Polish glyphs. |
 | Speech backend / `speech_backend` | 0; 0..15; 1 | Select Automatic or an available Prism backend. |
 | Enable hidden destinations menu for airship map / `hidden_airship_destinations` | 0; 0..1; 1 | Enable the optional six-destination search picker. Off keeps the menu and its shortcut disabled. |
