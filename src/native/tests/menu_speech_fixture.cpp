@@ -137,6 +137,18 @@ void yesNo() {
         check(said.size()==n+1,"same answer speaks for both reopened popup types");
         expect(cursor?L"Yes":L"No","reopened answer label");
     }
+    // The confirm handler opens the loading status before returning. Its old
+    // cursor must not announce again or automatically read the new prompt.
+    for(const auto handler:{0x2efd90u,0x2f00e0u,0x2f06f0u}) for(const int automatic:{0,1}) {
+        setSetting(Setting::AutoDetail,automatic);
+        set<int>(0x8e72f0,1);event(0x302fe0,0);event(handler,0);
+        const auto n=said.size();
+        event(handler,0,[]{event(0x302f70,0);});
+        check(said.size()==n+1 && said.back().first==L"Load",
+            "confirm return after a status popup emits only the status, never stale Yes or duplicate detail");
+        event(handler,0);check(said.size()==n+1,"the next idle handler cannot revive the retired answer");
+    }
+    setSetting(Setting::AutoDetail,0);
 }
 void indexing() {
     setSetting(Setting::AutoDetail,0);setSetting(Setting::MenuIndex,1);items();expect(L"Potion, 3, 1 of 3","Items uses cell position and total count");

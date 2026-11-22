@@ -10,6 +10,7 @@ namespace ffx {
 namespace {
 int previousSlot = -1, previousYesNo = -1;
 bool queueCursor = false;
+unsigned popupRevision = 0;
 int previousConfig = -1, previousOption = -1;
 
 void slotPopulation(Event& e) {
@@ -30,12 +31,13 @@ void slotFocus(Event& e) {
     commitSystemMenuPacket(packet);
 }
 void popup(Event& e) {
+    ++popupRevision;
     previousSlot=previousYesNo=-1;
     const auto offset=e.rva==0x302fe0?0x8eb690:0x8eb250;
     SystemMenuPacket packet;prepareSystemMenuPacket(packet,SystemMenuKind::Popup);
     copySystemAscii(address(offset),packet.text[0],256);packet.detail=beginSelectionDetail();
     commitSystemMenuPacket(packet);
-    if(e.rva==0x302fe0) queueCursor=true;
+    queueCursor=e.rva==0x302fe0;
 }
 void saveHelp(Event&) {
     SystemMenuPacket packet;prepareSystemMenuPacket(packet,SystemMenuKind::SaveHelp);
@@ -43,8 +45,15 @@ void saveHelp(Event&) {
     copySystemAscii(address(0x8ebec8),packet.text[1],32);
     packet.detail=beginSelectionDetail();commitSystemMenuPacket(packet);
 }
-void yesNo(Event&) {
+void yesNoBefore(Event& e) {e.before[0]=popupRevision;}
+void yesNo(Event& e) {
     const auto cursor=read<int>(address(0x8e72f0),-1);
+    // Confirm can replace the question with a loading/status popup inside
+    // this call. Its returning cursor belongs to the retired question.
+    if(static_cast<unsigned>(e.before[0])!=popupRevision) {
+        if(!queueCursor) previousYesNo=cursor;
+        return;
+    }
     if(cursor<0 || cursor>1 || previousYesNo==cursor) return;
     previousYesNo=cursor;
     SystemMenuPacket packet;prepareSystemMenuPacket(packet,SystemMenuKind::YesNo);
@@ -117,7 +126,7 @@ void installSystemMenus() {
     installSelectionDetails();installSystemMenuCapture();
     hookSnapshot(0x302e70,slotPopulation,nullptr);hook(0x302db0,slotFocus,nullptr);
     hook(0x302fe0,nullptr,popup);hook(0x302f70,nullptr,popup);hook(0x302e00,nullptr,saveHelp);
-    hook(0x2efd90,nullptr,yesNo);hook(0x2f00e0,nullptr,yesNo);hook(0x2f06f0,nullptr,yesNo);
+    hook(0x2efd90,yesNoBefore,yesNo);hook(0x2f00e0,yesNoBefore,yesNo);hook(0x2f06f0,yesNoBefore,yesNo);
     hook(0x28e6e0,esc,nullptr);hook(0x4cb0b0,nullptr,config);
     installStatusReview();installShops();installConfirmations();installEscSettings();
     installEscDetails();installNaming();

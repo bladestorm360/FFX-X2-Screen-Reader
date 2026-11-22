@@ -1,5 +1,9 @@
 # Menus, dialogue, Help and Sphere Grid
 
+Yes/No answers: when Confirm replaces the question with a loading or status
+popup, the old cursor is not spoken again and Autodetail does not repeat the
+new status.
+
 October21: [Formation membership and parameter confirmation speech](../battle/seymour_amount_prompts_20261021.md)
 use the actual front-party roster and copied native prompt/Yes/No values.
 Original descriptions and Autodetail ownership remain intact.
