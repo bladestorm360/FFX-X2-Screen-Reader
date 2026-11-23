@@ -47,6 +47,11 @@ void advance(const nav::Scene& observation,State& state) {
         [&](const PuzzleStep& step) {if(!step.done.low) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
             return step.done.low==0x01000a70?(current&step.done.value)==0:current==0;});
     state.expected=progress.expected;state.placed=progress.placed;state.removed=progress.removed;
+    // Kilika W36 keeps 0x63=3 after the first removal, but reinsertion fills
+    // 0x62 and relights the door. This final clearance is not a durable pass.
+    if(!std::strcmp(state.route->script,"klyt1000") && state.expected==21 && !done(observation,state,state.route->steps[20])) {
+        state.expected=20;state.placed&=~(std::uint64_t{1}<<20);state.removed&=~(std::uint64_t{1}<<20);
+    }
 }
 bool context(const nav::Scene& observation,State& state) {
     const auto current=revision.load(std::memory_order_acquire);const PuzzleRoute* route=nullptr;unsigned selected=observation.partCount;

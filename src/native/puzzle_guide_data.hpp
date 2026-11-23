@@ -38,7 +38,7 @@ inline const PuzzleRoute puzzleRoutes[] = {
         {L"Target: Destruction Sphere. Take the revealed Destruction Sphere.", 34, {88.14844512939453, -9.990234375, 175.5709686279297}, {0x0c00005b, 0x1, 6, 0}, true, false, false, L"Destruction Sphere", {0x0c000060, 0x1, 0, 0}},
         {L"Target: Lower Kilika Sphere recess. Insert the Destruction Sphere into the now-empty lower Kilika Sphere recess to reveal the treasure.", 35, {59.96554946899414, 9.990234375, 209.56072998046875}, {0x0c000061, 0x1, 6, 0}, true, false, false, L"Lower Kilika Sphere recess"},
         {L"Target: Destruction Sphere treasure. Open the revealed Destruction Sphere chest.", 7, {66.0, 9.990234375, 210.0}, {0x1000a70, 0x1, 2, 0}, true, false, true, L"Destruction Sphere treasure", {0x0c000061, 0x1, 6, 0}},
-        {L"Target: Antechamber door recess. Remove the Kilika Sphere from the antechamber door recess to extinguish the doorway.", 36, {11.262055397033691, -11.584564208984375, 282.2723693847656}, {0x0c000063, 0x1, 3, 0}, true, false, true, L"Antechamber door recess"},
+        {L"Target: Antechamber door recess. Remove the Kilika Sphere from the antechamber door recess to extinguish the doorway.", 36, {11.262055397033691, -11.584564208984375, 282.2723693847656}, {0x0c000063, 0x1, 3, 0}, true, false, true, L"Antechamber door recess", {0x0c000062, 0x1, 0, 0}},
         {L"Target: Exit to the antechamber. Enter the antechamber through the cleared doorway.", 37, {-2.0485000610351562, -11.995676040649414, 297.40159606933594}, {0x0, 0x1, 0, 0}, false, false, false, L"Exit to the antechamber"},
     }, 0},
     {"djyt0600", {
