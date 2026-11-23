@@ -412,7 +412,9 @@ int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std:
     setValue(0x5c0000ec,1,1);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 1 of")!=std::wstring::npos,"reading selected step does not auto-advance");
     check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 2 of")!=std::wstring::npos,"expected read follows committed native checkpoint");
-    check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 1 of")!=std::wstring::npos,"expected read cannot move manual selection");
+    // e0c700c: manual selection starts from the exact step the guide found.
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 2 of")!=std::wstring::npos,"expected read moves manual selection to the identified step");
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Previous).find(L"Step 1 of")!=std::wstring::npos,"manual previous leaves the identified step");
     check(fixturePuzzleGuideSync(OwnedGuideAction::Next).find(L"Step 2 of")!=std::wstring::npos,"manual next increments one step");
     fixturePuzzleGuideSync(OwnedGuideAction::Completed);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 2 of")!=std::wstring::npos,"native completion leaves manual selection unchanged");

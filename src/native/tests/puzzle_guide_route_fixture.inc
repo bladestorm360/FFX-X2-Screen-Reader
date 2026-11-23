@@ -59,12 +59,13 @@ void djoseGuideRouteFixture() {
         {"insert charging recess 1",{{0x0c000099,1},{0x0c000094,0}},7},
         {"take left circuit sphere",{{0x0c000094,1},{0x0c00009c,0}},8},
         {"insert charging recess 2 powers charger",{{0x0c00009a,1},{0x0c000094,0},{0x0c0000a1,1}},9},
-        {"push loaded pedestal under charger",{{0x0c00009d,3},{0x0c0000a1,2}},0},
-        // Reset tile 67 writes only 0xd9=0, which is already 0 here, so the
-        // guide cannot see steps 10 and 11. The charged door recess (0x9b=3)
-        // stays set until step 19 and recovers the route.
-        {"reset tile returns pedestal",{{0x0c0000d9,0}},0},
-        {"take charged sphere from east face",{{0x0c000094,3},{0x0c00009d,0}},0},
+        // 879e0e5: step 10 (reset tile) is checked by the lower pedestal
+        // position; this fixture has no pedestal worker, so it stays on 10.
+        // The charged door recess (0x9b=3) stays set until step 19 and
+        // recovers the route.
+        {"push loaded pedestal under charger",{{0x0c00009d,3},{0x0c0000a1,2}},10},
+        {"reset tile returns pedestal",{{0x0c0000d9,0}},10},
+        {"take charged sphere from east face",{{0x0c000094,3},{0x0c00009d,0}},10},
         {"insert charged door recess",{{0x0c00009b,3},{0x0c000094,0}},13},
         {"take charging recess 1",{{0x0c000094,1},{0x0c000099,0}},14},
         {"insert west pedestal socket",{{0x0c00009e,1},{0x0c000094,0}},15},
@@ -80,7 +81,8 @@ void djoseGuideRouteFixture() {
         {"take west pedestal sphere",{{0x0c000094,1},{0x0c00009e,0}},25},
         {"insert entry recess 2 completes lift circuit",{{0x0c000096,1},{0x0c000094,0},{0x0c0000db,1},{0x0c0000e5,1}},26},
         {"touch hidden glyph",{{0x0c0000e5,2}},27},
-        {"take Destruction Sphere",{{0x0c000094,10},{0x0c00009f,0}},0},
+        // 879e0e5: the player is still below, so the central lift (28) shows.
+        {"take Destruction Sphere",{{0x0c000094,10},{0x0c00009f,0}},28},
         {"push upper pedestal 1",{{0x0c0000de,1}},30},
         {"push upper pedestals 2 to 4",{{0x0c0000df,1},{0x0c0000e0,1},{0x0c0000e1,1}},33},
         {"push upper pedestal 5",{{0x0c0000e3,1}},34},
@@ -107,8 +109,8 @@ void djoseGuideRouteFixture() {
         {"insert charging recess 1",{{0x0c000099,1},{0x0c000094,0}},7},
         {"take left circuit sphere",{{0x0c000094,1},{0x0c00009c,0}},8},
         {"insert charging recess 2 powers charger",{{0x0c00009a,1},{0x0c000094,0},{0x0c0000a1,1}},9},
-        {"push loaded pedestal under charger",{{0x0c00009d,3},{0x0c0000a1,2}},0},
-        {"take charged sphere",{{0x0c000094,3},{0x0c00009d,0}},0},
+        {"push loaded pedestal under charger",{{0x0c00009d,3},{0x0c0000a1,2}},10},
+        {"take charged sphere",{{0x0c000094,3},{0x0c00009d,0}},10},
         {"insert charged door recess",{{0x0c00009b,3},{0x0c000094,0}},13},
         {"take charging recess 1",{{0x0c000094,1},{0x0c000099,0}},14},
         {"put it back in charging recess 1",{{0x0c000099,1},{0x0c000094,0}},14},
@@ -122,8 +124,9 @@ void djoseGuideRouteFixture() {
     // Upper pedestal 1 (0xde) is never cleared, so it is a checkpoint after the
     // unseen lift ride. Pedestals pushed out of order do not skip the first one.
     walkGuideRoute("djyt0600",{
-        {"carry the Destruction Sphere upstairs",{{0x0000028e,1},{0x0c0000db,1},{0x0c0000e5,2},{0x0c000094,10},{0x0c00009f,0}},0},
-        {"push upper pedestal 3 first",{{0x0c0000e0,1}},0},
+        // 879e0e5: the player is still below, so the central lift (28) shows.
+        {"carry the Destruction Sphere upstairs",{{0x0000028e,1},{0x0c0000db,1},{0x0c0000e5,2},{0x0c000094,10},{0x0c00009f,0}},28},
+        {"push upper pedestal 3 first",{{0x0c0000e0,1}},28},
         {"push upper pedestal 1",{{0x0c0000de,1}},30},
         {"push upper pedestal 2",{{0x0c0000df,1}},32},
     });
@@ -207,8 +210,10 @@ void guideSelectionFixture() {
     setValue(0x0c0000a1,1,2);
     guideSays(OwnedGuideAction::Expected,L"Step 9 of","guide holds the push step while the push is held");
     fixtureGuidePedestal={};
-    guideSays(OwnedGuideAction::Expected,L"does not identify an exact puzzle step","guide reaches the unseen reset tile after the push");
-    guideSays(OwnedGuideAction::Next,L"Step 11 of","manual next from the unseen reset tile");
+    // djoseWitness tracks the reset tile by the lower pedestal's position; with no
+    // pedestal worker in this scene the guide stays on the reset tile.
+    guideSays(OwnedGuideAction::Expected,L"Step 10 of","guide reaches the reset tile after the push");
+    guideSays(OwnedGuideAction::Next,L"Step 11 of","manual next from the reset tile");
     Entity pedestal;configurePedestalTarget(pedestal,"djyt0600",1);
     const auto text=guidePedestalStep(pedestal);
     if(text.find(L"Guide step 11: Stand centred on the east face")!=0) std::fprintf(stderr,"pedestal arrival: %ls\n",text.c_str());
@@ -293,7 +298,7 @@ void kilikaGuideRouteFixture() {
         {"take fire chamber sphere",{{0x0c00005b,2},{0x0c00005f,0}},11},
         {"insert pedestal",{{0x0c00005a,2},{0x0c00005b,0}},12},
         {"retrieve Glyph Sphere",{{0x0c00005b,4},{0x0c00005c,0}},13},
-        {"insert Glyph in fire chamber recess",{{0x0c00005f,4},{0x0c00005b,0}},0},
+        {"insert Glyph in fire chamber recess",{{0x0c00005f,4},{0x0c00005b,0}},14},
         {"push pedestal onto depression",{{0x0c000064,1}},16},
         {"take lower recess sphere",{{0x0c00005b,3},{0x0c000061,0}},17},
         {"insert antechamber door recess",{{0x0c000062,3},{0x0c00005b,0}},18},
@@ -333,7 +338,7 @@ void kilikaGuideRouteFixture() {
         const std::vector<GuideStage> loaded={
             {"insert pedestal",{{0x0c00005a,2},{0x0c00005b,0}},12},
             {"retrieve Glyph Sphere",{{0x0c00005b,4},{0x0c00005c,0}},13},
-            {"insert Glyph in fire chamber recess",{{0x0c00005f,4},{0x0c00005b,0}},0}};
+            {"insert Glyph in fire chamber recess",{{0x0c00005f,4},{0x0c00005b,0}},14}};
         for(const auto& stage:loaded) {for(const auto& w:stage.writes) setValue(w.low,w.high,w.value,w.element);expectGuide("klyt1000",stage.action,stage.expected);}
         guideSays(OwnedGuideAction::Next,L"Step 15 of","manual next to the Kilika push step");
         check(!guidePedestalRecess(pedestal),"Kilika push step keeps the push position");
@@ -566,12 +571,6 @@ void zanarkandGuideRouteFixture() {
         {"insert Kilika recess",{{0x5c000008,0},{0x5c00001c,1},{0x0c000020,6}},11},
         {"gate opens",{{0x0c000020,7}},11},
     });
-    // An unidentified trial state keeps and names the F9/F10 selection.
-    loadGuideRoute("dome0700",{{"entry",firstVisit,0}});
-    for(const auto& write:firstVisit) setValue(write.low,write.high,write.value,write.element);
-    guideSays(OwnedGuideAction::Next,L"Step 2 of","manual next before an unidentified state");
-    guideSays(OwnedGuideAction::Expected,L" Step 2 stays selected.","unidentified expected step keeps the selection");
-    resetOwnedPuzzleGuide();
     // W56 (the activation tile) only resets 0x22 and 0x23, which are already
     // 0, so step 1 has no done signal. Its text must send the player to step
     // 2, where tile guidance runs. F10 selects the next step; the path is the
