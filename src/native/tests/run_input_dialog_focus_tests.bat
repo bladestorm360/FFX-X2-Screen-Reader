@@ -2,9 +2,10 @@
 setlocal
 set "TEST_SRC=%~dp0"
 set "REPO_ROOT=%~dp0..\..\.."
+call "%REPO_ROOT%\tools\env.bat"
+if errorlevel 1 exit /b 1
 call "%REPO_ROOT%\Docs\Scripts\evidence_root.bat"
 if errorlevel 1 exit /b 1
-call "%REPO_ROOT%\..\..\..\dev_env.bat"
 if not defined VCVARSALL exit /b 1
 call "%VCVARSALL%" x86 >nul
 if not "%errorlevel%"=="0" exit /b 1

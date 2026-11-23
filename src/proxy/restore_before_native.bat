@@ -1,9 +1,9 @@
 @echo off
 setlocal
-call "%~dp0..\..\..\..\..\dev_env.bat"
-if not defined DEV_ROOT exit /b 1
-call "%DEV_ROOT%\dev_env.bat" find_game "FINAL FANTASY FFX&FFX-2 HD Remaster" GAME_ROOT
-if not defined GAME_ROOT exit /b 1
+set "GAME_ROOT="
+for /f "usebackq delims=" %%G in (`powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\..\tools\find_game.ps1"`) do set "GAME_ROOT=%%G"
+:: find_game.ps1 has already printed the reason.
+if not exist "%GAME_ROOT%\FFX.exe" exit /b 1
 if not exist "%GAME_ROOT%\dinput8.dll.ffx_sr_before_native" (
     echo ERROR: No proxy backup from native deployment exists.
     exit /b 1

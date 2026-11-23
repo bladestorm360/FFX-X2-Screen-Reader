@@ -1,2 +1,5 @@
+# Batch files need CRLF line endings: cmd.exe mis-resolves goto labels in LF files.
+*.bat text eol=crlf
+*.cmd text eol=crlf
 # Setup checks these files by SHA-256. Keep them byte-exact on every checkout.
 src/installer/baselines/*.txt -text

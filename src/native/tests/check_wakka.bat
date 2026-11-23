@@ -1,9 +1,10 @@
 @echo off
 setlocal
 set "REPO_ROOT=%~dp0..\..\.."
+call "%REPO_ROOT%\tools\env.bat"
+if errorlevel 1 exit /b 1
 call "%REPO_ROOT%\Docs\Scripts\evidence_root.bat"
 if errorlevel 1 exit /b 1
-call "%~dp0..\..\..\..\..\..\dev_env.bat"
 call "%VCVARSALL%" x86 >nul
 if errorlevel 1 exit /b 1
 set "TEST_BUILD=%FFX_EVIDENCE_ROOT%\test-build"

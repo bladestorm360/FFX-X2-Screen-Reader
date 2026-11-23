@@ -6,6 +6,9 @@ setlocal
 :: incompatible parallelism requests for this inherently serial build tool.
 set "MAKEFLAGS="
 set "CMAKE_BUILD_PARALLEL_LEVEL="
+set "REPO_ROOT=%~dp0..\.."
+call "%REPO_ROOT%\tools\env.bat"
+if errorlevel 1 exit /b 1
 set "SDL_BUILD=%~dp0..\..\install\sdl3-x86"
 set "SDL_STAGE=%~dp0..\..\install\native"
 if not exist "%SDL3_SOURCE%\CMakeLists.txt" (

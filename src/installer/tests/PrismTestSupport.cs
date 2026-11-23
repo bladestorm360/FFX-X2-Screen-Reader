@@ -17,12 +17,6 @@ internal static class PrismTestSupport
     }
     private static readonly Dictionary<string, RuntimeSnapshot> snapshots = new Dictionary<string, RuntimeSnapshot>(StringComparer.OrdinalIgnoreCase);
 
-    // run_tests.ps1 leaves FFX_PRISM_TEST_PACKAGE empty when no PRISM root is found.
-    public static bool Available
-    {
-        get { return !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FFX_PRISM_TEST_PACKAGE")); }
-    }
-
     public static byte[] Resource(string name)
     {
         if (name == "prism.lock.json") return LockBytes();

@@ -1,17 +1,15 @@
 @echo off
 setlocal
-:: The Steam game location comes from dev_env.bat at the Dev tree root, so this
-:: file holds no drive letters and the tree can move to any drive.
-call "%~dp0..\..\..\..\..\dev_env.bat"
-if not defined DEV_ROOT (
-    echo ERROR: dev_env.bat not found at %~dp0..\..\..\..\..\dev_env.bat
-    exit /b 1
-)
-call "%DEV_ROOT%\dev_env.bat" find_game "FINAL FANTASY FFX&FFX-2 HD Remaster" GAME_ROOT
-if not defined GAME_ROOT (
-    echo ERROR: "FINAL FANTASY FFX&FFX-2 HD Remaster" not found in any Steam library.
-    echo   Detected: %STEAM_LIBS%
-    exit /b 1
+set "DRY_RUN="
+if /I "%~1"=="--dry-run" set "DRY_RUN=1"
+:: The game folder comes from tools\find_game.ps1: FFX_GAME_DIR, else Steam.
+set "GAME_ROOT="
+for /f "usebackq delims=" %%G in (`powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\..\tools\find_game.ps1"`) do set "GAME_ROOT=%%G"
+:: find_game.ps1 has already printed the reason.
+if not exist "%GAME_ROOT%\FFX.exe" exit /b 1
+if defined DRY_RUN (
+    echo Game folder: "%GAME_ROOT%"
+    exit /b 0
 )
 set "GAME_DIR=%GAME_ROOT%"
 set REPO_ROOT=%~dp0..\..
