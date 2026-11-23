@@ -29,6 +29,9 @@ void battleAmountFixtures() {
     FlushInstructionCache(GetCurrentProcess(),memory,618);
     const int oldScene=scene;scene=0;setSetting(Setting::AutoDetail,0);resetBattle();
     set<uint8_t>(0x1fcc092,0);const auto window=address(0xf3c910);
+    // Later battle fixtures share this window; amount types 0x15/0x16 make
+    // battleRowUsable skip the availability check, so restore what was there.
+    const auto oldPhase=read<uint8_t>(window+1);const auto oldType=read<uint16_t>(window+6);const auto oldOwner=read<uint8_t>(window+8);
     write<uint8_t>(window+1,4);write<uint16_t>(window+6,0x15);write<uint8_t>(window+8,0);
     encoded(0x24a6000,"Gil to use");write<uintptr_t>(window+0xb4,address(0x24a6000));
     set<int>(0xf3d6a0,0);set<int>(0xf40424,0);set<int16_t>(0xf40418,0);
@@ -76,6 +79,7 @@ void battleAmountFixtures() {
     nativeHeapFixture::observing=false;
     check(!nativeHeapFixture::allocations && !nativeHeapFixture::frees,"unchanged render observer is heap-free");
     printf("METRIC numeric unchanged1000 render observations %.3fms; heap0/0; native graphics/usable audio unmeasured.\n",std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-stamp).count());
+    write<uint8_t>(window+1,oldPhase);write<uint16_t>(window+6,oldType);write<uint8_t>(window+8,oldOwner);
     VirtualFree(memory,0,MEM_RELEASE);resetBattle();scene=oldScene;
     puts("PASS: original618-byte numeric controller, real decimal/cap/clamp operands, amount/digit render events, phase/automatic guards and both pay window types; native graphics/sound/validation controlled.");
 }
