@@ -147,7 +147,9 @@ int main() {
     list[0].actor=-1;list[0].position={2,0,2};
     // Accepted post-physics movement retires the old request and captures the
     // complete new pose in one native call. An unchanged commit keeps its ID.
-    put<float>(0x210000c,3);
+    // Context is keyed by native floor triangle (0f92b0c), so the move must reach
+    // another floor; a step within the same triangle keeps the old verdict.
+    list[0].position={22,0,22};put<float>(0x210000c,22);put<float>(0x2100014,22);put<int16_t>(0x2100824,1);
     const auto previousRequest=reach::latest.load();
     observingNative=true;refreshReachabilityAfterMovement(list);observingNative=false;
     check(reach::latest.load()!=previousRequest,"post-physics pose starts fresh reachability");
@@ -155,6 +157,7 @@ int main() {
     observingNative=true;refreshReachabilityAfterMovement(list);observingNative=false;
     check(reach::latest.load()==movementRequest,"unchanged post-physics pose preserves in-flight request");
     waitComplete();check(!list[0].unreachable,"post-physics reachable result uses current pose");
+    list[0].position={2,0,2};put<float>(0x210000c,2);put<float>(0x2100014,2);put<int16_t>(0x2100824,0);
     // Measure the actual capture -> worker algorithms -> native commit, without
     // the intentional held-worker delay. This fixture floor is synthetic and
     // does not qualify real level collection, audible speech or live latency.
