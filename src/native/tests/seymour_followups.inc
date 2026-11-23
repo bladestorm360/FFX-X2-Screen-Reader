@@ -9,6 +9,9 @@ void seymourFixtures() {
     std::array<uint8_t,5*0xf90> original{};check(copy(actors,original.data(),original.size()),"Seymour actor fixture backup");
     const auto priorArray=read<uintptr_t>(address(0xd34460));
     const auto priorScene=scene.load();scene=0;
+    // Target speech asks the native Sensor gate since 413791b; no Sensor here.
+    stub(0x38fa30,reinterpret_cast<void*>(sensorPartyGetter));
+    stub(0x38f9e0,reinterpret_cast<void*>(sensorAllowedGetter));
     memcpy(reinterpret_cast<void*>(address(0x2498000)),boss.bytes,236);
     memcpy(reinterpret_cast<void*>(address(0x2498200)),wheel.bytes,180);
     for(unsigned i=0;i<5;++i) {
