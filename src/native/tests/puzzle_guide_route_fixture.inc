@@ -566,6 +566,12 @@ void zanarkandGuideRouteFixture() {
         {"insert Kilika recess",{{0x5c000008,0},{0x5c00001c,1},{0x0c000020,6}},11},
         {"gate opens",{{0x0c000020,7}},11},
     });
+    // An unidentified trial state keeps and names the F9/F10 selection.
+    loadGuideRoute("dome0700",{{"entry",firstVisit,0}});
+    for(const auto& write:firstVisit) setValue(write.low,write.high,write.value,write.element);
+    guideSays(OwnedGuideAction::Next,L"Step 2 of","manual next before an unidentified state");
+    guideSays(OwnedGuideAction::Expected,L" Step 2 stays selected.","unidentified expected step keeps the selection");
+    resetOwnedPuzzleGuide();
     // W56 (the activation tile) only resets 0x22 and 0x23, which are already
     // 0, so step 1 has no done signal. Its text must send the player to step
     // 2, where tile guidance runs. F10 selects the next step; the path is the
