@@ -55,7 +55,7 @@
 var base = Process.enumerateModules()[0].base;
 function rva(off) { return base.add(off); }
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/field_items_probe.log';
+var logPath = FFX_CAPTURE_DIR + 'field_items_probe.log';
 var logH = new File(logPath, 'w');
 function logFile(m) { logH.write(m + '\n'); logH.flush(); }
 function logBoth(m) { console.log(m); logFile(m); }

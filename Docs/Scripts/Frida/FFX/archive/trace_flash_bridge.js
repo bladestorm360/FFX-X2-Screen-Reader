@@ -10,7 +10,7 @@
 //
 // Navigate title screen (up/down/confirm). Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/trace_flash_bridge.log';
+var logPath = FFX_CAPTURE_DIR + 'trace_flash_bridge.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

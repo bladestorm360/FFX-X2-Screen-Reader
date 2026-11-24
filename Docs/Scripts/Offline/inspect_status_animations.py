@@ -11,6 +11,7 @@ _evidence_repo = next(p for p in _EvidencePath(__file__).resolve().parents
                       if (p / "Docs/Scripts/Offline/evidence_paths.py").is_file())
 _evidence_sys.path.insert(0, str(_evidence_repo / "Docs/Scripts/Offline"))
 from evidence_paths import evidence_path, evidence_relative, write_replay_adapter
+from tool_paths import game_directory, ghidra_commands
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,7 +22,7 @@ import struct
 import pefile
 
 ROOT = Path(__file__).resolve().parents[3]
-GAME = Path(r'D:\Games\SteamLibrary\steamapps\common\FINAL FANTASY FFX&FFX-2 HD Remaster')
+GAME = game_directory()
 stamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')
 out = evidence_path(ROOT / 'Docs/Scripts/Offline/output') / ('status_animations_' + stamp)
 analysis = evidence_path(ROOT / 'Docs/Scripts/Ghidra/output/FFX') / ('status_animations_' + stamp)
@@ -39,7 +40,7 @@ for command in selected:
     effects=struct.unpack_from('<HH',record,16); overlays.update(effects)
     commands.append(dict(command=hex(command),effects=list(effects),buff_mask=struct.unpack_from('<H',record,86)[0]))
 manifest=[]
-batch=["$ErrorActionPreference = 'Stop'", "$env:JAVA_HOME = 'C:/Program Files/Java/jdk-21'",
+batch=ghidra_commands() + [
        f"[void][IO.Directory]::CreateDirectory('{analysis / 'project'}')"]
 for number in sorted(overlays):
     name=f'magic_{number:04d}.dll'; source=GAME/'magicFiles/FFX'/name; target=out/name
@@ -51,7 +52,7 @@ for number in sorted(overlays):
     assert all(base<=value<base+pe.OPTIONAL_HEADER.SizeOfImage for value in callbacks)
     manifest.append(dict(name=name,source=str(source),sha256=hashlib.sha256(binary).hexdigest(),getter=hex(getter),table=hex(table),callbacks=[hex(v-base) for v in callbacks]))
     entries=' '.join(f'{v:x}' for v in sorted(set(callbacks)))
-    batch.append(f"& 'D:/Games/Dev/ghidra_12.0.3_PUBLIC/support/analyzeHeadless.bat' '{analysis / 'project'}' StatusAnimations -import '{target}' -scriptPath '{ROOT / 'Docs/Scripts/Ghidra/FFX'}' -postScript status_animation_module.java '{analysis}' {entries}")
+    batch.append(f"& $env:GHIDRA_HEADLESS '{analysis / 'project'}' StatusAnimations -import '{target}' -scriptPath '{ROOT / 'Docs/Scripts/Ghidra/FFX'}' -postScript status_animation_module.java '{analysis}' {entries}")
     batch.append("if ($LASTEXITCODE -ne 0) { throw 'Offline analysis failed: "+name+"' }")
 (out/'manifest.json').write_text(json.dumps(dict(kernel=str(evidence_relative(kernel, ROOT)),kernel_sha256=hashlib.sha256(blob).hexdigest(),commands=commands,modules=manifest,analysis=str(evidence_relative(analysis, ROOT))),indent=2)+'\n')
 (analysis/'analyze.ps1').write_text('\n'.join(batch)+'\n')

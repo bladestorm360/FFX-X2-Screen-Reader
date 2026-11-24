@@ -10,7 +10,7 @@
 //
 // Attach anywhere. Press arrows. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/tk_menu_probe.log';
+var logPath = FFX_CAPTURE_DIR + 'tk_menu_probe.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

@@ -10,7 +10,7 @@
 //
 // Navigate title screen after "Ready" appears. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/scan_gameobj_cursor.log';
+var logPath = FFX_CAPTURE_DIR + 'scan_gameobj_cursor.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

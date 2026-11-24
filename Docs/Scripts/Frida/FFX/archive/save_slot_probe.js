@@ -3,7 +3,7 @@
 // Usage: open save/load menu in game, cycle through slots, then read log.
 // Goal: identify which function fires on cursor change and carries slot data.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/save_slot_probe.log';
+var logPath = FFX_CAPTURE_DIR + 'save_slot_probe.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

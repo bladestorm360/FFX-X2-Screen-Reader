@@ -767,7 +767,7 @@ These two proxy candidates failed. Other bootstrap paths were not ruled out. Tes
 - **MSCOREE.DLL proxy**: NOT loaded. Despite being the launcher's only static import,
   The precise resolution mechanism was not established by the module trace.
 
-Frida module enumeration (90 DLLs) confirmed all system DLLs load from `C:\WINDOWS\SYSTEM32\`
+Frida module enumeration (90 DLLs) confirmed all system DLLs load from `%SystemRoot%\System32\`
 or .NET Framework paths — none from the app directory (except fmodex.DLL and the exe itself).
 
 The launcher loads 90 modules at runtime including the full .NET Framework v4.0.30319 CLR

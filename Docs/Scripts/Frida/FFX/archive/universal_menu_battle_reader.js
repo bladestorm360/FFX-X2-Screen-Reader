@@ -11,7 +11,7 @@
 //
 // Attach to FFX.exe. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/universal_menu_battle_reader.log';
+var logPath = FFX_CAPTURE_DIR + 'universal_menu_battle_reader.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

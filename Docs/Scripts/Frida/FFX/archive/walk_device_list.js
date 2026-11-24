@@ -14,7 +14,7 @@
 //
 // Press keyboard arrows on title screen. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/walk_device_list.log';
+var logPath = FFX_CAPTURE_DIR + 'walk_device_list.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

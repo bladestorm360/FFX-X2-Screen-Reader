@@ -16,6 +16,9 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 JS_PATH = os.path.join(SCRIPT_DIR, "nav_step_calibration.js")
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(SCRIPT_DIR)))
+from script_paths import load_script
+
 def on_message(message, data):
     if message['type'] == 'send':
         print(f"[JS] {message['payload']}")
@@ -32,8 +35,7 @@ def main():
         print(f"Error: {process_name} not found. Is the game running?")
         sys.exit(1)
 
-    with open(JS_PATH, 'r') as f:
-        js_code = f.read()
+    js_code = load_script(JS_PATH)
 
     script = session.create_script(js_code)
     script.on('message', on_message)

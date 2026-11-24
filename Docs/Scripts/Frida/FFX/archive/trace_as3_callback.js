@@ -7,7 +7,7 @@
 //
 // Navigate title screen to capture text flow. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/trace_as3_callback.log';
+var logPath = FFX_CAPTURE_DIR + 'trace_as3_callback.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

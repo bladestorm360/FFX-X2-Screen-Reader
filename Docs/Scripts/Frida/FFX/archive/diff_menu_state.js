@@ -16,7 +16,7 @@
 
 'use strict';
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/diff_menu_state.log';
+var logPath = FFX_CAPTURE_DIR + 'diff_menu_state.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

@@ -7,7 +7,7 @@
 // Console: each unique function name on first fire only
 // File: every call with args[0]-args[3] hex values
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/trace_iggy_all.log';
+var logPath = FFX_CAPTURE_DIR + 'trace_iggy_all.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

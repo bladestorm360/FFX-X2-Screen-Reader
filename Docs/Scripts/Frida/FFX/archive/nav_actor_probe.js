@@ -6,7 +6,7 @@
 //   P = Print player (actor 0) position, rotation, speed
 //   Q = Quit
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/nav_actor_probe.log';
+var logPath = FFX_CAPTURE_DIR + 'nav_actor_probe.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

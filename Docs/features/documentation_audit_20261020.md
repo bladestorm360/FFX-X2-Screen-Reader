@@ -157,7 +157,7 @@ All edited formulas/signatures were restated in prose; native symbols, offsets,
 tables, output and operational commands remain where they carry evidence.
 
 Original whole files were hash-checked before editing and stored outside Git
-under `D:/Games/Dev/Custom/FFX/Analysis/FFX/RepositoryCleanup_20261020/doc-originals/`
+under `../Analysis/FFX/RepositoryCleanup_20261020/doc-originals/`
 at their repository-relative paths. The audit itself was snapshotted in the
 `second-pass` subfolder before this section was added. The `Docs/cloisters.md`
 fenced PowerShell block was retained because it contains only short operational
@@ -168,7 +168,7 @@ inline code span is non-implementation, and no code or runtime file was changed.
 
 ## Historical evidence link migration
 
-A separate link migration updated **68 Markdown file hyperlinks** in 23 permitted documents after resolving each destination to an existing retained file. Targets moved from `install/` now point to `Analysis/FFX/RepositoryEvidence/historical-install/`; moved offline evidence links point to `offline-output/`. Each edited document's complete pre-edit bytes were hash-verified in an external backup under `D:/Games/Dev/Custom/FFX/Analysis/FFX/RepositoryCleanup_20261020/doc-originals/link-migration/`. The retained manifest linked from [the airship follow-up](puzzles/airship_wakka_20261019.md) explains the former offline-output location and points to its external archive.
+A separate link migration updated **68 Markdown file hyperlinks** in 23 permitted documents after resolving each destination to an existing retained file. Targets moved from `install/` now point to `Analysis/FFX/RepositoryEvidence/historical-install/`; moved offline evidence links point to `offline-output/`. Each edited document's complete pre-edit bytes were hash-verified in an external backup under `../Analysis/FFX/RepositoryCleanup_20261020/doc-originals/link-migration/`. The retained manifest linked from [the airship follow-up](puzzles/airship_wakka_20261019.md) explains the former offline-output location and points to its external archive.
 
 | Edited document | Links updated |
 |---|---:|

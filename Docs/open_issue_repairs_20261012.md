@@ -89,7 +89,7 @@ does not cancel the strict threading conversion or the other active repairs.
 It does not authorize game launch/control/probes or Tester Logs access.
 
 The actual local save directory is
-`C:/Users/pmoen/OneDrive/Documents/Square Enix/FINAL FANTASY X&X-2 HD Remaster/FINAL FANTASY X`.
+`%OneDrive%/Documents/Square Enix/FINAL FANTASY X&X-2 HD Remaster/FINAL FANTASY X`.
 Bounded header/context reads identified `ffx_006` as the Salvage Ship save:
 26,880 bytes, 64-byte header, current/saved room71, current area dictionary19,
 story66, current spawn0 and saved spawn2. Header location19 agrees with
@@ -324,7 +324,7 @@ probe/launch/Tester Logs access is authorized.
 
 ### Prism follow-up review and actual dependency installation
 
-Pinned x86 Prism package `prism-0.18.3-b68e9c9-windows-x86-msvc-c17-1aa76c88`, native DLL SHA1aa76c8835963eccd210255b06b4db48551bd174dc965d205c9f68ae0c726885. Its imports are Windows system libraries only; Tolk support DLLs are not carried over. Immutable 15-file runtime/license/provenance bundle is under `D:/Games/Dev/codex/prism/packages/<package_id>/runtime`; source lock is prism.lock.json. Installed separately to game-root PrismRuntime; receipt identifies both FFX-native/FFX-launcher and canonical destination. A second explicit install preserved all16 files' hashes/timestamps (including receipt), zero writes. Normal deployment only checks it read-only and owns7 mod payloads; source lock is an embedded noncopied installer resource, total11 resources. Migration scanner excludes owned runtime/backup directories and preserves retired speech libraries for explicit separate cleanup.
+Pinned x86 Prism package `prism-0.18.3-b68e9c9-windows-x86-msvc-c17-1aa76c88`, native DLL SHA1aa76c8835963eccd210255b06b4db48551bd174dc965d205c9f68ae0c726885. Its imports are Windows system libraries only; Tolk support DLLs are not carried over. Immutable 15-file runtime/license/provenance bundle is under `../../../codex/prism/packages/<package_id>/runtime`; source lock is prism.lock.json. Installed separately to game-root PrismRuntime; receipt identifies both FFX-native/FFX-launcher and canonical destination. A second explicit install preserved all16 files' hashes/timestamps (including receipt), zero writes. Normal deployment only checks it read-only and owns7 mod payloads; source lock is an embedded noncopied installer resource, total11 resources. Migration scanner excludes owned runtime/backup directories and preserves retired speech libraries for explicit separate cleanup.
 
 Primary x86 speech checks pass with fake ABI: strict UTF8 Polish/supplementary characters, invalid surrogate rejection, initialized automatic/explicit engines, unavailable/capability/init failure handling, combined/fallback/braille-only channels, same-thread lifecycle/free-before-shutdown, stop, repeated valid events, existing queue/order/generation/nonblocking backend cancellation checks. Backend settings fixture passes including SAPI selection/details/Back and existing controller-routing checks. Actual C# installer source compiles warnings-as-errors;787 synthetic assertions pass, embedded7-file mod installs twice at ordinary/350-character paths preserve Prism runtime hashes/timestamps. Missing/modified receipts refuse without writes; corrupt catalog fixture now includes its lock and validates the intended refusal. No real screen reader, game or launcher has been executed.
 

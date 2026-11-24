@@ -18,7 +18,7 @@ else {
     }));
     const item = new NativeFunction(base.add(0x390a40), 'pointer', ['uint', 'pointer'], 'mscdecl');
     const definition = new NativeFunction(base.add(0x3ab890), 'pointer', ['uint', 'pointer', 'pointer'], 'mscdecl');
-    const file = new File('D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/sphere_requirements_' + new Date().toISOString().replace(/[:.]/g, '-') + '.jsonl', 'w');
+    const file = new File(FFX_CAPTURE_DIR + 'sphere_requirements_' + new Date().toISOString().replace(/[:.]/g, '-') + '.jsonl', 'w');
     function emit(value) { file.write(JSON.stringify(value) + '\n'); file.flush(); }
     Interceptor.attach(base.add(0x648d70), { onLeave() {
         const grid = base.add(0x1f05834).readPointer();

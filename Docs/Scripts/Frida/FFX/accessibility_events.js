@@ -15,7 +15,7 @@ Process.enumerateModules().forEach(function(module) {
     });
 });
 var stamp=new Date().toISOString().replace(/[:.]/g,'-');
-var file=new File('D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/accessibility_events_'+stamp+'.log','w');
+var file=new File(FFX_CAPTURE_DIR + 'accessibility_events_'+stamp+'.log','w');
 function log(value) { file.write(JSON.stringify(value)+'\n'); file.flush(); }
 function match(spec) {
     var pattern=spec.tokens.map(function(b) { return b===null?'??':('0'+b.toString(16)).slice(-2); }).join(' ');

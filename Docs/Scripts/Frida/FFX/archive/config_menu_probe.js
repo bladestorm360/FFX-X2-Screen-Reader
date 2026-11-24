@@ -11,7 +11,7 @@
 //
 // Approach: hook fn_ctrl, read cursor after input, announce setting name + current value.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/config_menu_probe.log';
+var logPath = FFX_CAPTURE_DIR + 'config_menu_probe.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

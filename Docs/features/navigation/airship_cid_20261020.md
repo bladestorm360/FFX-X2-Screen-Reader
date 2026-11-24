@@ -4,7 +4,7 @@ Implementation and offline verification are **complete**; guarded deployment is 
 
 ## Identity evidence and naming
 
-Sol's retained source audit is outside Git under `D:/Games/Dev/Custom/FFX/Analysis/FFX/AirshipCid_20261020/150854_749759/`, with model records and `actor-summary.json`. It identifies Cid as model `0x2101` (decimal 8449), independently matching Fahrenheit's native `NpcId.chr_cid257` identifier.
+Sol's retained source audit is outside Git under `../Analysis/FFX/AirshipCid_20261020/150854_749759/`, with model records and `actor-summary.json`. It identifies Cid as model `0x2101` (decimal 8449), independently matching Fahrenheit's native `NpcId.chr_cid257` identifier.
 
 | Hash-qualified airship script | Actual Cid worker | Cid's actual model | Finding |
 |---|---|---:|---|

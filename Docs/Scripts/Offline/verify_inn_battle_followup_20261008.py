@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+from tool_paths import game_directory
 import re
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -49,7 +50,7 @@ def main():
     # These explicit file hashes recheck the current authorized installation;
     # no game assets, folder discovery or session probes are involved.
     previous = json.loads((ROOT / "install/player-reports-20261008/verification.json").read_text())
-    game = Path(r"D:\Games\SteamLibrary\steamapps\common\FINAL FANTASY FFX&FFX-2 HD Remaster")
+    game = game_directory()
     payload = [dict(name=item["name"], sha256=sha(game / item["name"])) for item in previous["installed_payload"]]
     assert len(payload) == 13
     dll = sha(ROOT / "src/proxy/dinput8.dll")

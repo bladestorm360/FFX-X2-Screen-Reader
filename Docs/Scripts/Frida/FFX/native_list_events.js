@@ -6,7 +6,7 @@
 var base = Process.enumerateModules()[0].base;
 function rva(offset) { return base.add(offset); }
 var stamp = new Date().toISOString().replace(/[:.]/g, '-');
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/native_list_events_' + stamp + '.log';
+var logPath = FFX_CAPTURE_DIR + 'native_list_events_' + stamp + '.log';
 var file = new File(logPath, 'w');
 function log(value) { file.write(value + '\n'); file.flush(); console.log(value); }
 function offset(pointer) { return pointer.sub(base).toString(); }

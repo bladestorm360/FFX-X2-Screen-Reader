@@ -1,4 +1,10 @@
-# FFX current memory — November4
+# FFX current memory — November24
+
+The FFX workspace now lives under the shared C-drive development tree. The
+[path migration](Docs/plan.md#november24-workspace-path-migration) covers current
+checked-in paths, installer tests, offline extraction tools and the Frida
+launcher. See [path configuration](Docs/features/repository_content_20261020.md#configuration-and-guard-behavior)
+for overrides. Historical artifacts and their recorded paths remain as evidence.
 
 [Release1.0.2](Docs/release.md#release102--november4) is built, guarded-deployed,
 packaged and [published Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.2).

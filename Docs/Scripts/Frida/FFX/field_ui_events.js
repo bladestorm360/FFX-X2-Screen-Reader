@@ -18,9 +18,9 @@ else {
         if(x.name==='FfxNative_Features' && new NativeFunction(x.address,'uint',[],'mscdecl')())
             throw Error('Disable the native reader before this offline prototype');
     }));
-    const root='D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/';
+    const root=FFX_SCRIPT_ROOT;
     const specs=JSON.parse(File.readAllText(root+'Frida/FFX/native_extensions.json'));
-    const file=new File(root+'Frida/output/FFX/field_ui_events_'+new Date().toISOString().replace(/[:.]/g,'-')+'.jsonl','w');
+    const file=new File(FFX_CAPTURE_DIR + 'field_ui_events_'+new Date().toISOString().replace(/[:.]/g,'-')+'.jsonl','w');
     const resolved={};
     function resolve(rva) {
         if(resolved[rva]) return resolved[rva];

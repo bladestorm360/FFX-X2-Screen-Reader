@@ -42,7 +42,7 @@ Repository/downloads: https://github.com/bladestorm360/FFX-X2-Screen-Reader
    If deployment is blocked, report the blocker; do not compile/package an
    installer from an unverified payload. Never replace running modules.
 5. Run installer source tests, then package with
-   `src/installer/package_release.ps1 -Version '1.0' -SevenZip 'C:/Program Files/7-Zip/7z.exe'`,
+   `src/installer/package_release.ps1 -Version '1.0' -SevenZip (Join-Path $env:ProgramFiles '7-Zip/7z.exe')`,
    substituting the requested version. The single x86 installer embeds26
    resources: seven mod/native files,15 locked PRISM runtime/provenance/license
    files, the source lock, checksum anchor and two pinned stock-game inventories.

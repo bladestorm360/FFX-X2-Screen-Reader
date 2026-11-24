@@ -16,7 +16,7 @@
 //
 // Start on title screen. Press arrows. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/query_iggy_state.log';
+var logPath = FFX_CAPTURE_DIR + 'query_iggy_state.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

@@ -14,7 +14,7 @@ else (function() {
     var main = Process.enumerateModules()[0], base = main.base;
     if (main.name.toLowerCase() !== 'ffx.exe' || Process.pointerSize !== 4)
         throw Error('This diagnostic requires native x86 FFX');
-    var root = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/';
+    var root = FFX_SCRIPT_ROOT;
     var spec = JSON.parse(File.readAllText(root + 'Frida/FFX/movie_subtitles_signatures.json'));
     function pattern(tokens) {
         return tokens.map(function(b) { return b === null ? '??' : ('0' + b.toString(16)).slice(-2); }).join(' ');
@@ -32,7 +32,7 @@ else (function() {
     var profile = profiles[0], entries = {};
     spec.signatures.forEach(function(s) { entries[s.label] = base.add(s[profile]); });
     var stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    var file = new File(root + 'Frida/output/FFX/movie_subtitles_' + stamp + '.jsonl', 'w');
+    var file = new File(FFX_CAPTURE_DIR + 'movie_subtitles_' + stamp + '.jsonl', 'w');
     var counts = {}, capped = {}, latest = null, stateKey = '', generation = 0;
     var endingCalls = {}, lastEnding = '';
     function log(event, data) {
@@ -114,5 +114,5 @@ else (function() {
             movie: latest, source: this.source, text: rawText(this.buffer) }); }.bind(this)); }
     });
     log('ready', { profile: profile, expected_executable_sha256: spec[profile + '_sha256'],
-        path: root + 'Frida/output/FFX/movie_subtitles_' + stamp + '.jsonl' });
+        path: FFX_CAPTURE_DIR + 'movie_subtitles_' + stamp + '.jsonl' });
 })();

@@ -2,7 +2,7 @@
 // Purpose: Find proxy DLL candidates for the launcher
 // Output: Console summary + full list to file
 
-var OUTPUT_DIR = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX_Launcher/';
+var OUTPUT_DIR = FFX_CAPTURE_DIR;
 var outFile = new File(OUTPUT_DIR + 'loaded_modules.txt', 'w');
 
 function logFile(msg) { outFile.write(msg + '\n'); }

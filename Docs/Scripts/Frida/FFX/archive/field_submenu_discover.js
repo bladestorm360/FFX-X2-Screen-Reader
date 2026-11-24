@@ -12,7 +12,7 @@
 // Run via run_frida.bat -> 1 (FFX) -> field_submenu_discover
 // Open main menu (Triangle), select each sub-menu. Check log for results.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/field_submenu_discover.log';
+var logPath = FFX_CAPTURE_DIR + 'field_submenu_discover.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

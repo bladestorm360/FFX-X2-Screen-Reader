@@ -43,7 +43,7 @@ if (typeof Process !== 'undefined') {
     });
     if (nativeActive) throw Error('Native reader owns the grid; this prototype must remain offline');
     var stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    var file = new File('D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/sphere_planner_' + stamp + '.log', 'w');
+    var file = new File(FFX_CAPTURE_DIR + 'sphere_planner_' + stamp + '.log', 'w');
     Interceptor.attach(base.add(0x648d70), { onLeave: function () {
         try {
             var engine = base.add(0x1f05834).readPointer(), count = engine.add(2).readS16();

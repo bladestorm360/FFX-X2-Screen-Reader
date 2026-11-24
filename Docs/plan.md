@@ -1,3 +1,23 @@
+## November24 workspace path migration
+
+Status: **complete / Closed**. The active source is the repository beside
+`../Analysis`, `../fahrenheit` and `../FFXDataParser`. Build and deployment
+already use the shared development environment. The migration fixes paths in
+offline tools, installer tests, Frida launchers, documentation and local
+guidance. Dated raw receipts, generated caches and third-party trees retain
+their original provenance. No production payload changed.
+
+The tracked path scan found no retired-drive references. All 77 edited
+Frida scripts parsed, both script-loading paths resolved from a different
+working directory, and attempted capture inside Git was refused. The ATEL
+extractor produced 14 annotation tables outside Git. Generated Ghidra commands
+resolved the shared launcher. The 807 synthetic installer assertions and both
+packaged install scenarios passed with a relative override and all 15 locked
+PRISM hashes verified. The shared PRISM package directory was absent locally,
+so the fixture used a verified copy from a retained installer test. No game
+launch, capture or deployment was part of this check. Disposable test output
+was cleaned. The prior source checkpoint is `d632776` on `master`.
+
 ## November4 release1.0.2 — scope ledger
 
 Status: **complete / Closed**. Original estimate45–60 minutes. The user's prepare-release

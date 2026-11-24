@@ -6,7 +6,7 @@ function focusIdentity(phase,palette,cursor,control,mode,character) {
 }
 if(typeof module!=='undefined') module.exports={paletteSlot,focusIdentity};
 else {
-    const root='D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/';
+    const root=FFX_SCRIPT_ROOT;
     const main=Process.enumerateModules()[0],base=main.base;
     if(main.name.toLowerCase()!=='ffx.exe') throw Error('FFX only');
     Process.enumerateModules().forEach(m=>m.enumerateExports().forEach(x=>{
@@ -15,7 +15,7 @@ else {
     }));
     const specs=JSON.parse(File.readAllText(root+'Frida/FFX/native_extensions.json'));
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
-    const file=new File(root+'Frida/output/FFX/naming_events_'+stamp+'.jsonl','w');
+    const file=new File(FFX_CAPTURE_DIR + 'naming_events_'+stamp+'.jsonl','w');
     function emit(event) { file.write(JSON.stringify(event)+'\n'); file.flush(); }
     const resolved={};
     function resolve(rva) {

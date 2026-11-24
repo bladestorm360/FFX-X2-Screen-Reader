@@ -7,6 +7,7 @@ _evidence_repo = next(p for p in _EvidencePath(__file__).resolve().parents
                       if (p / "Docs/Scripts/Offline/evidence_paths.py").is_file())
 _evidence_sys.path.insert(0, str(_evidence_repo / "Docs/Scripts/Offline"))
 from evidence_paths import evidence_path, evidence_relative, write_replay_adapter
+from tool_paths import game_directory
 
 from pathlib import Path
 from datetime import datetime, timezone
@@ -15,7 +16,7 @@ import json
 from vbf import Vbf, output_path
 
 ROOT = Path(__file__).resolve().parents[3]
-ARCHIVE = Path('D:/Games/SteamLibrary/steamapps/common/FINAL FANTASY FFX&FFX-2 HD Remaster/data/FFX_Data.vbf')
+ARCHIVE = game_directory() / 'data/FFX_Data.vbf'
 OUT = evidence_path(ROOT / 'Docs/Scripts/Offline/output/airship_assets_20261019')
 OUT.mkdir(exist_ok=True)
 archive = Vbf(ARCHIVE)

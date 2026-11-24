@@ -8,7 +8,7 @@
 //
 // Attach on title menu (NEW GAME / LOAD). Press arrows.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/read_game_state.log';
+var logPath = FFX_CAPTURE_DIR + 'read_game_state.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

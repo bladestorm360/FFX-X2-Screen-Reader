@@ -4,15 +4,15 @@ TSV annotation files keyed by (namespace, id) for use as a grep-overlay on the
 Ghidra decompile.
 
 Inputs (read-only):
-  - D:/Games/Dev/Custom/FFX/FFXDataParser/src/main/java/atel/model/
+  - ../FFXDataParser/src/main/java/atel/model/
       ScriptCallTargetLib.java   (call-target name table)
       ScriptOpcode.java          (opcode names + return types)
       ScriptConstants.java       (FUNCSPACES namespace ID -> short name)
-  - D:/Games/Dev/Custom/FFX/fahrenheit/core/fh/Atel/
+  - ../fahrenheit/core/fh/Atel/
       call.cs                    (namespace runtime base addresses + arg counts)
       insn.cs                    (opcode byte values, cross-check)
 
-Outputs (written to ffx-x2-screen-reader/Docs/Scripts/Ghidra/output/FFX/atel/):
+Outputs (written to ghidra-output/FFX/atel under the external evidence root):
   atel_namespaces.tsv             ns_id, ns_short_name, runtime_base_va, fahrenheit_entry_count
   atel_calls_<ns>.tsv  (one per namespace)
                                   id, name, internal_name, return_type, arg_count_kari,
@@ -24,7 +24,7 @@ Outputs (written to ffx-x2-screen-reader/Docs/Scripts/Ghidra/output/FFX/atel/):
   README.md                       Provenance + format documentation.
 
 Run:
-  python "D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Python/extract_atel_names.py"
+  python Docs/Scripts/Python/extract_atel_names.py
 
 Idempotent. Re-run after FFXDataParser or Fahrenheit pulls.
 """
@@ -32,10 +32,14 @@ Idempotent. Re-run after FFXDataParser or Fahrenheit pulls.
 import os
 import re
 import sys
+from pathlib import Path
 
-FFXDP_SRC = r"D:/Games/Dev/Custom/FFX/FFXDataParser/src/main/java/atel/model"
-FH_SRC = r"D:/Games/Dev/Custom/FFX/fahrenheit/core/fh/Atel"
-OUT_DIR = r"D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Ghidra/output/FFX/atel"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Offline"))
+from evidence_paths import REPOSITORY, evidence_path
+
+FFXDP_SRC = REPOSITORY.parent / "FFXDataParser/src/main/java/atel/model"
+FH_SRC = REPOSITORY.parent / "fahrenheit/core/fh/Atel"
+OUT_DIR = evidence_path("Docs/Scripts/Ghidra/output/FFX/atel")
 
 
 def read(path):

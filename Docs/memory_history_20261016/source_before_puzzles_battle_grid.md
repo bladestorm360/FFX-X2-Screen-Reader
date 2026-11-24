@@ -103,7 +103,7 @@ launch/control/probe or Tester Logs access. Besaid asset-only permission applies
   restricted: never enter/enumerate/read/search/glob/copy it without issue-specific
   user authorization. Never replace running modules; canonical guarded deployment
   is `src/proxy/deploy.bat`. This task accessed no Tester Logs or live game.
-- Engineering follows `D:/Games/Dev/codex/MODEL_POLICY.md` and authoritative
+- Engineering follows `../../../codex/MODEL_POLICY.md` and authoritative
   speech/architecture/integration/offline references. Sol owns discovery,
   correctness, lifetime/ownership, production implementation and verification.
   Luna did bounded verified mapping and UI/focus fixtures; Sol reviewed/reran all.

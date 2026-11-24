@@ -1,7 +1,7 @@
 // @auto
 // @desc Search memory for title screen text, log addresses + module owners
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/backtrace_text.log';
+var logPath = FFX_CAPTURE_DIR + 'backtrace_text.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

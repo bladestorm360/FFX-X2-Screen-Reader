@@ -306,10 +306,10 @@
     "verified_at_utc": "2026-10-16T21:33:16.9577349Z",
     "release_ready": true,
     "published": false,
-    "zip": "D:\\Games\\Dev\\Custom\\FFX\\ffx-x2-screen-reader\\releases\\0.5.7\\ffx-x2-screen-reader-0.5.7.zip",
+    "zip": "releases/0.5.7/ffx-x2-screen-reader-0.5.7.zip",
     "zip_sha256": "dc835fe6dbbbe22146408056eb23a22f869781ed950319e3f1be618bf491c016",
     "zip_bytes": 2561001,
-    "installer": "D:\\Games\\Dev\\Custom\\FFX\\ffx-x2-screen-reader\\releases\\0.5.7\\ffx-x2-screen-reader-0.5.7\\InstallFFXScreenReader.exe",
+    "installer": "releases/0.5.7/ffx-x2-screen-reader-0.5.7/InstallFFXScreenReader.exe",
     "installer_sha256": "53d0e12fed41d7438e9971bd49b000b5a671ef4c6db341e5d534f2216f1835b1",
     "installer_machine": "x86",
     "package_files": {

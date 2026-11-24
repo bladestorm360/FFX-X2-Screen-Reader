@@ -8,7 +8,7 @@
 // Console: first occurrence of each unique text/function (keeps output manageable)
 // File: full trace with all args and timestamps
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/trace_iggy_ui.log';
+var logPath = FFX_CAPTURE_DIR + 'trace_iggy_ui.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

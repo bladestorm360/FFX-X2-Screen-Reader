@@ -7,13 +7,14 @@ _evidence_repo = next(p for p in _EvidencePath(__file__).resolve().parents
                       if (p / "Docs/Scripts/Offline/evidence_paths.py").is_file())
 _evidence_sys.path.insert(0, str(_evidence_repo / "Docs/Scripts/Offline"))
 from evidence_paths import evidence_path, evidence_relative, write_replay_adapter
+from tool_paths import game_directory
 
 from pathlib import Path
 import datetime,hashlib,json,sys
 from vbf import Vbf,output_path
 root=Path(__file__).resolve().parents[3]
 out=evidence_path(root/'Docs/Scripts/Offline/output/gagazet_cave_assets_20261016');out.mkdir(exist_ok=True)
-archive=Path(r'D:/Games/SteamLibrary/steamapps/common/FINAL FANTASY FFX&FFX-2 HD Remaster/data/FFX_Data.vbf')
+archive=game_directory() / 'data/FFX_Data.vbf'
 v=Vbf(archive)
 entries=[e for e in v.entries if '/mtgz07/' in e.name.lower() or '/mtgz0700/' in e.name.lower()]
 assert 0<len(entries)<250 and sum(e.size for e in entries)<200*1024*1024

@@ -5,12 +5,13 @@ The separate freeze records the reviewed source and installed mod hashes.
 """
 from datetime import datetime, timezone
 from pathlib import Path
+from tool_paths import game_directory
 import hashlib, json, re, sys
 
 root = Path(__file__).resolve().parents[3]
 out = root / 'install/battle-hp-20261021'
 prior = root / 'install/battle-prompts-20261021'
-game = Path('D:/Games/SteamLibrary/steamapps/common/FINAL FANTASY FFX&FFX-2 HD Remaster')
+game = game_directory()
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()

@@ -10,6 +10,7 @@ import sys
 import itertools
 from vbf import Vbf, output_path
 from evidence_paths import evidence_root, outside_git
+from tool_paths import game_directory
 from extract_maps import u16, u32, array, string_at
 from cloister_inventory import declarations
 from field_text import TextEvidence
@@ -82,7 +83,7 @@ def wheel_matrix(script,out):
     print('PASS: original m131 entry, all256 wheel combinations; matrix FNV64',fnv)
 
 def main():
-    archive=Path('D:/Games/SteamLibrary/steamapps/common/FINAL FANTASY FFX&FFX-2 HD Remaster/data/FFX_Data.vbf')
+    archive=game_directory() / 'data/FFX_Data.vbf'
     out=outside_git(evidence_root()/'offline-output/seymour_20261021')
     vbf=Vbf(archive)
     text=TextEvidence(evidence_root()/'offline-output/FFX/20261003_audit/text')

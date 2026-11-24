@@ -163,7 +163,7 @@ if defined PYTHON_MODE (
 echo.
 
 if defined PYTHON_MODE (
-    set "HOST_FILE=!GAME_SCRIPT_DIR!\!SCRIPT!_host.py"
+    for %%F in ("!SCRIPT_FILE!") do set "HOST_FILE=%%~dpnF_host.py"
     if not exist "!HOST_FILE!" (
         echo Python host not found: !HOST_FILE!
         pause
@@ -171,9 +171,9 @@ if defined PYTHON_MODE (
     )
     python "!HOST_FILE!"
 ) else if defined AUTO_MODE (
-    frida -n "!GAME_PROC!" -l "!SCRIPT_FILE!" -o "!OUTPUT_FILE!" --no-auto-reload
+    python "!SCRIPT_DIR!\script_paths.py" "!SCRIPT_FILE!" "!GAME_PROC!" "!OUTPUT_FILE!" --no-auto-reload
 ) else (
-    frida -n "!GAME_PROC!" -l "!SCRIPT_FILE!" -o "!OUTPUT_FILE!"
+    python "!SCRIPT_DIR!\script_paths.py" "!SCRIPT_FILE!" "!GAME_PROC!" "!OUTPUT_FILE!"
 )
 
 echo.

@@ -10,7 +10,7 @@
 //   d = Debug — print raw player position + selected entity position
 //   q = Quit
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/nav_entity_scan.log';
+var logPath = FFX_CAPTURE_DIR + 'nav_entity_scan.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

@@ -128,7 +128,7 @@ The saved room identity is Baaj's Ruins – Antechamber, native script
 `bjyt1000`; the prior room is underwater passage `bjyt0800`. The retained
 original event has 37 workers, code length 7530 and code FNV `d13cfb8c`.
 Evidence was generated outside Git at
-`D:/Games/Dev/Custom/FFX/Analysis/FFX/Summon_20261020`; see the
+`../Analysis/FFX/Summon_20261020`; see the
 [repository-content record](../repository_content_20261020.md) for the
 completed external-input/history migration. No Tester Logs or installed game
 assets were read.

@@ -12,7 +12,11 @@ Ghidra and Frida output paths are guarded before writes across 15 Ghidra Java la
 
 ## Configuration and guard behavior
 
-The default evidence root is `D:\Games\Dev\Custom\FFX\Analysis\FFX\RepositoryEvidence`. `Docs\Scripts\Offline\evidence_paths.py` honors `FFX_EVIDENCE_ROOT` when set and rejects a configured root that is within any Git tree. From a command prompt, an override can be set with `set "FFX_EVIDENCE_ROOT=D:\Games\Dev\Custom\FFX\Analysis\FFX\RepositoryEvidence"`; `call Docs\Scripts\evidence_root.bat` resolves and validates the value before a guarded batch export or test runner proceeds. With no override, the helper selects the default root. A missing or rejected root stops the helper before the caller writes evidence. These commands configure offline paths; they do not launch the game or authorize runtime capture.
+The default evidence root is `../Analysis/FFX/RepositoryEvidence` relative to the source repository. `Docs\Scripts\Offline\evidence_paths.py` honors `FFX_EVIDENCE_ROOT` when set and rejects a root inside any Git tree. A relative override resolves from the caller’s working directory. `Docs\Scripts\evidence_root.bat` validates the root before guarded exports or tests write evidence.
+
+Offline tools that read game files require `FFX_GAME_DIR` pointing to an authorized installation or fixture. Generated Ghidra launch scripts use `GHIDRA_HEADLESS` or load the shared development environment. The ATEL extractor resolves Fahrenheit and FFXDataParser alongside the source repository and writes annotations under the external evidence root.
+
+For authorized diagnostics, `Docs/Scripts/Frida/run_frida.bat` passes project input paths and the external `frida-output` directory to the selected script. Python hosts resolve the same paths. The game process receives resolved paths because its working directory belongs to the game. The usual game-access and capture permissions still apply.
 
 ## Git history and publication state
 

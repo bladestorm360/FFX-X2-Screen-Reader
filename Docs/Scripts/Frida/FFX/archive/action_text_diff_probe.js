@@ -56,7 +56,7 @@
 //
 // Output: Docs/Scripts/Frida/output/FFX/action_text_diff_probe.log
 
-const LOG_PATH = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/action_text_diff_probe.log';
+const LOG_PATH = FFX_CAPTURE_DIR + 'action_text_diff_probe.log';
 const logHandle = new File(LOG_PATH, 'w');
 function logFile(msg) { try { logHandle.write(msg + '\n'); logHandle.flush(); } catch (e) {} }
 function logBoth(msg) { console.log(msg); logFile(msg); }

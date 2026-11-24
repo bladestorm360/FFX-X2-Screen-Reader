@@ -18,7 +18,7 @@ else {
         if (x.name === 'FfxNative_Features' && new NativeFunction(x.address, 'uint', [], 'mscdecl')())
             throw Error('Native reader owns the grid; this prototype must remain offline');
     }));
-    const file = new File('D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/sphere_confirmations_' + new Date().toISOString().replace(/[:.]/g, '-') + '.jsonl', 'w');
+    const file = new File(FFX_CAPTURE_DIR + 'sphere_confirmations_' + new Date().toISOString().replace(/[:.]/g, '-') + '.jsonl', 'w');
     function emit(value) { file.write(JSON.stringify(value) + '\n'); file.flush(); }
     Interceptor.attach(base.add(0x648c80), { onEnter(args) {
         const grid = base.add(0x1f05834).readPointer();

@@ -9,6 +9,7 @@ _evidence_sys.path.insert(0, str(_evidence_repo / "Docs/Scripts/Offline"))
 from evidence_paths import evidence_path, evidence_relative, write_replay_adapter
 
 from pathlib import Path
+from tool_paths import ghidra_commands
 from datetime import datetime, timezone
 import re
 import json
@@ -18,14 +19,14 @@ previous=evidence_path(root/'Docs/Scripts/Ghidra/output/FFX/status_animations_20
 out=previous.parent/('status_animation_callbacks_'+datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f'))
 out.mkdir()
 modules=[]
-lines=["$ErrorActionPreference = 'Stop'", "$env:JAVA_HOME = 'C:/Program Files/Java/jdk-21'"]
+lines=ghidra_commands()
 for source in sorted(previous.glob('magic_*.dll.txt')):
     text=source.read_text(encoding='utf-8')
     entries=sorted(set(re.findall(r'=\s*&LAB_(100[0-9a-f]{5})',text)))
     if not entries: continue
     name=source.name[:-4]
     modules.append(dict(name=name,entries=entries))
-    lines.append("& 'D:/Games/Dev/ghidra_12.0.3_PUBLIC/support/analyzeHeadless.bat' "
+    lines.append("& $env:GHIDRA_HEADLESS "
                  f"'{previous/'project'}' StatusAnimations -process {name} -noanalysis "
                  f"-scriptPath '{root/'Docs/Scripts/Ghidra/FFX'}' -postScript status_animation_module.java '{out}' "+' '.join(entries))
     lines.append("if ($LASTEXITCODE -ne 0) { throw 'Offline callback analysis failed: "+name+"' }")

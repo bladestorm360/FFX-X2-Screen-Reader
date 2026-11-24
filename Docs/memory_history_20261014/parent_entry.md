@@ -539,7 +539,7 @@ Reviewed 2026-10-02. Ownership: User custom implementation; Fahrenheit/UnX/FFXDa
 
 ## Imported Claude context
 
-Claude source: C:\Users\pmoen\.claude\projects\D--Games-Dev-Custom-FFX\memory. Imported 30 Markdown topic/index files on 2026-10-02. [Original memory index](<../../codex/claude-memory/Custom/FFX/MEMORY.md>) and [searchable topic list](<../../codex/claude-memory/Custom/FFX/CODEX_INDEX.md>).
+Claude source: the historical FFX Claude memory directory. Imported 30 Markdown topic/index files on 2026-10-02. [Original memory index](<../../codex/claude-memory/Custom/FFX/MEMORY.md>) and [searchable topic list](<../../codex/claude-memory/Custom/FFX/CODEX_INDEX.md>).
 
 Useful starting topics:
 

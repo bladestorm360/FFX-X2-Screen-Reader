@@ -8,10 +8,10 @@ if (typeof module !== 'undefined') module.exports = { audibleVoice, dialogueMode
 else {
     var main = Process.enumerateModules()[0], base = main.base;
     if (main.name.toLowerCase() !== 'ffx.exe') throw Error('FFX only');
-    var root = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/';
+    var root = FFX_SCRIPT_ROOT;
     var specs = JSON.parse(File.readAllText(root + 'Frida/FFX/native_extensions.json'));
     var stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    var file = new File(root + 'Frida/output/FFX/voiced_dialogue_' + stamp + '.jsonl', 'w');
+    var file = new File(FFX_CAPTURE_DIR + 'voiced_dialogue_' + stamp + '.jsonl', 'w');
     function log(s) { file.write(JSON.stringify(s) + '\n'); file.flush(); }
     var resolved = {};
     specs.filter(function(s) { return s.rva >= 0x307b40 && s.rva <= 0x30b8e0; }).forEach(function(s) {

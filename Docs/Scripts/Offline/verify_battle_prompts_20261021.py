@@ -1,11 +1,12 @@
 """Read-only repair receipt; no deployment, game control or log discovery."""
 from datetime import datetime,timezone
 from pathlib import Path
+from tool_paths import game_directory
 import hashlib,json,re,sys
 
 root=Path(__file__).resolve().parents[3]
 out=root/'install/battle-prompts-20261021'
-game=Path('D:/Games/SteamLibrary/steamapps/common/FINAL FANTASY FFX&FFX-2 HD Remaster')
+game=game_directory()
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 baseline=json.loads((out/'baseline.json').read_text())
 assert all(digest(p)==h for p,h in baseline['production_inputs'].items()),'Source changed after verified freeze'

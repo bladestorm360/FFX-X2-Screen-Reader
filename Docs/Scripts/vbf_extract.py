@@ -12,7 +12,7 @@ VBF format:
 
 Usage:
   python vbf_extract.py <vbf_path> <output_dir> [--filter flash]
-  python vbf_extract.py "D:\\Games\\...\\FFX_Data.vbf" extracted_ffx --filter flash
+  python vbf_extract.py "path/to/FFX_Data.vbf" extracted_ffx --filter flash
 """
 
 import struct

@@ -14,7 +14,7 @@
 //
 // Use Xbox controller on title screen. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/track_cursor_native.log';
+var logPath = FFX_CAPTURE_DIR + 'track_cursor_native.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

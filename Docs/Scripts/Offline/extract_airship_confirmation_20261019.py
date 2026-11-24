@@ -11,6 +11,7 @@ _evidence_repo = next(p for p in _EvidencePath(__file__).resolve().parents
                       if (p / "Docs/Scripts/Offline/evidence_paths.py").is_file())
 _evidence_sys.path.insert(0, str(_evidence_repo / "Docs/Scripts/Offline"))
 from evidence_paths import evidence_path, evidence_relative, write_replay_adapter
+from tool_paths import game_directory
 
 from pathlib import Path
 from io import BytesIO
@@ -22,7 +23,7 @@ from vbf import Vbf, output_path
 from phyre_texture import texture_dds
 
 ROOT = Path(__file__).resolve().parents[3]
-SOURCE = Path('D:/Games/SteamLibrary/steamapps/common/FINAL FANTASY FFX&FFX-2 HD Remaster/data/FFX_Data.vbf')
+SOURCE = game_directory() / 'data/FFX_Data.vbf'
 OUT = evidence_path(ROOT / 'Docs/Scripts/Offline/output/airship_confirmation_20261019')
 archive = Vbf(SOURCE)
 pattern = re.compile(r'/map/hiku/hiku(2[1-9]|30)/2d/tex/d3d11/0_29_\d+_\d+_([01])\.dds\.phyre$', re.I)

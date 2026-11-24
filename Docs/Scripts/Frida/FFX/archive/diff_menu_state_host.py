@@ -18,6 +18,9 @@ from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 JS_PATH = os.path.join(SCRIPT_DIR, "diff_menu_state.js")
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(SCRIPT_DIR)))
+from script_paths import load_script
 REPOSITORY = Path(__file__).resolve().parents[5]
 sys.path.insert(0, str(REPOSITORY / "Docs" / "Scripts" / "Offline"))
 from evidence_paths import evidence_path
@@ -40,8 +43,7 @@ def main():
         print(f"Error: {process_name} not found. Is the game running?")
         sys.exit(1)
 
-    with open(JS_PATH, 'r') as f:
-        js_code = f.read()
+    js_code = load_script(JS_PATH)
 
     script = session.create_script(js_code)
     script.on('message', on_message)

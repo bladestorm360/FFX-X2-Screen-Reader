@@ -1,7 +1,7 @@
 // @auto
 // @desc Enumerate modules, iggy exports, and FFX.exe imports for recon
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/enumerate_modules.log';
+var logPath = FFX_CAPTURE_DIR + 'enumerate_modules.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

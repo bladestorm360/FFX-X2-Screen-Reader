@@ -159,7 +159,7 @@ We need to find where the game stores the FINAL decoded display text — the act
 - TODrawSelectCursor: RVA 0x4B5F60 (cursor renderer)
 - TODrawMessage: RVA 0x4B5D70 (message renderer)
 - TODrawMessageWindow: RVA 0x4ABCE0 (UI render, Fahrenheit hooks this)
-- Fahrenheit source: D:\Games\Dev\Custom\FFX\fahrenheit\
+- Fahrenheit source: ../fahrenheit/
 
 KEYWORDS: Fahrenheit, TkWindow, TkMenu, cursor, getText, menu reader, text decode, popup, confirmation, FFX charset, input bitmask
 

@@ -264,7 +264,7 @@ Implementation in src/menus/saveload.js:
 
 ### ESC menu SWF verification (per user request)
 Verified escmenu.swf is animation-only. The decompiled AS3 directories
-in `D:/Games/Dev/Custom/FFX/extracted_ffx/decompiled/`:
+in `../extracted_ffx/decompiled/`:
 
 | SWF                 | scripts/ contents | Verdict |
 |---------------------|-------------------|---------|
@@ -971,8 +971,7 @@ Replaced the entire TkWindow iterator + cursor-hook block in
 - `Docs/Scripts/Frida/FFX/universal_menu_battle_reader.js` +
   `_host.py` — restored from archive for use as live oracle during
   port validation
-- `C:\Users\pmoen\.claude\projects\D--Games-Dev-Custom-FFX\memory\
-  feedback_trust_user_observation.md` — new memory: when user reports
+- `feedback_trust_user_observation.md` in the historical FFX Claude memory directory — new memory: when user reports
   X is silent, X is silent regardless of doc/agent claims to contrary
 
 ### Pending user testing
@@ -1000,7 +999,7 @@ tpChanged popup branch, line-by-line port lines 1683-1762
 
 ### Goal
 Execute the two ungated items from the high-confidence plan
-(`C:\Users\pmoen\.claude\plans\we-need-to-discuss-effervescent-glacier.md`):
+(`we-need-to-discuss-effervescent-glacier.md`):
 
 1. Dev-slug parsing — turn `chr_wakka_a`, `barrel_01`, etc. into player-facing
    names ("Wakka", "barrel") instead of `Object 0x<hex>` or raw slug.
@@ -1081,7 +1080,7 @@ tidLogStr).
 ### Items 4 + 5 — Unblocked mid-session by user-supplied CT files
 
 User downloaded the Big CE Table for FFX HD Remaster from Nexus Mods
-(mods/184) and pointed at `D:\Games\Dev\Custom\FFX\Cheat Engine Tables\`.
+(mods/184) and pointed at `../Cheat Engine Tables/`.
 The CT is plain XML, parseable directly. Spot-checking the per-character
 PlySave entries (Tidus through Rikku) yielded a complete struct map for
 the 0x94-byte slot, cross-validated against the existing +0x3B Sphere
@@ -1841,7 +1840,7 @@ pending the data ingest below.
 ### What changed
 
 - Cloned `https://github.com/Karifean/FFXDataParser` into
-  `D:/Games/Dev/Custom/FFX/FFXDataParser/` (parallel to fahrenheit/, NOT
+  `../FFXDataParser/` (parallel to fahrenheit/, NOT
   in the mod repo). License not stated; treated as research-only data
   extraction, no source redistribution.
 - Wrote `Docs/Scripts/Python/extract_atel_names.py` — joins Karifean's

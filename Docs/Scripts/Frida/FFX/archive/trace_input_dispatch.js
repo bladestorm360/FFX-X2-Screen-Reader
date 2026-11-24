@@ -13,7 +13,7 @@
 //
 // Press up, down, confirm on title screen. Ctrl+C to stop.
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/trace_input_dispatch.log';
+var logPath = FFX_CAPTURE_DIR + 'trace_input_dispatch.log';
 var logHandle = new File(logPath, 'w');
 
 function logFile(msg) {

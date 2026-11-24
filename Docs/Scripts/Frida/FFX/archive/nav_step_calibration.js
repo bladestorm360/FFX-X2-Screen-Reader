@@ -6,7 +6,7 @@
 //   P = Print current player position
 //   Q = Quit
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/nav_step_calibration.log';
+var logPath = FFX_CAPTURE_DIR + 'nav_step_calibration.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

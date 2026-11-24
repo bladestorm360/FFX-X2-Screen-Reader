@@ -19,7 +19,7 @@ var ancestor = native('GetAncestor', 'pointer', ['pointer', 'uint']);
 var enumChildren = native('EnumChildWindows', 'int', ['pointer', 'pointer', 'pointer']);
 var enumWindows = native('EnumWindows', 'int', ['pointer', 'pointer']);
 var getPid = native('GetWindowThreadProcessId', 'uint', ['pointer', 'pointer']);
-var outputDir = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX_Launcher/';
+var outputDir = FFX_CAPTURE_DIR;
 var stamp = new Date().toISOString().replace(/[:.]/g, '-');
 var file = new File(outputDir + 'native_ui_events_' + stamp + '.log', 'w');
 function log(message) { console.log(message); file.write(message + '\n'); file.flush(); }

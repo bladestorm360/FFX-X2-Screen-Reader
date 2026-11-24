@@ -15,7 +15,7 @@
 //
 // Key indices (from walk_device_list): 0x59, 0x5a, 0x73 = arrow/enter keys
 
-var logPath = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/trace_input_to_cursor.log';
+var logPath = FFX_CAPTURE_DIR + 'trace_input_to_cursor.log';
 var logHandle = new File(logPath, 'w');
 function logFile(msg) { logHandle.write(msg + '\n'); logHandle.flush(); }
 function logBoth(msg) { console.log(msg); logFile(msg); }

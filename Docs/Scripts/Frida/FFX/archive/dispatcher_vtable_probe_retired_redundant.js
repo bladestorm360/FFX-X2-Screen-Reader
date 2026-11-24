@@ -1,6 +1,6 @@
 // @desc Phase B dispatcher hunt — IWindowEvent vtable trap across menus
 //
-// Plan: C:\Users\pmoen\.claude\plans\dispatcher-mossy-sunrise.md
+// Plan: dispatcher-mossy-sunrise.md (historical Claude plan)
 //
 // Hypothesis: PhyreEngine routes window events through IWindowEvent
 // vtables. The abstract base lives at 0x00b46c1c. FFEscMenu overrides
@@ -37,7 +37,7 @@
 //
 // Output: Docs/Scripts/Frida/output/FFX/dispatcher_vtable_probe.log
 
-const LOG_PATH = 'D:/Games/Dev/Custom/FFX/ffx-x2-screen-reader/Docs/Scripts/Frida/output/FFX/dispatcher_vtable_probe.log';
+const LOG_PATH = FFX_CAPTURE_DIR + 'dispatcher_vtable_probe.log';
 const logHandle = new File(LOG_PATH, 'w');
 function logFile(msg) { try { logHandle.write(msg + '\n'); logHandle.flush(); } catch (e) {} }
 function logBoth(msg) { console.log(msg); logFile(msg); }
