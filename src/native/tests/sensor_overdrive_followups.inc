@@ -53,6 +53,7 @@ void sensorFixtures() {
     set<uint8_t>(monster+0x5dd,8); dispatchBattleSensorKey(VK_LEFT,true);
     expect(L"Weakness: Fire, Lightning","reading keys do not reconstruct the highlight snapshot");
     encoded(0x2310720,"Poison"); encoded(0x2310730,"Haste"); stub(0x38fd40,reinterpret_cast<void*>(sensorStatus));
+    set<uint16_t>(monster+0x606,8); set<uint8_t>(monster+0x613,3);
     set<uint8_t>(0xf3c918,1); event(0x49d300,address(0xf3c910));
     expect(L"Gold Element: HP 777/1000, poison","Sensor reveals enemy ailments with its HP");
     check(sensorHelpCalls==2,"new target owner assembles fresh native information");
@@ -62,6 +63,7 @@ void sensorFixtures() {
     dispatchBattleSensorKey(VK_RIGHT,true); expect(L"Uses Thunder.","Right selects the end when status rows are present");
     dispatchBattleSensorKey(VK_DOWN,true); expect(L"Uses Thunder.","Down stays on the last line at the buffer boundary");
     check(sensorHelpCalls==2,"review keys never call the native description getter");
+    set<uint16_t>(monster+0x606,0); set<uint8_t>(monster+0x613,0); stub(0x38fd40,reinterpret_cast<void*>(menu));
     set<uint8_t>(0xf3c918,2); check(!battleSensorAvailable(),"turn ownership invalidates stale Sensor review");
     set<uint8_t>(0xf3c918,0); set<uint16_t>(0xf3c9ea,32); check(!battleSensorAvailable(),"target mask invalidates stale review before redisplay");
     set<uint16_t>(0xf3c9ea,16); sensorAllowed=false;
