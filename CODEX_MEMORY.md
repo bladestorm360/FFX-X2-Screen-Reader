@@ -1,5 +1,11 @@
 # FFX current memory — November24
 
+[Pull request review hold](Docs/plan.md#november24-pull-request-review-hold).
+Documentation only until the user lifts the hold. Review each PR with the user
+and record which pieces they approve for later hand-merging. The Unavailable cue
+is approved. Enemy HP/MP rendering and all other proposals await
+individual review.
+
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
 are fixed in [PR #20](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/20).
 Merge `71caf7b` is verified on `master`. The former overlay case fails on the

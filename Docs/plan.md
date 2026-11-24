@@ -1,3 +1,37 @@
+## November24 pull request review hold
+
+**Documentation only until the user lifts the hold.** Keep existing PR states
+and production code as they stand. The earlier merge of PR #20 is recorded
+below. This phase does not authorize further merges, hand-merges, PR closures,
+builds or deployments.
+
+Review one PR at a time in conversation with the user. Explain the current mod
+behavior, the evidence for the reported gap, the proposed changes and their
+dependencies, and what players would notice. Ask the user which pieces to keep
+or revise for a later hand-merge. Work through follow-up questions on that PR
+and record the exact decision before moving to the next. The user directs the
+review order. A recorded decision defines the approved scope for later work
+after the hold is lifted.
+
+- **Unavailable cue approved.** The game’s error buzzer may be accompanied by
+  spoken “Unavailable.” The proposed default On, settings placement, greyed-out
+  row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)
+- **Enemy HP/MP display evidence unresolved.** The user recalls obtaining
+  screenshots of an enemy HP bar. The retained Battle Mode screenshot shows
+  party HP and MP and the turn order. Earlier notes document numeric party
+  vitals and identify the Change-row gauge as Overdrive. Those records leave
+  enemy bar visibility unresolved in the situation the user remembers. The
+  current enemy percentage is derived from actor values. Before deciding what
+  to hand-merge, locate the original screenshots or equivalent render evidence
+  and record the battle context, Sensor/Scan state, and what was shown.
+  [PR #23](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/23),
+  [Battle Mode screenshot record](help_navigation_quit_20261015.md),
+  [earlier renderer record](console_thread_hardening_20261008.md#renderer-and-settings),
+  [battle HUD record](battle_panels_controls_20261016.md#native-producer-and-visible-information-proof).
+
+All other proposals await their individual review. The Free Search location-list
+report remains separate from the completed Proceed? fix.
+
 ## November24 airship Proceed confirmation
 
 Status: **complete / Closed** for source and offline verification. The user
