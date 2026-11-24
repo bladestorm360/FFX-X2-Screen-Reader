@@ -220,8 +220,8 @@ Up/Down selects; Home/End selects the first/last item. Enter/Space applies,
 Escape cancels. Controller D-pad and LB/RB browse; A applies and B cancels.
 Native movement or Cancel stops assisted cursor motion. The picker provides no
 password list. User testing confirms the destination list reads and password
-entry works. The reported silent **Proceed?** options remain unresolved; offline
-selector checks did not prove that report fixed.
+entry works. Selecting a native destination reads **Proceed?** followed by its
+focused **Yes** or **No**, even while the destination list remains visible underneath.
 The October20 source repairs Free Search audio lifetime and toggle behavior,
 removes the blanket mute, and restores previews and independent events. Audible
 behavior through both actual menu routes remains unconfirmed.

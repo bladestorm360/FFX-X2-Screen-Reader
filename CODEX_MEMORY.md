@@ -1,5 +1,12 @@
 # FFX current memory — November24
 
+[Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
+are fixed in [PR #20](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/20).
+Merge `71caf7b` is verified on `master`. The former overlay case fails on the
+baseline and 487 focused offline checks pass with the fix. The contributor
+reported gameplay success. The game is absent locally. Free Search list reports
+are separate.
+
 The FFX workspace now lives under the shared C-drive development tree. The
 [path migration](Docs/plan.md#november24-workspace-path-migration) covers current
 checked-in paths, installer tests, offline extraction tools and the Frida
@@ -237,8 +244,8 @@ all32 known removed objects404. [Documentation audit and delegation review](Docs
 
 INI, named saves and0.5.7/0.5.8 ZIPs preserved. The preserved0.5.9 package remains verified; local0.6 gameplay testing is pending.
 No game launch/control/probe, Tester Logs or registry repair.
-Heartbeat PAUSED;2% remaining stop retained. Actual reported Proceed? prompt and
-Free Search Y investigation remain deferred. Full mod UI localization/HRTF and
+Heartbeat PAUSED;2% remaining stop retained. Free Search Y investigation remains
+deferred. Full mod UI localization/HRTF and
 other unimplemented scope stay explicit in the register. User-side prioritized
 checks: [verification](Docs/features/verification.md).
 

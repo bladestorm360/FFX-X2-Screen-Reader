@@ -50,7 +50,7 @@ hardware behavior are confirmed. Percentages are rough engineering estimates.
 | Airship coordinates, six-region picker and Shift+M | complete | Registration/search-state checks; both real menu paths pending new gameplay |
 | Airship image destination list | complete | Native image/render cases; list reading user-confirmed |
 | Password entered-text subject and punctuation controls | complete | Selector/copied-cell hosts; entry confirmed, new subject pending |
-| Actual reported silent Proceed? choices | in progress (~40%) | Layer29 replay passes; user suspects wrong prompt; further work deferred |
+| Airship Proceed? choices | complete | PR #20 merged; regression fails before fix and 487 focused checks pass with it. Contributor gameplay reported; local deployment pending. |
 | Free Search Y purpose/control | not started | Investigation deferred by user; M's X/Z confirmed |
 | Six Baaj seal navigation targets | complete | Offline labels/64 flag combinations/native geometry pass; user confirms eligible seals work and missing-treasure Besaid stays inactive |
 | Baaj native activation/closed Fayth door report | complete; user accepted | Eligible seals work; Besaid sphere collection now confirmed. Remaining check: remote reproduction of Baaj Ruins unlock through normal gameplay without warps; supplied save already has Zanarkand |

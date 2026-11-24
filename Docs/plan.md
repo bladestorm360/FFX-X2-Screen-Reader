@@ -1,3 +1,22 @@
+## November24 airship Proceed confirmation
+
+Status: **complete / Closed** for source and offline verification. The user
+authorized merging the confirmation fix if the failure was verified. The scope
+is the focused native Proceed? choices. PR #20 at `f83c309` changes the existing
+reader and adds an overlay regression. The prior source at `93129ec` fails the
+focused x86 replay when both destination layers remain shown beneath the prompt.
+The exact PR code passes 487 checks using the retained count helper and texture
+setter, production capture and worker formatting, and controlled event and speech
+boundaries. This exercises ordinary destination focus, both choices, all locale
+values and underlying-layer visibility states, state changes and cancellation.
+The bounded compile passes with warnings treated as errors. The contributor
+reports live confirmation. GitHub merge `71caf7b` is in `master`.
+The [offline receipt](../../Analysis/FFX/AirshipProceed_20261124/verification.json)
+records the inputs and test limits. The permanent overlay case is in
+`src/native/tests/airship_destinations_followups.inc`.
+The game is absent locally, so local deployment and gameplay confirmation remain
+pending. The separate Free Search list report is outside this repair.
+
 ## November24 workspace path migration
 
 Status: **complete / Closed**. The active source is the repository beside

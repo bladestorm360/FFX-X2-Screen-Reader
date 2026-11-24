@@ -230,10 +230,9 @@ The [status register](status.md) distinguishes offline and gameplay evidence.
    user-confirmed. Y necessity/control is documented for later investigation. N reads entered password
    text; F8 Speech options -> Speak punctuation names is Off by default. On
    names highlighted symbols; Off keeps raw output. Native TK owns prompts and
-   confirmation prompts. Latest user report suspects the Proceed? repair targeted
-   the wrong prompt; the original silent options remain unresolved. Work is
-   deferred at1% usage. On explicit resumption, establish the actual prompt and
-   producer before another fix; layer29's offline tests do not establish this.
+   confirmation prompts. With PR #20, choosing a native destination should speak
+   Proceed? followed by Yes. Move to No and back, cancel, and reopen. Expect the
+   newly highlighted choice, even when the destination list stays shown below.
    [Image option flow/offline evidence](puzzles/airship.md#proceed-confirmation-options).
    [Current repair/evidence](puzzles/airship_password_20261019.md).
 

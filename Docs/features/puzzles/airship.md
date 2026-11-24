@@ -69,11 +69,15 @@ never follows the stored engine pointers or enters native getters.
 
 ## Proceed confirmation options
 
-Latest October19 user correction: this may be the wrong prompt. The reported
-silent confirmation options remain unresolved; the following evidence proves
-only the implemented layer29 path, not that it addresses the user's prompt.
-Further investigation/repair is deferred at the user's request at1% usage.
-Identify the actual reported prompt first when work is explicitly resumed.
+The reported silent choices were fixed in
+[PR #20](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/20), merged
+November 24. The contributor reports that the live destination list and cursor
+stay shown beneath Proceed? and that both choices speak with the fix. The old
+reader closed the confirmation on those flags. Its focused replay fails under
+that layout. The patched reader passes 487 checks with the original texture
+setter, including both choices in every locale and all four underlying-layer
+visibility combinations. The test uses controlled event and speech boundaries.
+Local gameplay and deployment are pending because the game is absent.
 
 The October19 user report establishes that the destination list works but the
 following Proceed? choices were silent. This is an image selector, separate from
@@ -90,7 +94,8 @@ Complete60-byte original91A930 calls91A3D0 and stores into the sharedC0-byte lay
 record. Its full signature, dependencies and original-body replay are retained.
 
 Capture requires the armed epoch and same native layer-table owner, map382,
-foreground/no overlay, count48..128, shown29 and hidden list background10/cursor26.
+foreground/no mod overlay, count48..128 and shown29. Background10 and cursor26
+may be visible beneath the prompt.
 It requires no prepared script or active W9. The first accepted choice appends
 after the native prompt; a later different option/locale interrupts. The local
 guard compares native option and language, so Yes/No/Yes speaks all three.

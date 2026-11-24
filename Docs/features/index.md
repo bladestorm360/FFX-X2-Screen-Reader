@@ -73,9 +73,9 @@ and explanatory-comment count. It is a change/coverage inventory, not proof that
 counting comments establishes documentation quality. Topic and source review
 must continue for changed paths. Native profiles, lifecycle and gameplay gaps
 remain in the linked evidence; old successful fixtures are not fresh gameplay
-confirmation. Airship destination labels and password entry are user-confirmed;
-the later Proceed? option reader remains unresolved for the actual reported
-prompt. The October20 loop repair replaces blanket airship audio exclusion;
+confirmation. Airship destination labels and password entry are user-confirmed.
+The November24 Proceed? option fix is offline verified and contributor-tested
+in game. The October20 loop repair replaces blanket airship audio exclusion;
 its own evidence and pending gameplay checks are in the linked audio topic.
 
 [Source map](source-map.md) lists the actual production modules and their primary
