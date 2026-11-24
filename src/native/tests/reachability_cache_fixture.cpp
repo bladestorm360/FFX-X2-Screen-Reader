@@ -45,6 +45,10 @@ int main() {
     moved.player.x=12;check(!sameContext(first,moved),"missing floor crossing a bucket invalidates reachability");
     moved=first;moved.player.x=-.01;check(!sameContext(first,moved),"negative positions use floor buckets");
     moved=first;moved.player.x=std::numeric_limits<double>::quiet_NaN();check(!sameContext(first,moved),"nonfinite position never matches cache");
+    // Besaid - Trials: the contact band follows the player's idle bob (about 0.01 per frame), which restarted every scan.
+    Target band;band.id=7;band.minY=29.8397;band.maxY=57.8443;auto bobbed=band;bobbed.minY+=.01;bobbed.maxY-=.01;
+    check(sameTarget(band,bobbed),"idle bob in the contact band keeps the same target");
+    bobbed.maxY+=1;check(!sameTarget(band,bobbed),"a real change in the contact band is a different target");
     prepareSnapshots();first.floor=0;submit(first);const auto initialSearches=searches;
     moved=first;moved.player={4,0,4};submit(moved);
     check(searches==initialSearches,"worker reuses actual verdict after a step on the same floor");

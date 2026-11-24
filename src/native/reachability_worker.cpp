@@ -2,6 +2,7 @@
 #include "reachability.hpp"
 #include "process_storage.hpp"
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <map>
 #include <tuple>
@@ -43,6 +44,8 @@ bool sameContext(const Context& a,const Context& b) {
         a.collision.actorFlags==b.collision.actorFlags && a.collision.actorIsControlled==b.collision.actorIsControlled && a.collision.remaps==b.collision.remaps;
 }
 namespace {
+// The contact band is relative to the player body, so it follows the idle bob (about 0.01 per frame).
+bool sameBand(double a,double b) { return std::fabs(a-b)<=0.1; }
 bool samePoint(Point a,Point b) { return a.x==b.x && a.y==b.y && a.z==b.z; }
 bool sameShape(const InteractionShape& a,const InteractionShape& b) {
     return samePoint(a.center,b.center) && samePoint(a.end,b.end) && a.angle==b.angle && a.width==b.width &&
@@ -52,7 +55,7 @@ bool sameShape(const InteractionShape& a,const InteractionShape& b) {
 }
 bool sameTarget(const Target& a,const Target& b) {
     if(!sameShape(a.shape,b.shape) || !samePoint(a.position,b.position) || !samePoint(a.approach,b.approach) ||
-        !samePoint(a.obstacle,b.obstacle) || a.contactRadius!=b.contactRadius || a.minY!=b.minY || a.maxY!=b.maxY ||
+        !samePoint(a.obstacle,b.obstacle) || a.contactRadius!=b.contactRadius || !sameBand(a.minY,b.minY) || !sameBand(a.maxY,b.maxY) ||
         a.obstacleRadius!=b.obstacleRadius || a.count!=b.count || a.id!=b.id || a.pushControl!=b.pushControl ||
         a.actor!=b.actor || a.worker!=b.worker || a.exit!=b.exit || a.swimApproach!=b.swimApproach || a.swimDepth!=b.swimDepth ||
         a.inactive!=b.inactive || a.unsupported!=b.unsupported) return false;
