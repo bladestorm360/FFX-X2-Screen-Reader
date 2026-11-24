@@ -31,6 +31,8 @@ std::atomic<unsigned> revision{1};
 // Layer29 is one image containing both choices. Its native texture variant is
 // the focused choice. Showing it arms a lifetime but must not speak the previous
 // opening's leftover variant: hiku2100 sets the initial texture one frame later.
+// Live room382 keeps list10 and cursor26 shown under the prompt, so only the
+// layer29 lifetime gates the option.
 struct Confirmation {
     unsigned epoch=0;
     uintptr_t layers=0;
@@ -127,7 +129,7 @@ void confirmationChanged(Event& e) {
     Menu menu;
     if(!confirmation.armed) return;
     if(!context(menu) || confirmation.epoch!=generation() || confirmation.layers!=menu.layers ||
-       !shown(menu,ConfirmationLayer) || shown(menu,10) || shown(menu,Cursor)) {closeConfirmation();return;}
+       !shown(menu,ConfirmationLayer)) {closeConfirmation();return;}
     // Read the accepted WORD written by original91A930, not the setter argument.
     // All engine pointers stay on this native owner; domain14 receives scalars.
     const auto option=read<uint16_t>(menu.layers+ConfirmationLayer*0xc0+0x96,0xffff);

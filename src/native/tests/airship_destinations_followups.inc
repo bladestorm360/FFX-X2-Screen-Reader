@@ -116,8 +116,8 @@ void airshipDestinationFixtures() {
     destFocus(0,0,2);destEvent(0x51a830);before=said.size();resetAirshipDestinations();drainSpeechDomainsForTest();
     check(said.size()==before,"same-generation reset retires queued menu output");
     destFocus(0,0,2);destEvent(0x51a830);before=said.size();destEvent(0x51a7c0);drainSpeechDomainsForTest();check(said.size()==before,"closing cursor retires queued focus");
-    // Actual W9 closes list10/26 before showing29, then changes texture on the
-    // next scheduler pass. Execute the original setter, not a modeled selector.
+    // W9 shows29, then changes texture on the next scheduler pass. Execute the
+    // original setter, not a modeled selector.
     using Texture=void(__cdecl*)(int,uint16_t);
     const auto choose=[&](unsigned option) {
         reinterpret_cast<Texture>(nativeTexture)(29,static_cast<uint16_t>(option));
@@ -160,6 +160,10 @@ void airshipDestinationFixtures() {
     check(said.size()==before,"changed native layer ownership retires option lifetime");
     openConfirmation();choose(0);destEvent(0x51a7c0,26);drainSpeechDomainsForTest();
     check(said.size()==before+1 && said.back().first==L"Yes","list closure does not retire independent confirmation output");
+    // Live room382 keeps list10 and cursor26 shown under the Proceed prompt.
+    set<unsigned>(destLayers+10*0xc0,0);set<unsigned>(destLayers+26*0xc0,0);
+    set<unsigned>(destLayers+29*0xc0,0);destEvent(0x51a830,29);before=said.size();choose(1);drainSpeechDomainsForTest();
+    check(said.size()==before+1 && said.back().first==L"No","prompt over the still-shown list speaks the highlighted option");
     resetAirshipDestinations();setSetting(Setting::MenuIndex,oldIndex);scene=oldScene;testForeground=oldFocus;
     set<int>(0xf30804,oldRoom);
     airshipWorkers=oldWorkers;set<uintptr_t>(0xf26ae8,oldController);set<uintptr_t>(0x153bf80,oldLayerRoot);
