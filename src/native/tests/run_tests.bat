@@ -52,6 +52,8 @@ if /I "%~1"=="--navigation-geometry" goto navigationgeometry
 if /I "%~1"=="--sin-routes" goto sinroutes
 if /I "%~1"=="--sin-later-maps" goto sinlatermaps
 if /I "%~1"=="--sin-collection" goto sincollection
+if /I "%~1"=="--mod-toggle" goto modtoggle
+if /I "%~1"=="--atel-resources" goto atelresources
 if /I "%~1"=="--settings-defaults" goto settingsdefaults
 if /I "%~1"=="--utilities" goto utilities
 if /I "%~1"=="--pedestal" goto pedestal
@@ -67,17 +69,6 @@ if not "%errorlevel%"=="0" goto failed
 .\menu_speech_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--menu-speech" goto success
-if /I "%~1"=="--atel-resources" goto atelresources
-:modtoggle
-cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:mod_toggle_fixture.exe "%TEST_SRC%mod_toggle_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" /link user32.lib
-if not "%errorlevel%"=="0" goto failed
-mod_toggle_fixture.exe
-if not "%errorlevel%"=="0" goto failed
-cl /nologo /W4 /WX /EHsc /Gy /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:mod_resume_fixture.exe "%TEST_SRC%mod_resume_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" "%TEST_SRC%..\navigation_observations.cpp" /link /OPT:REF user32.lib
-if not "%errorlevel%"=="0" goto failed
-mod_resume_fixture.exe
-if not "%errorlevel%"=="0" goto failed
-if /I "%~1"=="--mod-toggle" goto success
 cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:log_history_fixture.exe "%TEST_SRC%log_history_fixture.cpp" "%TEST_SRC%..\log_history.cpp"
 if not "%errorlevel%"=="0" goto failed
 .\log_history_fixture.exe
@@ -102,6 +93,16 @@ if not "%errorlevel%"=="0" goto failed
 .\dialogue_voice_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--dialogue" goto success
+:modtoggle
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:mod_toggle_fixture.exe "%TEST_SRC%mod_toggle_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+mod_toggle_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /WX /EHsc /Gy /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:mod_resume_fixture.exe "%TEST_SRC%mod_resume_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" "%TEST_SRC%..\navigation_observations.cpp" /link /OPT:REF user32.lib
+if not "%errorlevel%"=="0" goto failed
+mod_resume_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--mod-toggle" goto success
 :movie
 cl /nologo /W4 /EHa /std:c++17 /MT /Fe:movie_dialogue_fixture.exe "%TEST_SRC%movie_dialogue_fixture.cpp" "%TEST_SRC%..\movie_dialogue.cpp" "%TEST_SRC%..\settings.cpp" /DFFX_READER_TEST /link user32.lib
 if not "%errorlevel%"=="0" goto failed
