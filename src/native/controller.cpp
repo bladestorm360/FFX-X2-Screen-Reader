@@ -393,7 +393,7 @@ void pumpController() {
 bool controllerOwned() { XINPUT_STATE state{};return currentState(state); }
 void resetControllerInput() {
     commandResumeAt=GetTickCount64();
-    owned=false;consumedMask=0;reservedContext=0;
+    owned=false;
     router={};consumed=0;havePending=haveFrame=gameSelect=false;contextEpoch=0;
     cancelControllerBinding();
 }

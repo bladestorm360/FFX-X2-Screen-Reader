@@ -60,7 +60,7 @@ void invalidate(const char*) {++epoch;}
 void interruptSpeechForInput() {}
 bool output(const wchar_t* text,bool,const char*) {said.emplace_back(text);return true;}
 void protectSpeech(bool) {}
-void cancelAutoWalk() {}
+void stopAutoWalk() {}
 void stopNavPreview() {}
 void resetModInput() {}
 void resetDirectInput() {}

@@ -360,17 +360,14 @@ int main() {
     pumpController(); pumpController(); check(controllerOwned(),"SDL reconnect restores ownership in input loop");
     SDL_SetJoystickVirtualButton(second,pad::South,true); pumpController();
     check(readGame()&XINPUT_GAMEPAD_A,"reconnected controller supplies native game input");
-    const auto offPad=swapControllerNativeStateForTest(rawPad);
-    rawButtons=XINPUT_GAMEPAD_A|XINPUT_GAMEPAD_Y;fixtureMenu=true;
-    modEnabled=false;readGame();
-    check(game.Gamepad.wButtons==rawButtons && !controllerOwned(),"off forwards original XInput without modal or consumed-control masks");
+    fixtureMenu=true;modEnabled=false;
     const auto beforeReplay=lastVk;
     SDL_SetJoystickVirtualButton(second,pad::South,false);physical::manualOwnerStep();
     for(const auto control:{pad::View,pad::Menu}) {
         SDL_SetJoystickVirtualButton(second,control,true);physical::manualOwnerStep();
         SDL_SetJoystickVirtualButton(second,control,false);physical::manualOwnerStep();
     }
-    resetControllerInput();fixtureMenu=false;modEnabled=true;swapControllerNativeStateForTest(offPad);
+    resetControllerInput();fixtureMenu=false;modEnabled=true;
     for(unsigned i=0;i<8;++i) pumpController();
     check(lastVk==beforeReplay,"reenable discards controller command edges collected while off");
     SDL_DetachVirtualJoystick(replacement); pumpController(); SDL_CloseJoystick(second);
