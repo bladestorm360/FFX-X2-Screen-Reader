@@ -27,7 +27,7 @@ std::array<Cached,4> cache{};
 unsigned cacheEpoch=0,nextCache=0;
 struct Strike {
     uintptr_t worker=0,chunk=0,signal=0;
-    unsigned epoch=0,bolts=0;
+    unsigned epoch=0,bolts=0,lastElapsed=0;
     bool cancelled=false,warned=false,injected=false,opening=false,wanted=false;unsigned serial=0;
 } strike;
 thread_local uintptr_t interpreter=0;
@@ -108,10 +108,12 @@ void queryImpl(Event& event) {
     if(!copy(get(worker,script->bolts,0),&bolts,sizeof(bolts)) ||
        !copy(get(worker,script->count,0),&count,sizeof(count)) ||
        !copy(get(worker,script->elapsed,0),&elapsed,sizeof(elapsed))) return;
+    // The native window restarting at 0 is a new strike even when bolts is unchanged after a miss.
+    const bool restarted=elapsed<strike.lastElapsed;strike.lastElapsed=elapsed;
     if(elapsed>=12) {cancelLightningWarning();return;}
     const bool same=strike.epoch==generation() && strike.worker==worker && strike.chunk==chunk &&
-        strike.signal==signal && strike.bolts==bolts && strike.serial==binding.span.serial;
-    if(!same) {navAudioCancelLightningWarning();strike={worker,chunk,signal,generation(),bolts};strike.serial=binding.span.serial;}
+        strike.signal==signal && strike.bolts==bolts && !restarted && strike.serial==binding.span.serial;
+    if(!same) {navAudioCancelLightningWarning();strike={worker,chunk,signal,generation(),bolts,elapsed};strike.serial=binding.span.serial;}
     if(!allowed()) { cancelLightningWarning(); return; }
     if(strike.cancelled) return;
     // CALL4003 starts the native flash immediately before the first query.
