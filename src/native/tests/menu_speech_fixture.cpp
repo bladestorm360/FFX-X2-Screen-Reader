@@ -104,6 +104,18 @@ void items(unsigned count=3,unsigned kind=0) {
     for(unsigned i=0;i<4;++i) {set<uint16_t>(0x1197730+i*4,0x2001);set<uint8_t>(0x1197732+i*4,3);}
     event(0x4c6da0,address(win),[]{set<int>(win+0x28,2);});
 }
+void openOnce() {
+    // The native Items hook runs twice on the opening frames, both times from state 0 (live 2026-11-23, 16 ms apart).
+    Sleep(300);setSetting(Setting::MenuIndex,0);setSetting(Setting::AutoDetail,0);
+    auto n=said.size();items();check(said.size()==n+1,"opening Items speaks the first row");
+    set<int>(win+0x28,0);event(0x4c6da0,address(win),[]{set<int>(win+0x28,2);});
+    check(said.size()==n+1,"second opening call on the same row stays silent");
+    event(0x4c6da0,address(win),[]{set<int>(win+0x58,1);});check(said.size()==n+2,"moving to another row speaks");
+    set<int>(win+0x58,0);event(0x4c6da0,address(win),[]{set<int>(win+0x58,0);});
+    Sleep(300);n=said.size();set<int>(win+0x28,0);event(0x4c6da0,address(win),[]{set<int>(win+0x28,2);});
+    check(said.size()==n+1,"reopening the same row after 250 ms speaks again");
+    Sleep(300);
+}
 void emptyItems() {
     setSetting(Setting::MenuIndex,0);setSetting(Setting::AutoDetail,1);items();expect(L"Restores HP","populated item has automatic detail");
     auto n=said.size();event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197732,0);});
@@ -175,6 +187,7 @@ int main(int argc,char** argv) {
     strcpy_s(reinterpret_cast<char*>(address(0x8eb890)),64,"Yes");strcpy_s(reinterpret_cast<char*>(address(0x8eba90)),64,"No");
     installFieldMenus();installSystemMenus();
     const std::string mode=argc>1?argv[1]:"all";
+    if(mode=="all" || mode=="open-once") openOnce();
     if(mode=="all" || mode=="empty") emptyItems();
     if(mode=="all" || mode=="slots") slots();
     if(mode=="all" || mode=="yes-no") yesNo();

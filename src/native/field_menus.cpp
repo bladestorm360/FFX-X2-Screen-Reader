@@ -51,6 +51,10 @@ void itemAfter(Event& e) {
     if (scene != 2 && scene != 3) return;
     const auto k = itemKey(e.args[0]);
     if (!k[9] || k == e.before) return;
+    // The native hook runs twice on the opening frames, both from state 0; speak that row once.
+    static Key lastSpoken{};static ULONGLONG lastAt=0;const auto now=GetTickCount64();
+    if (k == lastSpoken && now - lastAt < 250) return;
+    lastSpoken = k;lastAt = now;
     const auto getter = k[6] == 1 ? 0x3908f0 : k[6] == 2 ? 0x39a4c0 : 0x390a40;
     TextPlan p;prepareTextPlan(p,"items");
     if(k[10]) {
