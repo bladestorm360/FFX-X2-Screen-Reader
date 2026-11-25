@@ -1,9 +1,11 @@
 #include "../events.hpp"
 #include "../hook_calls.hpp"
+#include "../log_capture.hpp"
 #include "../resource_reset.hpp"
 #include <MinHook.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 namespace ffx {
 uintptr_t address(unsigned rva) { return rva; }
@@ -19,6 +21,10 @@ namespace {
 // loads, so the batch must still refuse to run without it.
 constexpr unsigned ResourceRva=0x46fed0,OrdinaryRva=20,BadRva=21;
 unsigned entered=0;
+bool applyFailedLogged=false;
+void captureLog(const ffx::LogCapture& packet) noexcept {
+    if(std::strstr(packet.format.data(),"batch apply failed")) applyFailedLogged=true;
+}
 void check(bool ok,const char* why) {
     if(!ok) { std::fprintf(stderr,"FAIL: %s\n",why); std::exit(1); }
 }
@@ -28,6 +34,13 @@ __declspec(noinline) int __cdecl ping(int value) { volatile int result=value; re
 uintptr_t uncommitted() {
     // Reserved but never committed: the same check a stale or wrong address fails.
     return reinterpret_cast<uintptr_t>(VirtualAlloc(nullptr,0x1000,MEM_RESERVE,PAGE_NOACCESS));
+}
+void* codePage() {
+    // push ebp; mov ebp,esp; mov eax,[ebp+8]; inc eax; pop ebp; ret
+    static const unsigned char body[]={0x55,0x8b,0xec,0x8b,0x45,0x08,0x40,0x5d,0xc3};
+    void* page=VirtualAlloc(nullptr,0x1000,MEM_RESERVE|MEM_COMMIT,PAGE_EXECUTE_READWRITE);
+    if(page) memcpy(page,body,sizeof(body));
+    return page;
 }
 }
 int main() {
@@ -61,5 +74,23 @@ int main() {
     }
     check(registered && !ffx::hookAddress(reinterpret_cast<uintptr_t>(ping),OrdinaryRva,listener<8>,nullptr),"a listener past the limit is reported");
     check(!ffx::enableHooks(),"a listener past the limit refuses the batch");
-    std::puts("PASS: a bad hook target is skipped; a missing resource scope hook or a listener past the limit still refuses the batch.");
+
+    // MH_ApplyQueued fails part way when a queued target is released after it
+    // was registered: MinHook patches ping first, then cannot unprotect the
+    // released page. The live part of the batch must be disabled again, and
+    // MinHook must stay initialized so no trampoline is freed under a bridge.
+    check(MH_Initialize()==MH_OK,"initialize fourth batch");
+    entered=0;
+    void* released=codePage();
+    check(released!=nullptr,"allocate a code page");
+    check(ffx::hookAddress(reinterpret_cast<uintptr_t>(ping),OrdinaryRva,listener<0>,nullptr) &&
+        ffx::hookAddress(reinterpret_cast<uintptr_t>(released),BadRva,listener<1>,nullptr),"register a live and a doomed target");
+    check(VirtualFree(released,0,MEM_RELEASE)!=0,"release the doomed target");
+    ffx::logCaptureHandler.store(&captureLog);
+    check(!ffx::enableHooks() && applyFailedLogged,"a failed batch apply is reported");
+    ffx::logCaptureHandler.store(nullptr);
+    check(ping(1)==2 && entered==0,"the part of the batch that went live is disabled again");
+    check(MH_Initialize()==MH_ERROR_ALREADY_INITIALIZED,"MinHook stays initialized after a failed apply");
+    ffx::discardHooks();
+    std::puts("PASS: a bad hook target is skipped; a missing resource scope hook or a listener past the limit still refuses the batch; a failed batch apply disables the live part and keeps MinHook initialized.");
 }
