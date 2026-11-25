@@ -138,7 +138,7 @@ std::wstring instruction(const nav::Scene& observation,const Entity& target,cons
 // A scene or an assisted push owns the player while the script is part-way
 // through its writes (a door scene briefly empties a socket), so the guide
 // holds its last exact step until the player has control again.
-bool settling(const nav::Scene& observation) {return !observation.control || (observation.pedestal.armed && observation.pedestal.held);}
+bool settling(const nav::Scene& observation) {return !observation.control || observation.visibleMessage || (observation.pedestal.armed && observation.pedestal.held);}
 // Manual F9 and F10 selection starts from the step the guide last found.
 // A sphere put back where it came from. A pickup step whose `also` says its
 // source recess is empty (Besaid w39) is undone when the hand is empty and the
@@ -264,7 +264,7 @@ std::wstring puzzleGuideOwned(OwnedGuideAction action,const nav::Scene& observat
     if(!std::strcmp(state.route->script,"bsyt0100") && current.worker==7 && value(observation,state,0x5c0000cc)!=1) return prefix+L"The Besaid Sphere must be in the pedestal before the final push. Insert it into the pedestal sphere recess first."+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,state.route->steps[8],entities),false,manual,intentRevision):L"");
     const bool held=settling(observation);
     std::wstring push;if(pushStep(state,current) && !held) {try {push=instruction(observation,target(observation,state,current,entities),&current,done(observation,state,current));}catch(...) {}}
-    if(held && action!=OwnedGuideAction::Path) push=L"Wait for the current scene or push to finish, then ask again.";
+    if(held && action!=OwnedGuideAction::Path) push=puzzleGuideWaitText(observation.visibleMessage);
     return prefix+current.instruction+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,current,entities),current.platform,manual,intentRevision):push.empty()?L"":L" "+push);
 }
 }

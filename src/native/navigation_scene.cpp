@@ -3,6 +3,7 @@
 #include "navigation_targets.hpp"
 #include "interaction_region.hpp"
 #include "exit_labels.hpp"
+#include "field_controls.hpp"
 #include "room_areas.hpp"
 #include "utility_memory.hpp"
 #include "swimming_navigation.hpp"
@@ -108,6 +109,7 @@ bool captureNavigationScene(Scene& s,unsigned revision,bool needGeometry) {
     s.swimming=read<uint8_t>(player+0x186)==2;s.dive=read<uint8_t>(address(swimming_rva::DiveEnabled))!=0;
     s.cameraValid=cameraBasis(s.forward,s.right);s.extraTalkRange=read<float>(s.controller+0x1f0);prepareCopiedControlSnapshot(s.controls);
     s.confirmMask=pedestalConfirmMask();
+    s.visibleMessage=nativeVisibleMessageText();
     using Person=uintptr_t(__cdecl*)(unsigned);const auto person=reinterpret_cast<Person>(address(0x385070));
     for(unsigned i=0;i<s.people.size();++i) s.people[i].length=copyReadyGameText(person(i),s.people[i].bytes.data(),s.people[i].bytes.size());
     s.pedestal=capturePedestalNavigationState();

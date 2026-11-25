@@ -304,6 +304,8 @@ std::wstring join(const std::vector<std::wstring>& parts,const wchar_t* sep) { s
 namespace {
 // Player control and assisted-push state copied into the guide scene.
 bool fixtureGuideControl=true;
+// An open game message window (Scene::visibleMessage).
+bool fixtureGuideMessage=false;
 ffx::PedestalNavigationState fixtureGuidePedestal{};
 const ffx::nav::Scene* fixtureGuideScene=nullptr;
 // Live scene workers for the guide: {local worker, interaction channels}.
@@ -316,7 +318,7 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     script.worker=worker0;script.header=read<uintptr_t>(worker0);
     nav::Scene& guideScene=*([]()->nav::Scene* { static nav::Scene value{};return &value; })();
     std::memset(&guideScene,0,sizeof(guideScene));guideScene.epoch=generation();guideScene.revision=1;guideScene.primary=script.chunk;guideScene.partCount=1;
-    guideScene.control=fixtureGuideControl;guideScene.pedestal=fixtureGuidePedestal;fixtureGuideScene=&guideScene;
+    guideScene.control=fixtureGuideControl;guideScene.visibleMessage=fixtureGuideMessage;guideScene.pedestal=fixtureGuidePedestal;fixtureGuideScene=&guideScene;
     for(const auto& [local,channels]:fixtureGuideWorkers) {auto& fact=guideScene.workers[guideScene.count++];
         fact.valid=true;fact.part=0;fact.local=local;fact.global=guideScene.count-1;fact.interactions.channels=channels;}
     auto& part=guideScene.parts[0];

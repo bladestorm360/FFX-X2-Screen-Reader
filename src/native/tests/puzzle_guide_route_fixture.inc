@@ -198,6 +198,13 @@ void guideSelectionFixture() {
     fixturePuzzleGuideSync(OwnedGuideAction::Completed);
     guideSays(OwnedGuideAction::Expected,L"Step 4 of","guide holds the last exact step during a scene");
     guideSays(OwnedGuideAction::Expected,L"Wait for the current scene or push to finish","guide says it is waiting during a scene");
+    // Live Djose 2026-11-24: after an insert the game message stays open until
+    // Enter, so the guide names the message instead of waiting on a scene.
+    fixtureGuideMessage=true;
+    guideSays(OwnedGuideAction::Expected,L"Press Enter to close the message, then ask again.","guide names the open message after an insert");
+    fixtureGuideControl=true;
+    guideSays(OwnedGuideAction::Expected,L"Press Enter to close the message, then ask again.","an open message holds the step while the player has control");
+    fixtureGuideMessage=false;fixtureGuideControl=false;
     setValue(0x0000028e,1,1);fixtureGuideControl=true;
     fixturePuzzleGuideSync(OwnedGuideAction::Completed);
     guideSays(OwnedGuideAction::Step,L"Step 5 of","manual selection follows the guide once the scene ends");

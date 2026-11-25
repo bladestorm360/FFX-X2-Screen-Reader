@@ -38,6 +38,7 @@ struct Scene {
     // Exact Baaj request-time diagnostic facts, captured with its existing
     // native scene event. No polling or game pointer crosses into preparation.
     bool baajFactsReady=false;int baajTreasureFlags=-1,baajActivatedCount=-1;
+    bool visibleMessage=false; // Open TK window with a nonempty text source, captured on the native owner.
     CopiedControls controls;
     std::array<SceneName,20> people;
     unsigned areaNameCount=0;

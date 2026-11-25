@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <cmath>
 namespace ffx {
+// confirm names the game's Confirm binding on a controller; the keyboard text
+// keeps Enter.
+inline std::wstring puzzleGuideWaitText(bool message,const std::wstring& confirm=L"Enter") {return message?L"Press "+confirm+L" to close the message, then ask again.":L"Wait for the current scene or push to finish, then ask again.";}
 // Reset PC 2FB2 and the verified three-leg corridor identify worker 6 after
 // reset, including a guide reopened between legs. No sphere flag records it.
 inline bool kilikaResetReached(Point pedestal) {
