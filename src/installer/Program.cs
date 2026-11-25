@@ -242,6 +242,7 @@ namespace FfxScreenReader.Setup
         {
             string text = "Uninstall the screen reader from " + folder + "? Setup removes the screen reader files, including those of older versions, and restores the original launcher configuration. Saves, settings and other mods stay.";
             const string title = "Uninstall screen reader";
+            ComeForward();
             var config = new TaskDialogConfig {
                 Size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(TaskDialogConfig)), Owner = Handle,
                 Flags = 0x2 | 0x8, // TDF_USE_HICON_MAIN, TDF_ALLOW_DIALOG_CANCELLATION
@@ -279,8 +280,34 @@ namespace FfxScreenReader.Setup
         private static extern void TaskDialog(IntPtr owner, IntPtr instance, string title, string instruction, string content,
             int buttons, IntPtr icon, out int button);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern int GetWindowThreadProcessId(IntPtr window, IntPtr process);
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool AttachThreadInput(int attach, int to, bool join);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")] private static extern int GetCurrentThreadId();
+
+        // A result can arrive while another window is in front: an administrator
+        // prompt, a file dialog of the relaunched setup, or a window the user switched
+        // to. A dialog whose owner is in the background opens without focus, and
+        // screen readers do not announce it. Bring setup to the front first. Windows
+        // refuses SetForegroundWindow from a background process, so join the input
+        // queue of the foreground window's thread for the call. A setup window that
+        // is not shown (the tests) stays where it is.
+        private void ComeForward()
+        {
+            if (!Visible) return;
+            if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+            IntPtr front = GetForegroundWindow();
+            if (front == Handle) return;
+            int own = GetCurrentThreadId(), other = front == IntPtr.Zero ? 0 : GetWindowThreadProcessId(front, IntPtr.Zero);
+            bool joined = other != 0 && other != own && AttachThreadInput(own, other, true);
+            try { SetForegroundWindow(Handle); Activate(); }
+            finally { if (joined) AttachThreadInput(own, other, false); }
+        }
+
         private void ShowMessage(string text, bool error)
         {
+            ComeForward();
             status.Text = text;
             string title = error ? "Setup could not finish" : "Screen reader setup";
             // Screen readers hear MessageBox text without '&' ("FFX&FFX-2" reads as "FFXFFX-2").

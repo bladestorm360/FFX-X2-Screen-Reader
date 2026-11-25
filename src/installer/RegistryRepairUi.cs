@@ -48,6 +48,7 @@ namespace FfxScreenReader.Setup
                 return dialog;
         }
         private bool ConfirmRegistry(string title, string explanation, IList<LaunchRedirectRepair.Entry> entries) {
+            ComeForward();
             using (var dialog = RegistryConfirmation(title, explanation, entries)) return dialog.ShowDialog(this) == DialogResult.Yes;
         }
         private bool Administrator(string action) {

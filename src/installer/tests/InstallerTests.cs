@@ -436,6 +436,7 @@ internal static class InstallerTests
     private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string title);
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr window, int command);
 
     // Screen readers must hear '&' in result text such as a backup folder under
     // "FFX&X-2 HD Remaster". The dialog opens on a hidden desktop, so the test
@@ -446,6 +447,7 @@ internal static class InstallerTests
         var names = new List<string>();
         OnHiddenDesktop("Screen reader setup", "ShowMessage", new object[] { text, false }, 1, names);
         Assert(names.Contains(text), "Screen readers hear the exact result text, including '&'");
+        Assert(names.Contains("Owned by setup"), "The result dialog is owned by the setup window");
     }
 
     // The uninstall question names the game folder, so it must keep '&' too, and No stays the default.
@@ -457,6 +459,7 @@ internal static class InstallerTests
         Assert(names.Exists(delegate(string name) { return name.StartsWith("Uninstall the screen reader from " + folder + "?", StringComparison.Ordinal); }),
             "Screen readers hear the exact folder in the uninstall question, including '&'");
         Assert(names.Contains("Default button: No"), "No is the default answer to the uninstall question");
+        Assert(names.Contains("Owned by setup"), "The uninstall question is owned by the setup window");
         Assert(confirmed is bool && !(bool)confirmed, "Answering No does not confirm uninstall");
     }
 
@@ -469,11 +472,14 @@ internal static class InstallerTests
         Assert(desktop != IntPtr.Zero, "Hidden test desktop is created");
         Exception failure = null;
         object result = null;
+        IntPtr owner = IntPtr.Zero;
         var show = new Thread(delegate() {
             try {
                 SetThreadDesktop(desktop);
-                using (var window = new InstallerForm())
+                using (var window = new InstallerForm()) {
+                    owner = window.Handle;
                     result = typeof(InstallerForm).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(window, arguments);
+                }
             } catch (Exception ex) { failure = ex; }
         });
         var read = new Thread(delegate() {
@@ -487,6 +493,8 @@ internal static class InstallerTests
                     System.Windows.Automation.TreeScope.Descendants, System.Windows.Automation.Condition.TrueCondition))
                     names.Add(element.Current.Name);
                 names.Add("Default button: " + DefaultButton(box));
+                // GW_OWNER: a dialog without the setup window as owner can open behind it.
+                if (owner != IntPtr.Zero && GetWindow(box, 4) == owner) names.Add("Owned by setup");
                 // UI Automation Invoke needs keyboard input, which a hidden desktop has not.
                 // Press with TDM_CLICK_BUTTON (task dialog) or BM_CLICK (message box button).
                 PostMessage(box, 0x0466, new IntPtr(press), IntPtr.Zero);
