@@ -15,6 +15,7 @@
 #include "butterfly_paths.hpp"
 #include "butterfly_navigation.hpp"
 #include "wall_cues.hpp"
+#include "log_capture.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -37,6 +38,16 @@ std::atomic<DWORD> preparationOwner{0};
 bool onOwner() {return !nativeGameThread() && preparationOwner.load(std::memory_order_acquire)==GetCurrentThreadId();}
 struct LegSnapshot {NavLeg leg;unsigned revision=0,valid=0;};
 async::AtomicSnapshot<LegSnapshot> publishedLeg;
+// The leg is about 60 KB, so a game-thread read can overlap a worker publish and fail.
+// The worker skips republishing an unchanged leg, and the game thread keeps its last
+// whole read for a short time instead of treating one overlap as a lost route.
+alignas(LegSnapshot) std::array<unsigned char,sizeof(LegSnapshot)> lastPublished{},heldLeg{};
+ULONGLONG heldAt=0;
+void publishSnapshot(LegSnapshot& p) {
+    if(!std::memcmp(lastPublished.data(),&p,sizeof(p))) return;
+    std::memcpy(lastPublished.data(),&p,sizeof(p));publishedLeg.publish(p);
+}
+void publishEmpty() {LegSnapshot p;std::memset(&p,0,sizeof(p));publishSnapshot(p);}
 struct State {
     Mesh collision;
     std::vector<Entity> live;
@@ -59,17 +70,17 @@ State& owned() {return state.get();}
 void release(unsigned slot,unsigned ticket) {if(slot<Slots) tickets[slot].compare_exchange_strong(ticket,0,std::memory_order_release,std::memory_order_relaxed);}
 void clearOwned() {
     auto& s=owned();s.legs.clear();s.destination.clear();s.target={};s.routeEpoch=0;s.nextLeg=1;s.arrived=false;
-    s.revision=clearRevision.load(std::memory_order_acquire);known=false;publishedLeg.publish({});
+    s.revision=clearRevision.load(std::memory_order_acquire);known=false;publishEmpty();
 }
 bool current() {return state.ready() && owned().epoch==generation() && owned().revision==clearRevision.load(std::memory_order_acquire);}
 void reconcile() {if(state.ready() && !current()) {clearOwned();owned().ready=false;}}
 void publishLeg() {
-    auto& s=owned();LegSnapshot p;p.revision=s.revision;
+    auto& s=owned();LegSnapshot p;std::memset(&p,0,sizeof(p));p.revision=s.revision;
     if(s.legs.size()>1 && s.nextLeg<s.legs.size() && !s.destination.empty() && (s.routeEpoch==s.epoch || s.arrived)) {
         p.valid=1;p.leg.start=s.legs[s.nextLeg-1];p.leg.goal=s.legs[s.nextLeg];p.leg.final=s.legs.back();p.leg.epoch=s.epoch;p.leg.arrived=s.arrived;p.leg.collisionSerial=s.routeCollisionSerial;
-        OwnedNavTarget copied;if(!captureOwnedNavTarget(s.target,copied)) {publishedLeg.publish({});return;}p.leg.target=copied.native;
+        OwnedNavTarget copied;if(!captureOwnedNavTarget(s.target,copied)) {publishEmpty();return;}p.leg.target=copied.native;
     }
-    publishedLeg.publish(p);
+    publishSnapshot(p);
 }
 void emit(std::wstring text,const char* producer) {speechq::emitOwned(std::move(text),owned().header,producer,false,false);}
 bool sameShape(const InteractionShape& a,const InteractionShape& b) {
@@ -181,7 +192,13 @@ bool captureRoute(unsigned kind,const std::vector<Point>& points,const Entity& t
 }
 bool navRouteKnown() {return known.load(std::memory_order_acquire);}
 bool navLeg(NavLeg& leg) {
-    LegSnapshot p;if(!publishedLeg.tryRead(p) || p.revision!=clearRevision.load(std::memory_order_acquire) || p.leg.epoch!=generation() || !p.valid) return false;
+    // tryRead writes its result only on success, so a failed native read leaves the held leg intact.
+    const bool native=nativeGameThread();LegSnapshot local;const char* reason=nullptr;
+    LegSnapshot& p=native?*reinterpret_cast<LegSnapshot*>(heldLeg.data()):local;
+    if(publishedLeg.tryRead(p)) {if(native) heldAt=GetTickCount64();}
+    else if(!native || !heldAt || GetTickCount64()-heldAt>250) reason="busy";
+    if(!reason) reason=p.revision!=clearRevision.load(std::memory_order_acquire)?"cleared":p.leg.epoch!=generation()?"map changed":!p.valid?"no route":nullptr;
+    if(reason) {if(native) recordLog("navigation leg unavailable: %s",reason);return false;}
     leg=p.leg;leg.pendingCollision=leg.collisionSerial!=navCollisionSerial();return true;
 }
 void prepareNavRetirement() {

@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <thread>
 namespace {thread_local bool observingLeg=false;std::atomic<unsigned> legAllocations{0},legFrees{0};}
 namespace {static ffx::nav::Scene sceneFacts; static ffx::speechq::Header sceneHeader;}
 void* operator new(size_t size) {if(observingLeg) ++legAllocations;auto* p=std::malloc(size?size:1);if(!p) throw std::bad_alloc();return p;}
@@ -25,7 +26,7 @@ void stopAutoWalk() {++autoWalkStops;}
 unsigned wallCaptures=0,fixtureWallMask=0;
 std::atomic<int> scene{0};
 bool focused=true,menu=false,battle=false,beacon=true,arrival=true,autoWalk=false;
-bool nativeOwner=false;
+thread_local bool nativeOwner=false;
 Point cameraForward{1,0,0};
 int dialogue=0;
 uint8_t controllerFlags=2;
@@ -358,5 +359,23 @@ int main(int argc,char**) {
     check(!legAllocations && !legFrees && std::wcslen(copiedLeg.target.name.data())==600 && copiedLeg.target.zone.competing.count==500 &&
         copiedLeg.target.zone.competing[499].worker==499 && copiedLeg.target.zone.competing[499].range==499.25,"long name/all500 competitor facts copied with Native heap0/0");
     std::printf("METRIC actual POD NavLeg1000 warm copies=%0.3fus, Native heap0/0; component fixture only.\n",copiedCost);
+    // A native read that overlaps a worker publish keeps the last whole leg instead of losing the route.
+    {
+        // The game thread reads every frame, so it already holds a whole leg when a publish overlaps.
+        NavLeg raced;nativeOwner=true;check(navLeg(raced),"native leg before worker publishes");nativeOwner=false;
+        std::atomic<bool> running{true};std::atomic<unsigned> writes{0};
+        std::thread worker([&] {
+            for(unsigned i=0;running.load();++i) {
+                fixtureRouteNavAudio({{5,0,5},{25,0,(i&1)?4.f:6.f},{45,0,5}},copiedTarget);writes.fetch_add(1);
+            }
+        });
+        while(!writes.load()) std::this_thread::yield();
+        nativeOwner=true;unsigned reads=0,failures=0;
+        const auto until=std::chrono::steady_clock::now()+std::chrono::milliseconds(300);
+        while(std::chrono::steady_clock::now()<until) {++reads;if(!navLeg(raced)) ++failures;}
+        nativeOwner=false;running=false;worker.join();
+        std::printf("METRIC native leg reads=%u failures=%u during %u worker publishes.\n",reads,failures,writes.load());
+        check(writes.load()>100 && !failures,"native leg read during worker publish keeps the held leg");
+    }
     puts("PASS: event-driven route legs, strict endpoints, moving targets, butterfly hazard deltas, depth transitions, route loss, focus and teardown.");
 }
