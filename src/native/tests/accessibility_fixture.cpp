@@ -430,6 +430,9 @@ int main() {
     check(said.back().find(L"Cloister of Trials. Solve current trial automatically:")==0,"supported trial submenu announces its own title");
     selectRow(L"Read path to current step"); menuKeyForTest(VK_RETURN);
     check(puzzleAction==L"path","trial actions remain reachable after menu reorganization");
+    check(!modMenuActive(),"Read path closes the menu so its walk can start");
+    pressForTest(VK_F8,false); selectRow(L"Miscellaneous, submenu"); menuKeyForTest(VK_RETURN);
+    selectRow(L"Cloister of Trials, submenu"); menuKeyForTest(VK_RETURN);
     menuKeyForTest(VK_END); menuKeyForTest(VK_RETURN);
     check(said.back().find(L"Miscellaneous. Cloister of Trials, submenu")==0,"trial Back restores its nested parent row");
     menuKeyForTest(VK_ESCAPE);

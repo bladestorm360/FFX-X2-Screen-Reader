@@ -37,6 +37,7 @@ unsigned manualInputRevision=1;
 #endif
 std::map<unsigned,std::vector<Listener>> navigationListeners;std::map<unsigned,void(*)(bool)> navigationKeys;
 std::vector<std::wstring> navigationSaid;
+std::vector<std::string> navigationProducers;
 uintptr_t __cdecl nameTableGetter(unsigned) {if(!nativeOwner) ++foreignReads;return reinterpret_cast<uintptr_t>(&nameTableSize);}
 uintptr_t __cdecl areaNameGetter(unsigned,unsigned) {if(!nativeOwner) ++foreignReads;++areaGetterCalls;return reinterpret_cast<uintptr_t>(areaBytes.data());}
 uintptr_t __cdecl personGetter(unsigned) {if(!nativeOwner) ++foreignReads;return reinterpret_cast<uintptr_t>(personBytes.data());}
@@ -106,8 +107,8 @@ std::wstring playerName(int) {++foreignReads;return {};}
 bool output(const std::wstring& text,bool interrupt,const char* producer) {return speechq::output(text.data(),text.size(),interrupt,producer,false,generation());}
 bool output(const wchar_t* text,bool interrupt,const char* producer) {return speechq::output(text,std::wcslen(text),interrupt,producer,false,generation());}
 #else
-bool output(const std::wstring& text,bool,const char*) {navigationSaid.push_back(text);return true;}
-bool output(const wchar_t* text,bool,const char*) {navigationSaid.emplace_back(text);return true;}
+bool output(const std::wstring& text,bool,const char* producer) {navigationSaid.push_back(text);navigationProducers.emplace_back(producer?producer:"");return true;}
+bool output(const wchar_t* text,bool,const char* producer) {navigationSaid.emplace_back(text);navigationProducers.emplace_back(producer?producer:"");return true;}
 #endif
 bool outputDialogue(const std::wstring& text,bool interrupt,const char* producer,bool) {return output(text,interrupt,producer);}
 bool hook(unsigned rva,Handler before,Handler after) {navigationListeners[rva].push_back({before,after});return true;}

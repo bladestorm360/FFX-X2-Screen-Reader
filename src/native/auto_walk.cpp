@@ -200,7 +200,22 @@ void autoWalkPlayerInput(unsigned vk) {
         cancel=true; mask=0;
     }
 }
+void autoWalkPlayerKeyboard(uint8_t* keys);
+// A key pressed while the mod menu is open stays the menu's until it is released, so
+// the Enter that picks "Read path to current step" does not cancel the walk it starts.
+// Auto walk and the pedestal approach see only the player's keys.
 void autoWalkKeyboard(uint8_t* keys) {
+    static std::array<bool,256> menuHeld{};
+    std::array<uint8_t,256> menuKeys{};
+    const bool menu=modMenuActive();
+    for(unsigned i=0;i<256;++i) {
+        menuHeld[i]=(keys[i]&0x80) && (menuHeld[i] || menu);
+        if(menuHeld[i]) {menuKeys[i]=keys[i];keys[i]=0;}
+    }
+    autoWalkPlayerKeyboard(keys);
+    for(unsigned i=0;i<256;++i) if(menuHeld[i] && !keys[i]) keys[i]=menuKeys[i];
+}
+void autoWalkPlayerKeyboard(uint8_t* keys) {
     pedestalKeyboardInput(keys);
     bool physical=false;
     for(unsigned scan:{0x11u,0x1eu,0x1fu,0x20u,0xc8u,0xd0u,0xcbu,0xcdu,0x1cu,0x01u})

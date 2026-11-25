@@ -151,6 +151,11 @@ int main() {
     stopAutoWalk(); check(!autoWalkActive(),"empty-poll revision check starts stopped");
     revision=autoWalkInputRevision(); manualKeys={}; autoWalkKeyboard(manualKeys.data()); manualPad={}; autoWalkController(manualPad);
     check(autoWalkInputRevision()==revision,"empty keyboard and controller polls leave input revision unchanged");
+    menu=true; manualKeys={}; manualKeys[0x1c]=0x80; autoWalkKeyboard(manualKeys.data()); menu=false;
+    revision=autoWalkInputRevision(); autoWalkKeyboard(manualKeys.data());
+    check(autoWalkInputRevision()==revision && manualKeys[0x1c]==0x80,"Enter still held from a mod menu row does not count as player input and stays in the key buffer");
+    manualKeys={}; autoWalkKeyboard(manualKeys.data()); manualKeys[0x1c]=0x80; autoWalkKeyboard(manualKeys.data());
+    check(autoWalkInputRevision()==revision+1,"a fresh Enter press after the menu closes counts as player input");
     stopAutoWalk();
     begin(); check(keyboard()[0xc8]==0x80,"Backslash route injects FFX forward key");
     navCollisionRevision.fetch_add(1);

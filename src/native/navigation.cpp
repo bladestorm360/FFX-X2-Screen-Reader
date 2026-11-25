@@ -236,8 +236,13 @@ void execute(const Pending& event) {
     case nav::Query::GuideStep:case nav::Query::GuideNext:case nav::Query::GuidePrevious:case nav::Query::GuideExpected:case nav::Query::GuidePath:case nav::Query::GuideCompleted:case nav::Query::GuideTileCompleted: {
         if(event.query.policyRevision!=ownedPuzzleGuideRevision()) break;
         const auto action=static_cast<OwnedGuideAction>(static_cast<unsigned>(event.query.query)-static_cast<unsigned>(nav::Query::GuideStep));
-        try {const auto text=puzzleGuideOwned(action,s.observation,s.mesh,s.entities,event.header,event.query.manual,event.query.intentRevision,event.query.local,event.query.chunk,event.query.resourceSerial);if(!text.empty()) {consoleReplyReady(text.c_str(),text.size());emit(event,text,"utility-reply");}}
-        catch(const std::exception& error) {const auto* reason=error.what();emit(event,L"Utility stopped: "+std::wstring(reason,reason+std::strlen(reason))+L".","utility-reply");}
+        // A guide row in the open mod menu is captured with ModalOpen, and the
+        // queue drops non-menu speech while the menu is open. Answer as the
+        // menu; game-driven completion refreshes keep the utility producer.
+        const bool asked=event.query.query!=nav::Query::GuideCompleted && event.query.query!=nav::Query::GuideTileCompleted;
+        const char* producer=asked && (event.header.context&speechq::ModalOpen)?"mod-menu":"utility-reply";
+        try {const auto text=puzzleGuideOwned(action,s.observation,s.mesh,s.entities,event.header,event.query.manual,event.query.intentRevision,event.query.local,event.query.chunk,event.query.resourceSerial);if(!text.empty()) {consoleReplyReady(text.c_str(),text.size());emit(event,text,producer);}}
+        catch(const std::exception& error) {const auto* reason=error.what();emit(event,L"Utility stopped: "+std::wstring(reason,reason+std::strlen(reason))+L".",producer);}
         break;
     }
     case nav::Query::GuideTarget: {

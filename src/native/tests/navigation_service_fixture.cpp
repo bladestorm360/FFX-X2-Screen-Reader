@@ -25,6 +25,8 @@ TextRef planLiteral(TextPlan&,const wchar_t*) {check(false,"unexpected Gil liter
 TextRef planInteger(TextPlan&,int64_t) {check(false,"unexpected Gil value");return 0;}
 TextRef planConcat(TextPlan&,TextRef,TextRef) {check(false,"unexpected Gil formatting");return 0;}
 bool commitTextPlan(const TextPlan&) {check(false,"unexpected Gil commit");return false;}
+void setFieldAudioAllowed(bool) {}
+bool utilityBusy() {return false;}
 std::vector<Entity> butterflyTargets() {check(false,"legacy live butterfly scan entered");return {};}
 void refreshButterflyTarget(Entity&) {check(false,"legacy affine butterfly refresh entered");}
 void refreshButterflyStarter(Entity&) {check(false,"legacy affine starter refresh entered");}
@@ -118,6 +120,13 @@ int main() {try {
     check(navigationSaid.size()==beforeGuideQueue+4,"four equal guide commands retain four actual pipeline responses");
     for(size_t i=beforeGuideQueue;i<navigationSaid.size();++i) check(navigationSaid[i].find(L"Step 1 of")==0,"queued guide starts at original manual first step");
     check(nav::submitNavigationQuery(nav::Query::GuideNext,false,ownedPuzzleGuideRevision()),"admit guide next");fresh();check(navigationSaid.back().find(L"Step 2 of")==0,"queued guide next changes one manual step");
+    check(navigationProducers.back()=="utility-reply","a guide command from the field answers as a utility reply");
+    // Live 2026-11-25: F8 > Cloister of Trials > Read current puzzle step was
+    // silent because the queue drops non-menu speech while the menu is open.
+    speechq::fixture::modal=true;
+    check(nav::submitNavigationQuery(nav::Query::GuideStep,false,ownedPuzzleGuideRevision()),"admit guide step from the open mod menu");fresh();
+    check(navigationSaid.back().find(L"Step 2 of")==0 && navigationProducers.back()=="mod-menu","a guide row in the open mod menu answers as the menu");
+    speechq::fixture::modal=false;
     const auto completionSpeech=navigationSaid.size();unsigned claimed=0;for(unsigned i=0;i<32;++i) if(claimOwnedGuideRefresh()) {++claimed;check(nav::submitNavigationQuery(nav::Query::GuideCompleted,false,ownedPuzzleGuideRevision()),"admit one environmental completion update");}fresh();
     check(claimed==1 && navigationSaid.size()==completionSpeech,"environmental completion replaces only silent state, without suppressing independent voiced commands");
     check(nav::submitNavigationQuery(nav::Query::GuideStep,false,ownedPuzzleGuideRevision()),"manual repeat after completion");fresh();check(navigationSaid.back().find(L"Step 2 of")==0,"queued completion preserves manual selection");

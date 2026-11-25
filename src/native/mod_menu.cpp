@@ -204,6 +204,9 @@ void description() {
 }
 void puzzleAction() {
     const wchar_t* commands[]={L"",L"step",L"path",L"next",L"previous",L"status"};
+    // A route request queues an auto walk, and navigation intents are refused
+    // while this menu is open. Close it first so the path can start.
+    if(row==2) close();
     try {
         if(context.via) { const auto text=viaCommand(row==0?(viaCollecting()?L"off":L"on"):commands[row]);emitUtilityText(text,"mod-menu"); }
         else if(row==0) { const auto text=puzzleCommand(puzzleArmed()?L"off":L"on");emitUtilityText(text,"mod-menu"); }
