@@ -233,6 +233,10 @@ template<class Zone> static bool interactionEndpoint(const Zone& zone,Point p,bo
     return true;
 }
 bool inInteractionZone(const InteractionZone& zone,Point p) { return interactionEndpoint(zone,p,false); }
+InteractionZone guideTileZone(const Entity& tile) {
+    InteractionZone zone;zone.worker=tile.worker;zone.shape=1;zone.center=zone.end=tile.position;zone.range=.75;zone.height=2;zone.crossing=true;
+    zone.valid=std::isfinite(tile.position.x) && std::isfinite(tile.position.y) && std::isfinite(tile.position.z);return zone;
+}
 bool inInteractionZone(const NativeInteractionZone& zone,Point p) { return zone.competing.count<=zone.competing.rows.size() && interactionEndpoint(zone,p,false); }
 std::vector<Point> interactionRoute(const Mesh& mesh,Point player,const InteractionZone& zone,bool horizontalApproach) {
     if(!zone.valid || !mesh.events.ready) return {};

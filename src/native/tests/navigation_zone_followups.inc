@@ -111,4 +111,14 @@ void zoneFixtures() {
     check(!interactionRoute(water,{1,-50,1},zone).empty(),"free swimming reaches native interaction zones without a walking mesh");
     zone.center.y=0; check(interactionRoute(water,{1,-50,1},zone).empty(),"free swimming cannot route to ship-deck interactions at another height");
     zone.valid=false; check(interactionRoute(counter,player,zone).empty(),"unresolved geometry never manufactures an interaction destination");
+    // Live Djose 2026-11-25: the reset tile has no usable entry region, so the
+    // guide aims at a small circle on the tile itself.
+    Entity tile; tile.worker=67; tile.position={4,0,5};
+    const auto tileZone=guideTileZone(tile);
+    check(tileZone.valid && tileZone.crossing && !tileZone.talk && inInteractionZone(tileZone,{4.3,0,5}) && !inInteractionZone(tileZone,{5.5,0,5}),
+        "guide reset tile zone is a small walk-in circle on the tile");
+    const auto onTile=interactionRoute(counter,player,tileZone);
+    check(!onTile.empty() && inInteractionZone(tileZone,onTile.back()),"guide reset tile route ends on the tile");
+    tile.position.x=std::numeric_limits<double>::quiet_NaN();
+    check(!guideTileZone(tile).valid,"guide reset tile zone needs a known tile position");
 }

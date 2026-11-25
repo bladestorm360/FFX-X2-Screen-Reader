@@ -104,7 +104,14 @@ void lockSelected() {
 // selected reset tile step lets auto walk reach the tile.
 void guideTargets(const nav::Scene& observation,std::vector<Entity>& found) {
     for(auto& e:found) {
-        if(e.inactive && e.zone.valid && ownedGuideTargetsTile(observation,e)) {e.inactive=false;continue;}
+        if(e.inactive && ownedGuideTargetsTile(observation,e)) {
+            // Live Djose 2026-11-25: the inactive reset tile row (worker 67)
+            // has no valid entry region, so auto walk refused it. Stepping on
+            // the tile works, so aim at a small circle on the tile itself.
+            if(!e.zone.valid) e.zone=guideTileZone(e);
+            if(e.zone.valid) e.inactive=false;
+            continue;
+        }
         Point face;if(!e.pushControl || !ownedGuidePedestalFace(observation,e,face)) continue;
         const auto recess=std::find_if(found.begin(),found.end(),[&](const Entity& r) {return r.worker==e.worker && !r.pushControl && r.name==L"Pedestal sphere recess";});
         if(recess==found.end() || !recess->zone.valid) continue;
