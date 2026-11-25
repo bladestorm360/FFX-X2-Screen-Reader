@@ -280,7 +280,14 @@ void pedestalZone(Entity& e,const Scene& s,const WorkerFact& w,const std::array<
             return;
         }
         if(e.pushControl==5 || e.pushControl==6) return;
-        if(plan.complete || !plan.blocked.empty() || plan.moves.empty()) {e.inactive=true;return;}
+        if(plan.complete || !plan.blocked.empty() || plan.moves.empty()) {
+            // Live Djose 2026-11-25 step 11: with no push left the pedestal had
+            // no keep-out, so the guide walk to its east socket face ran
+            // straight through it and touched the push face. Keep the body.
+            const double body=actor?radius(*actor)+radius(player):0;
+            if(std::isfinite(body) && body>0) {e.zone.obstacle=e.position;e.zone.obstacleRadius=body;}
+            e.inactive=true;return;
+        }
         const auto p=e.position,goal=plan.moves.front().goal;const double x=goal.x-p.x,z=goal.z-p.z;
         const auto delta=std::abs(x)>std::abs(z)?Point{x>0?1.0:-1.0,0,0}:Point{0,0,z>0?1.0:-1.0};auto& zone=e.zone;
         if(e.pushControl==7 && plan.phase==0) {
