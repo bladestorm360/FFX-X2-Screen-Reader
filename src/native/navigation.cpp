@@ -109,7 +109,12 @@ void guideTargets(const nav::Scene& observation,std::vector<Entity>& found) {
         const auto recess=std::find_if(found.begin(),found.end(),[&](const Entity& r) {return r.worker==e.worker && !r.pushControl && r.name==L"Pedestal sphere recess";});
         if(recess==found.end() || !recess->zone.valid) continue;
         if(face.x!=0 || face.z!=0) recess->zone.approach=face;
+        // In-game 2026-11-20 Djose step 11: the recess zone has no keep-out,
+        // so the walk to the east face crossed the pedestal, touched its west
+        // face and the push script took control. Keep the pedestal body.
+        const auto obstacle=e.zone.obstacle;const double radius=e.zone.obstacleRadius;
         e.zone=recess->zone;e.inactive=recess->inactive;
+        if(radius>0 && !(e.zone.obstacleRadius>0)) {e.zone.obstacle=obstacle;e.zone.obstacleRadius=radius;}
     }
 }
 std::wstring instruction(const Entity& target) {

@@ -55,6 +55,12 @@ void zoneFixtures() {
     check(!inInteractionZone(face,{50,0,45}),"socket face zone refuses a side face");
     const auto east=interactionRoute(room,{20,0,40},face);
     check(!east.empty() && inInteractionZone(face,east.back()) && east.back().x>53,"socket face route ends on the named face");
+    // Live Djose: range 10, the socket answered at 9.3 but not at 9.7.
+    face.range=10;
+    check(!inInteractionZone(face,{59.7,0,40}) && inInteractionZone(face,{58.9,0,40}),"socket face arrival keeps a 1-unit reach margin");
+    const auto margin=interactionRoute(room,{20,0,40},face);
+    check(!margin.empty() && inInteractionZone(face,margin.back()),"socket face route ends inside the reach margin");
+    face.range=6;
     pedestal.competing[0].viewAngle=.05;
     check(inInteractionZone(pedestal,{50,0,30}),"native facing cone excludes a competing control outside the facing direction");
     pedestal.competing[0].center=pedestal.center; pedestal.competing[0].range=100;

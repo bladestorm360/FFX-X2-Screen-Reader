@@ -6,6 +6,11 @@
 #include <limits>
 #include <queue>
 namespace ffx {
+// Talk reach lost on a named socket face; see interactionEndpoint. A narrow
+// band outside a pedestal keep-out (Kilika: 5.5 to 5.8) keeps half its width.
+template<class Zone> double faceReachMargin(const Zone& zone) {
+    return zone.obstacleRadius>0?std::clamp((zone.range-zone.obstacleRadius-.5)/2,0.0,1.0):1.0;
+}
 namespace {
 std::vector<Point> crossWaterRoute(const Mesh&,Point,const InteractionZone&,bool);
 Point onSegment(Point a,Point b,Point p) {
@@ -85,8 +90,10 @@ std::vector<Point> interactionAnchors(const InteractionZone& zone,Point player) 
         for(const auto side:sides) anchors.push_back({zone.center.x+side.x*radius,zone.center.y,zone.center.z+side.z*radius});
         return anchors;
     }
-    if(distanceXZ(zone.approach,{})>.1)
-        return {{zone.center.x+zone.approach.x*std::max(0.0,zone.range-.5),zone.center.y,zone.center.z+zone.approach.z*std::max(0.0,zone.range-.5)}};
+    if(distanceXZ(zone.approach,{})>.1) {
+        const double reach=std::max(0.0,zone.range-(zone.talk?faceReachMargin(zone)+.25:.5));
+        return {{zone.center.x+zone.approach.x*reach,zone.center.y,zone.center.z+zone.approach.z*reach}};
+    }
     const auto closest=onShape(zone,player);
     const double d=distanceXZ(player,closest),radius=std::max(0.0,zone.range-.25);
     Point desired=closest;
@@ -208,6 +215,9 @@ template<class Zone> static bool interactionEndpoint(const Zone& zone,Point p,bo
     if(distanceXZ(zone.approach,{})>.1) {
         const double x=p.x-zone.center.x,z=p.z-zone.center.z,along=x*zone.approach.x+z*zone.approach.z;
         if(along<=0 || std::abs(x*zone.approach.z-z*zone.approach.x)>.65) return false;
+        // Live Djose pedestal (range 10): the socket answered at 9.3 units
+        // but not at 9.7 or 9.8, so arrival needs a 1-unit margin on the face.
+        if(zone.talk && std::hypot(x,z)>zone.range-faceReachMargin(zone)) return false;
     }
     if(!zone.talk) return true;
     if(zone.viewAngle<=0) return false;
