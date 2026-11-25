@@ -53,6 +53,8 @@ struct PedestalPlan {
     std::wstring_view blocked;
     unsigned phase=0,producer=0,entry=0;
     bool complete=false;
+    // Zanarkand pattern pedestals start a pattern; they never move.
+    bool startsPattern=false;
 };
 static_assert(std::is_trivially_copyable_v<PedestalSnapshot> && std::is_trivially_destructible_v<PedestalPlan>);
 PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot&);

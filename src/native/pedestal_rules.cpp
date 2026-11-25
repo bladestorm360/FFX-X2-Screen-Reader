@@ -82,7 +82,7 @@ PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot
         }
         break;
     case 6: // Zanarkand activates a pattern; this never solves its floor tiles.
-        plan.producer=local; plan.entry=2; plan.phase=local;
+        plan.producer=local; plan.entry=2; plan.phase=local; plan.startsPattern=true;
         plan.complete=s.get(0x0c000021)==static_cast<int>(local-43);
         if(!plan.complete) move(plan,{p.x+(local<46?-1:1),p.y,p.z},0,PushMode::Single);
         break;
@@ -106,6 +106,7 @@ PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot
 std::wstring describePedestalPlan(const PedestalPlan& plan,Point position,const std::wstring& action) {
     if(!plan.blocked.empty()) return std::wstring(plan.blocked);
     if(plan.complete) return L"This push is complete.";
+    if(plan.startsPattern) return L"Press "+action+L" once to start this pedestal's pattern.";
     std::vector<std::wstring> parts;
     for(const auto& m:plan.moves) {
         const Point delta{m.goal.x-position.x,0,m.goal.z-position.z};
