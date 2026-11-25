@@ -162,7 +162,7 @@ void dispatchNavigationIntents() {
             if(okay || kind==Intent::UpdatePedestal) return;
             if(const auto text=intentCancelText(lastRejection)) output(text,false,"navigation-action-canceled");
         };
-        if(!deferNativeAction(action)) {release(slot,token|Held);output(L"Navigation action is busy. Request the route again.",false,"navigation-pressure");}
+        if(!deferNativeAction(action)) {release(slot,token|Held);output(L"Navigation busy. Press again.",false,"navigation-pressure");}
     }
 }
 }

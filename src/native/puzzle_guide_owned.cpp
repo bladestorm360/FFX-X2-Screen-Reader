@@ -114,7 +114,7 @@ std::wstring path(const nav::Scene& observation,const Mesh& mesh,const std::vect
     if(setting(Setting::AutoWalk)) {
         const bool reached=target.zone.valid && inInteractionZone(target.zone,observation.player);
         const auto kind=target.pushControl?reached?nav::Intent::ArmAndFace:nav::Intent::ArmAndStart:nav::Intent::Start;
-        if(!nav::submitNavigationIntent(observation,target,kind,manual,intentRevision)) return L"Navigation action is unavailable or busy. Request the route again after it recovers.";
+        if(!nav::submitNavigationIntent(observation,target,kind,manual,intentRevision)) return L"Navigation busy. Press again.";
     }
     double total=0;std::vector<std::wstring> segments;
     for(unsigned i=0;i+1<points.size();++i) {const double length=distanceXZ(points[i],points[i+1])/UnitsPerStep;total+=length;if(length<=.005) continue;segments.push_back(routeSegmentText(length,direction({points[i+1].x-points[i].x,points[i+1].y-points[i].y,points[i+1].z-points[i].z}),setting(Setting::PartialSteps)!=0));}

@@ -70,7 +70,7 @@ void consumeCommands(Event&) {
         reinterpret_cast<Select>(address(0x648d20))(number-1,0.5f);
     };
     action.complete=[](bool success) {if(!success) output(L"Node selection cancelled. The grid changed or that node is unavailable in the current mode.",true,"sphere-jump");};
-    if(!deferNativeAction(action)) output(L"Node selection is busy. Try F6 again.",true,"sphere-jump");
+    if(!deferNativeAction(action)) output(L"Node selection busy. Press F6 again.",true,"sphere-jump");
 }
 void hide(HWND hwnd) {
     const bool owned=foreground()==hwnd;
@@ -89,12 +89,12 @@ void submit(HWND hwnd) {
     if(!parse(text,session.count,number)) {output(L"Enter a node number from 1 to "+std::to_wstring(session.count)+L".",true,"sphere-jump");SetFocus(edit);return;}
     returnOnRelease=(GetKeyState(VK_RETURN)&0x8000)!=0;
     if(returnOnRelease) {pendingNumber=number;return;}
-    if(!commands.tryPush({session,number})) {output(L"Node selection is busy. Try again.",true,"sphere-jump");return;}
+    if(!commands.tryPush({session,number})) {output(L"Node selection busy. Press again.",true,"sphere-jump");return;}
     hide(hwnd);
 }
 void releaseEntry(HWND hwnd) {
     if(pendingNumber && valid(session) && foreground()==hwnd && !commands.tryPush({session,pendingNumber})) {
-        returnOnRelease=false;pendingNumber=0;output(L"Node selection is busy. Try again.",true,"sphere-jump");return;
+        returnOnRelease=false;pendingNumber=0;output(L"Node selection busy. Press again.",true,"sphere-jump");return;
     }
     hide(hwnd);
 }

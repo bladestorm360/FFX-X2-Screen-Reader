@@ -284,7 +284,7 @@ void stopNavPreview() {
 void previewNavAudio(bool walls) {
     if(!streamReady.load()) { output(L"Navigation audio is unavailable",true,"mod-audio"); return; }
     Command command{}; command.kind=CommandKind::Preview; command.generation=generation(); command.serial=previewCancel.load(); command.flag=walls; command.enabled=true;
-    if(!commands.tryPush(command)) { output(L"Navigation audio busy; try again.",true,"mod-audio"); return; }
+    if(!commands.tryPush(command)) { output(L"Navigation audio busy. Press again.",true,"mod-audio"); return; }
     output(walls?L"Wall preview: ahead, left, right, behind":L"Beacon preview to the right",true,"mod-audio");
 }
 void navAudioArrival() {

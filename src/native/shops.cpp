@@ -38,7 +38,7 @@ void readExtra(bool) {
     ShopView view;if(!nativeGameThread() || !published.tryRead(view) || !current(view)) return;
     TextPlan p;prepareTextPlan(p,"shop-extra");p.receiver=Receiver;p.command=ReadExtra;p.detail=view.token;
     p.context[2]=view.scene;p.context[3]=static_cast<intptr_t>(view.window);p.context[4]=view.pane;
-    if(!commitTextPlan(p)) output(L"Extra information is busy. Try U again.",true,"shop-extra-pressure");
+    if(!commitTextPlan(p)) output(L"Extra information busy. Press U again.",true,"shop-extra-pressure");
 }
 void receive(const speechq::Header& header,const TextPlan& p,std::wstring line,std::wstring modifiers) {
     const ShopView view{p.detail,static_cast<int>(p.context[2]),static_cast<uintptr_t>(p.context[3]),static_cast<unsigned>(p.context[4])};
