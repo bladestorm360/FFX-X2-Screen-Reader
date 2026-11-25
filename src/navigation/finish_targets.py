@@ -47,8 +47,8 @@ TRIAL_LABELS = {
  "bvyt1100":{13:"Rail pedestal",16:"Destruction Sphere treasure",17:"Second treasure chest",56:"Exit to the antechamber"},
  "dome0700":{32:"Destruction Sphere treasure",33:"Trial encounter",41:"Lift to the Chamber of the Fayth",42:"Exit to the trial encounter",
    44:"Pattern pedestal",45:"Pattern pedestal",46:"Pattern pedestal",47:"Pattern pedestal",
-   48:"Besaid Sphere source",49:"Kilika Sphere source and treasure recess",50:"Destruction Sphere",
-   51:"Besaid pedestal recess",52:"Kilika pedestal recess"},
+   48:"Kilika Sphere source",49:"Besaid Sphere source and treasure recess",50:"Destruction Sphere",
+   51:"Kilika pedestal recess",52:"Besaid pedestal recess"},
 }
 # Distinguish authored trial controls by native worker order. These numbers do
 # not infer compass directions or human identities from unverified models.

@@ -53,7 +53,20 @@ class ReviewLabels(unittest.TestCase):
         self.assertEqual(target("bevelle", "Retrieve the Bevelle Sphere"),34)
         self.assertNotIn(20, [s[1] for s in ROUTES["macalania"]])
         self.assertEqual(target("djose", "central lift"),63)
-        self.assertEqual(target("zanarkand", "previously held the Kilika Sphere"),49)
+        self.assertEqual(target("zanarkand", "previously held the Besaid Sphere"),49)
+        # In game, worker 48 says "A Kilika Sphere is inserted here." and worker 49
+        # says "A Besaid Sphere is inserted here."
+        self.assertEqual(target("zanarkand", "Take the Kilika Sphere"),48)
+        self.assertEqual(target("zanarkand", "Take the Besaid Sphere"),49)
+        self.assertEqual(target("zanarkand", "Kilika pedestal recess"),51)
+        self.assertEqual(target("zanarkand", "Besaid pedestal recess"),52)
+        zanarkand = TRIAL_LABELS["dome0700"]
+        self.assertEqual((zanarkand[48], zanarkand[49]), ("Kilika Sphere source", "Besaid Sphere source and treasure recess"))
+        self.assertEqual((zanarkand[51], zanarkand[52]), ("Kilika pedestal recess", "Besaid pedestal recess"))
+        guide = (SRC / "native" / "puzzle_guide_data.hpp").read_text(encoding="utf8")
+        dome = guide.split('{"dome0700", {', 1)[1].split('\n    }, 11},', 1)[0]
+        self.assertIn('Take the Kilika Sphere from its source beside the large-room monitor.", 48,', dome)
+        self.assertIn('Take the Besaid Sphere from the other source beside the large-room monitor.", 49,', dome)
 
     def test_macalania_worker_roles_and_routes(self):
         labels = TRIAL_LABELS["mcyt0500"]
