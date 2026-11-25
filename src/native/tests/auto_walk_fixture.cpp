@@ -171,6 +171,13 @@ int main() {
     state={}; state.lx=18000; autoWalkController(state); check(state.lx==18000 && !state.ly,"manual stick remains intact and cancels auto walk");
     begin(); clockValue+=251; check(!keyboard()[0xc8],"stale input expires after 250 ms");
     clockValue+=400; updateAutoWalk(); check(!keyboard()[0xc8],"interrupted field event cancels instead of resuming");
+    begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6;
+    clockValue+=300-clockValue%300+100; updateAutoWalk(); check(autoWalkActive() && !keyboard()[0xc8],"socket face approach rests between pulses");
+    clockValue+=210; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face approach taps forward");
+    begin({0,0,50}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6;
+    clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"distant socket face keeps running");
+    begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6; leg.goal={0,0,2};
+    clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face ring leg keeps running");
     begin(); leg.arrived=true; updateAutoWalk(); check(!keyboard()[0xc8] && faceCalls==1,"central route arrival releases input and faces the interactible");
     begin(); Event e; hooks.at(0x4b8980)(e); check(!keyboard()[0xc8],"native dialogue installation releases input immediately");
     begin(); swimmingHud=true; hooks.at(0x4b8980)(e);

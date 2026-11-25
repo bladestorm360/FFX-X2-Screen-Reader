@@ -184,6 +184,12 @@ void updateAutoWalk() {
     }
     if(desired!=octant) { octant=desired; octantSince=now; }
     if(now<unstickUntil) desired=(desired+(unstickRight?2:6))&7;
+    // Live Djose 2026-11-25: a full-speed run keeps moving about 10 units
+    // after the stop, past the small reach of a pedestal socket face. Near
+    // such a face, tap the key in short pulses the way a player would.
+    // Only on the last legs: pulsing round the ring stuck on its corner.
+    const auto& zone=leg.target.zone;
+    if(zone.talk && zone.obstacleRadius>0 && distanceXZ(leg.goal,leg.final)<2 && distanceXZ(player,leg.final)<12 && now%300>=60) { mask=0; stamp=now; return; }
     mask=octMasks[desired] | (leg.target.swimDepth?16u:0u); stamp=now;
 }
 void autoWalkPlayerInput(unsigned vk) {
