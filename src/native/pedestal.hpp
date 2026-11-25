@@ -53,12 +53,17 @@ struct PedestalPlan {
     std::wstring_view blocked;
     unsigned phase=0,producer=0,entry=0;
     bool complete=false;
+    // Zanarkand pattern pedestals start a pattern; they never move.
+    bool startsPattern=false;
 };
 static_assert(std::is_trivially_copyable_v<PedestalSnapshot> && std::is_trivially_destructible_v<PedestalPlan>);
 PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot&);
 std::wstring describePedestalPlan(const PedestalPlan&,Point,const std::wstring& action=L"push control");
 std::wstring pedestalConsentName(const PedestalPlan&);
 std::wstring describePedestalSide(Point pedestal,Point player);
+// Guide text for a push step whose plan does not match the step: empty when
+// the normal plan text applies. stepDone is the step's own script signal.
+std::wstring pedestalStepText(const PedestalPlan&,bool stepDone,bool gapStep);
 std::wstring describePedestalApproach(const PedestalPlan&,Point pedestal,Point player);
 bool pedestalScript(unsigned control,UtilityScript&);
 PedestalSnapshot pedestalSnapshot(const UtilityScript&,const Entity&);

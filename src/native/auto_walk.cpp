@@ -184,6 +184,12 @@ void updateAutoWalk() {
     }
     if(desired!=octant) { octant=desired; octantSince=now; }
     if(now<unstickUntil) desired=(desired+(unstickRight?2:6))&7;
+    // Live Djose 2026-11-25: a full-speed run keeps moving about 10 units
+    // after the stop, past the small reach of a pedestal socket face. Near
+    // such a face, tap the key in short pulses the way a player would.
+    // Only on the last legs: pulsing round the ring stuck on its corner.
+    const auto& zone=leg.target.zone;
+    if(zone.talk && zone.obstacleRadius>0 && distanceXZ(leg.goal,leg.final)<2 && distanceXZ(player,leg.final)<12 && now%300>=60) { mask=0; stamp=now; return; }
     mask=octMasks[desired] | (leg.target.swimDepth?16u:0u); stamp=now;
 }
 void autoWalkPlayerInput(unsigned vk) {
@@ -194,7 +200,22 @@ void autoWalkPlayerInput(unsigned vk) {
         cancel=true; mask=0;
     }
 }
+void autoWalkPlayerKeyboard(uint8_t* keys);
+// A key pressed while the mod menu is open stays the menu's until it is released, so
+// the Enter that picks "Read path to current step" does not cancel the walk it starts.
+// Auto walk and the pedestal approach see only the player's keys.
 void autoWalkKeyboard(uint8_t* keys) {
+    static std::array<bool,256> menuHeld{};
+    std::array<uint8_t,256> menuKeys{};
+    const bool menu=modMenuActive();
+    for(unsigned i=0;i<256;++i) {
+        menuHeld[i]=(keys[i]&0x80) && (menuHeld[i] || menu);
+        if(menuHeld[i]) {menuKeys[i]=keys[i];keys[i]=0;}
+    }
+    autoWalkPlayerKeyboard(keys);
+    for(unsigned i=0;i<256;++i) if(menuHeld[i] && !keys[i]) keys[i]=menuKeys[i];
+}
+void autoWalkPlayerKeyboard(uint8_t* keys) {
     pedestalKeyboardInput(keys);
     bool physical=false;
     for(unsigned scan:{0x11u,0x1eu,0x1fu,0x20u,0xc8u,0xd0u,0xcbu,0xcdu,0x1cu,0x01u})

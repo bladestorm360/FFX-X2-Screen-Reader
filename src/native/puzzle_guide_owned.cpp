@@ -1,6 +1,7 @@
 #include "puzzle_guide_owned.hpp"
 #include "puzzle_guide.hpp"
 #include "puzzle_guide_data.hpp"
+#include "puzzle_guide_progress.hpp"
 #include "puzzle_tiles.hpp"
 #include "puzzle_tiles_data.hpp"
 #include "zanarkand_patterns.hpp"
@@ -21,7 +22,7 @@
 #include <cstring>
 namespace ffx {
 namespace {
-struct State {unsigned epoch=0,revision=0,step=0,expected=0,part=0,begin=0,end=0;const PuzzleRoute* route=nullptr;int pattern=-1,progress=-1;std::set<unsigned> visited;};
+struct State {unsigned epoch=0,revision=0,step=0,expected=0,part=0,begin=0,end=0;const PuzzleRoute* route=nullptr;int pattern=-1,progress=-1;std::uint64_t placed=0,removed=0;std::set<unsigned> visited;};
 ProcessStorage<State> storage;
 std::atomic<unsigned> revision{1};std::atomic<bool> enabled{false};
 std::atomic<bool> refreshPending{false};
@@ -30,10 +31,42 @@ int value(const nav::Scene& observation,const State& state,unsigned low,unsigned
     for(unsigned i=0;i<facts.bindings.count;++i) {const auto& row=facts.bindings.rows[i];if(row.binding==low && row.high==high && row.element==element) return row.value;}
     throw std::runtime_error("Required puzzle observation is missing");
 }
-bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
+// djyt0600 has no flag for step 10 (reset tile 67 writes only 0xd9=0, which
+// is already 0 there) or step 28 (the central lift). Native witnesses: the
+// lower pedestal W1 away from the charger (the step 9 push leaves it at
+// x 70, pedestal_rules; the reset returns it to x 0, and later it only moves
+// along x 0 into the gap or up with the lift), and the player on the upper
+// floor (y -65; the lower floor is -18), which only the lift reaches. Without
+// them the guide stayed on those steps and F10 was needed (live 2026-11-21).
+bool djoseWitness(const nav::Scene& observation,const State& state,const PuzzleStep& step) {
+    if(step.worker==63) return observation.player.y<-40;
+    if(step.worker!=67) return false;
+    for(unsigned i=0;i<observation.count;++i) {const auto& worker=observation.workers[i];
+        if(worker.valid && worker.part==state.part && worker.local==1) return worker.position.x<35;}
+    return false;
+}
+bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;
+    if(!step.done.low) {
+        if(!std::strcmp(state.route->script,"djyt0600")) return djoseWitness(observation,state,step);
+        if(std::strcmp(state.route->script,"klyt1000") || step.worker!=41) return false;
+        for(unsigned i=0;i<observation.count;++i) {const auto& worker=observation.workers[i];
+            if(worker.valid && worker.part==state.part && worker.local==6) return kilikaResetReached(worker.position);}
+        return false;
+    }
+    const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
+    if(step.also.low && value(observation,state,step.also.low,step.also.high,step.also.element)!=step.also.value) return false;
+    return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
 void advance(const nav::Scene& observation,State& state) {
-    for(unsigned i=state.expected;i+1<state.end;++i) if(state.route->steps[i].checkpoint && done(observation,state,state.route->steps[i])) state.expected=i+1;
-    while(state.expected+1<state.end && done(observation,state,state.route->steps[state.expected])) ++state.expected;
+    PuzzleProgress progress{state.expected,state.placed,state.removed};
+    advancePuzzleProgress(*state.route,state.begin,state.end,progress,[&](const PuzzleStep& step) {return done(observation,state,step);},
+        [&](const PuzzleStep& step) {if(!step.done.low) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);
+            return step.done.low==0x01000a70?(current&step.done.value)==0:current==0;});
+    state.expected=progress.expected;state.placed=progress.placed;state.removed=progress.removed;
+    // Kilika W36 keeps 0x63=3 after the first removal, but reinsertion fills
+    // 0x62 and relights the door. This final clearance is not a durable pass.
+    if(!std::strcmp(state.route->script,"klyt1000") && state.expected==21 && !done(observation,state,state.route->steps[20])) {
+        state.expected=20;state.placed&=~(std::uint64_t{1}<<20);state.removed&=~(std::uint64_t{1}<<20);
+    }
 }
 bool context(const nav::Scene& observation,State& state) {
     const auto current=revision.load(std::memory_order_acquire);const PuzzleRoute* route=nullptr;unsigned selected=observation.partCount;
@@ -50,23 +83,54 @@ bool context(const nav::Scene& observation,State& state) {
         else if(visit==ZanarkandPhase::ReturnVisit) begin=route->returnStep;
         else end=0;
     }
-    if(state.epoch!=observation.epoch || state.revision!=current || state.route!=route || state.begin!=begin || state.end!=end) {state.visited.clear();state.step=state.expected=begin;state.pattern=state.progress=-1;state.epoch=observation.epoch;state.revision=current;state.route=route;state.begin=begin;state.end=end;}
+    if(state.epoch!=observation.epoch || state.revision!=current || state.route!=route || state.begin!=begin || state.end!=end) {state.visited.clear();state.step=state.expected=begin;state.pattern=state.progress=state.placed=state.removed=0;state.epoch=observation.epoch;state.revision=current;state.route=route;state.begin=begin;state.end=end;}
     return true;
 }
 void synchronizeTiles(const nav::Scene& observation,State& state) {
     const int pattern=value(observation,state,0x5c000004),progress=value(observation,state,pattern==0?0x0c000022:pattern==5?0x0c000029:0x0c000024);
     if(state.pattern!=pattern || progress<state.progress) state.visited.clear();state.pattern=pattern;state.progress=progress;
 }
+// A lit floor panel turns its own touch shape off (dome0700 W58 a9a2
+// setCollisionShapeActive(0)), so the live scene shows it with no interaction
+// channel. Panels the session never saw lit (guide reset mid-pattern) are
+// skipped that way too. An all-dark read of the pattern is ignored.
+std::set<unsigned> darkTiles(const nav::Scene& observation,const State& state) {
+    std::set<unsigned> dark;unsigned seen=0;
+    for(const auto& candidate:puzzleTiles) if(static_cast<int>(candidate.stage)==state.pattern)
+        for(unsigned i=0;i<observation.count;++i) {const auto& fact=observation.workers[i];
+            if(!fact.valid || fact.part!=state.part || fact.local!=candidate.worker) continue;++seen;if(!fact.interactions.channels) dark.insert(candidate.worker);break;}
+    if(dark.size()==seen) dark.clear();return dark;
+}
 bool tile(const nav::Scene& observation,State& state,Point& point,std::wstring& label) {
     if(std::strcmp(state.route->script,"dome0700")) return false;synchronizeTiles(observation,state);const PuzzleTile* target=nullptr;double best=std::numeric_limits<double>::infinity();
-    for(const auto& candidate:puzzleTiles) {nav::checkComputation();if(static_cast<int>(candidate.stage)!=state.pattern || state.visited.count(candidate.worker)) continue;bool blocked=false;
+    const auto dark=darkTiles(observation,state);
+    for(const auto& candidate:puzzleTiles) {nav::checkComputation();if(static_cast<int>(candidate.stage)!=state.pattern || state.visited.count(candidate.worker) || dark.count(candidate.worker)) continue;bool blocked=false;
         for(const auto& guard:candidate.blocked) if(value(observation,state,guard.low,guard.high,guard.element)==guard.value) blocked=true;if(blocked) continue;
         const auto distance=distanceXZ(observation.player,candidate.point);if(distance<best) {best=distance;target=&candidate;}}
     if(!target) {label=L"No remaining permitted tile for this pattern. Activate the next pedestal or follow the current sphere step.";return false;}
-    point=target->point;label=L"Pattern "+std::to_wstring(state.pattern)+L". Next permitted floor panel: "+zanarkandGlyphLabel(target->worker)+L". Step onto it; a wrong panel resets the pattern. Press F10 for its path.";return true;
+    point=target->point;label=L"Pattern "+std::to_wstring(state.pattern)+L". Next permitted floor panel: "+zanarkandGlyphLabel(target->worker)+L". Step onto it; a wrong panel resets the pattern. For its path, choose Read path to current step in the Cloister of Trials menu.";return true;
 }
 Entity target(const nav::Scene& observation,const State& state,const PuzzleStep& step,const std::vector<Entity>& entities) {
     Entity result;result.name=step.label;
+    // Djose central lift: worker 63 at the back door is only a camera hint.
+    // Once the lift circuit is on (0xdb=1) the lower pedestal (W1) is the
+    // lift. Live: standing still on top of it carried player and pedestal
+    // from Y -18 to -65; walking over it did not. Stop near its centre.
+    if(!std::strcmp(state.route->script,"djyt0600") && step.worker==63) {
+        if(value(observation,state,0x0c0000db)!=1) throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
+        for(unsigned i=0;i<observation.count;++i) {const auto& fact=observation.workers[i];
+            if(!fact.valid || fact.part!=state.part || fact.local!=1 || fact.actor<0) continue;
+            const auto p=fact.position;if(!(std::abs(p.x)<50000 && std::abs(p.z)<50000)) break;
+            // A copied point, not the pedestal entity: the live pedestal row
+            // is inactive once the lift circuit is on, and the route refresh
+            // dropped the walk as "destination inactive" (live, build 53).
+            // The centre is inside the pedestal body: a walk there stalled at
+            // its north edge (6.5 out) for the 15 s no-progress cap, and the
+            // lift rose from there (live, build 54). Stop at that north edge.
+            result.position=p;result.position.z+=6.6;return result;
+        }
+        throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
+    }
     const bool push=step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);
     if(push) configurePedestalTarget(result,state.route->script,step.worker);
     for(const auto& found:entities) if(found.worker>=0 && static_cast<unsigned>(found.worker)<observation.count) {
@@ -78,8 +142,11 @@ Entity target(const nav::Scene& observation,const State& state,const PuzzleStep&
     if(!result.pushControl && (step.fallback.x || step.fallback.y || step.fallback.z)) {result.position=step.fallback;return result;}
     throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
 }
-std::wstring instruction(const nav::Scene& observation,const Entity& target) {
+// step is the guide step that wants this push; its own signal decides when
+// the push is done, never the pedestal position.
+std::wstring instruction(const nav::Scene& observation,const Entity& target,const PuzzleStep* step=nullptr,bool stepDone=false) {
     if(!target.pushControl) return {};PedestalPlan plan;if(!nav::scenePedestalPlan(observation,target,plan)) return L"The current pedestal state is unavailable.";
+    if(step) {const auto text=pedestalStepText(plan,stepDone,step->done.low==0x0c0000d9 && step->done.value==1 && target.pushControl==3);if(!text.empty()) return text;}
     auto controls=observation.controls;controls.swap=false;const auto names=copiedControlContext(controls);const bool single=!plan.moves.empty() && plan.moves.front().mode==PushMode::Single;
     const unsigned raw=single?observation.confirmMask:0x40;const unsigned masks[]={0x10,0x20,0x40,0x80,4,8,1,2,0x800,0x100};std::vector<std::wstring> choices;
     for(unsigned i=0;i<_countof(masks);++i) if(raw&masks[i]) {const auto& name=names.glyphs[0x30+i];if(!name.empty() && name!=L"unassigned control") choices.push_back(name);}
@@ -87,6 +154,28 @@ std::wstring instruction(const nav::Scene& observation,const Entity& target) {
     const auto binding=join(choices,L" or ");const auto consent=binding.empty()?single?std::wstring(L"Confirm"):std::wstring(L"the configured push control"):binding;
     const auto side=describePedestalApproach(plan,target.position,observation.player);return (side.empty()?L"":side+L" ")+describePedestalPlan(plan,target.position,consent);
 }
+// A scene or an assisted push owns the player while the script is part-way
+// through its writes (a door scene briefly empties a socket), so the guide
+// holds its last exact step until the player has control again.
+bool settling(const nav::Scene& observation) {return !observation.control || observation.visibleMessage || (observation.pedestal.armed && observation.pedestal.held);}
+// Manual F9 and F10 selection starts from the step the guide last found.
+// A sphere put back where it came from. A pickup step whose `also` says its
+// source recess is empty (Besaid w39) is undone when the hand is empty and the
+// source holds a sphere again; the right next move leaves the source empty.
+void putBack(const nav::Scene& observation,State& state) {
+    if(state.expected<=state.begin || state.expected>=state.end) return;
+    const auto& pickup=state.route->steps[state.expected-1];
+    if(!pickup.check || pickup.checkpoint || !pickup.also.low || pickup.also.value!=0 || pickup.done.value==0) return;
+    if(value(observation,state,pickup.done.low,pickup.done.high,pickup.done.element)==pickup.done.value) return;
+    if(value(observation,state,pickup.also.low,pickup.also.high,pickup.also.element)==0) return;
+    --state.expected;
+}
+void follow(const nav::Scene& observation,State& state) {
+    if(settling(observation)) return;
+    const auto before=state.expected;putBack(observation,state);advance(observation,state);
+    if(state.expected!=before) state.step=state.expected;
+}
+bool pushStep(const State& state,const PuzzleStep& step) {return step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);}
 std::wstring path(const nav::Scene& observation,const Mesh& mesh,const std::vector<Entity>& entities,const Entity& target,bool platform,unsigned manual,unsigned intentRevision,const std::wstring& finish={}) {
     constexpr double UnitsPerStep=11.13;resetNavAudio();
     if(target.pushControl && !target.zone.valid) return L"The pedestal collision data is unavailable.";
@@ -101,7 +190,10 @@ std::wstring path(const nav::Scene& observation,const Mesh& mesh,const std::vect
     }
     double total=0;std::vector<std::wstring> segments;
     for(unsigned i=0;i+1<points.size();++i) {const double length=distanceXZ(points[i],points[i+1])/UnitsPerStep;total+=length;if(length<=.005) continue;segments.push_back(routeSegmentText(length,direction({points[i+1].x-points[i].x,points[i+1].y-points[i].y,points[i+1].z-points[i].z}),setting(Setting::PartialSteps)!=0));}
-    if((target.zone.valid && inInteractionZone(target.zone,observation.player)) || total<.05) return target.name+(target.pushControl?L": at the push position. "+instruction(observation,target):L": within interaction range. Follow the current step.");
+    if((target.zone.valid && inInteractionZone(target.zone,observation.player)) || total<.05) {
+        if(!target.pushControl && !finish.empty() && target.name==L"Central lift") return target.name+L": reached. "+finish;
+        return target.name+(target.pushControl?L": at the push position. "+instruction(observation,target):L": within interaction range. Follow the current step.");
+    }
     if(setting(Setting::AutoWalk) && !setting(Setting::AutoWalkPath)) return {};
     if(target.pushControl) return join(segments,L", then ")+L". "+instruction(observation,target);
     return join(segments,L", then ")+L". "+(!finish.empty()?finish:platform?L"Interact with the platform control; riding is a separate step.":L"Interact with the puzzle control.");
@@ -130,6 +222,50 @@ std::wstring puzzleTargetPathOwned(const nav::Scene& observation,const Mesh& mes
     }
     return path(observation,mesh,entities,target,false,manual,intentRevision,finish);
 }
+std::wstring ownedGuidePedestalStep(const nav::Scene& observation,const Entity& pedestal) {
+    if(nativeGameThread() || !pedestal.pushControl || !enabled.load(std::memory_order_acquire) || !storage.ready()) return {};
+    const auto& state=storage.get();
+    if(!state.route || state.epoch!=observation.epoch || state.revision!=revision.load(std::memory_order_acquire) || state.step>=state.end) return {};
+    const auto& step=state.route->steps[state.step];if(step.worker!=pedestal.pushLocal || pushStep(state,step)) return {};
+    Entity probe;configurePedestalTarget(probe,state.route->script,step.worker);if(probe.pushControl!=pedestal.pushControl) return {};
+    std::wstring text=step.instruction;const auto tag=L"Target: "+std::wstring(step.label)+L". ";
+    if(!text.compare(0,tag.size(),tag)) text.erase(0,tag.size());
+    return L"Guide step "+std::to_wstring(state.step-state.begin+1)+L": "+text;
+}
+bool ownedGuideTargetsTile(const nav::Scene& observation,const Entity& tile) {
+    if(nativeGameThread() || tile.pushControl || tile.worker<0 || static_cast<unsigned>(tile.worker)>=observation.count ||
+        !enabled.load(std::memory_order_acquire) || !storage.ready()) return false;
+    const auto& state=storage.get();
+    if(!state.route || state.epoch!=observation.epoch || state.revision!=revision.load(std::memory_order_acquire) || state.step>=state.end) return false;
+    const auto& step=state.route->steps[state.step];const auto& worker=observation.workers[tile.worker];
+    if(!worker.valid || worker.part>=observation.partCount || observation.parts[worker.part].span.chunk!=observation.primary || worker.local!=step.worker) return false;
+    // Only reset tiles: their step-on handler has no gate, so the row is usable.
+    return std::wstring_view(step.label).find(L"reset tile")!=std::wstring_view::npos;
+}
+bool ownedGuidePedestalFace(const nav::Scene& observation,const Entity& pedestal,Point& face) {
+    // Kilika (2), Djose (3) and Macalania (4) pedestals hold their sphere
+    // recess on the pedestal worker itself. A sphere step routes to that
+    // recess, at interaction range, not to the push position: touching the
+    // pedestal starts the original push script, which takes control.
+    if(pedestal.pushControl<2 || pedestal.pushControl>4 || ownedGuidePedestalStep(observation,pedestal).empty()) return false;
+    face={};const auto& state=storage.get();
+    if(std::string_view(state.route->script)=="mcyt0500") try {
+        // W1 entry 2 (pc 1666) runs the sphere action only from W29 side
+        // 0xc5=2, south of the pedestal, or side 8, north of it, while the
+        // pedestal is on the walkway (0xa3=5).
+        face={0,0,value(observation,state,0x0c0000a3)==5?1.0:-1.0};return true;
+    } catch(...) {return false;}
+    if(std::string_view(state.route->script)!="djyt0600") return true;
+    try {
+        // Djose W15 owns the east socket (0x9d) and W16 the west socket (0x9e).
+        // An insert goes to an empty socket, a take to a loaded one; east first.
+        const auto& step=state.route->steps[state.step];
+        const bool insert=step.done.low==0x0c000094 && step.done.value==0;
+        const int east=value(observation,state,0x0c00009d),west=value(observation,state,0x0c00009e);
+        const bool useEast=insert?east==0 || west!=0:east!=0 || west==0;
+        face={useEast?1.0:-1.0,0,0};return true;
+    } catch(...) {return false;}
+}
 void resetOwnedPuzzleGuide() {enabled=false;refreshPending=false;revision.fetch_add(1,std::memory_order_acq_rel);}
 bool ownedPuzzleGuideActive() {return enabled.load(std::memory_order_acquire);}
 unsigned ownedPuzzleGuideRevision() {return revision.load(std::memory_order_acquire);}
@@ -139,15 +275,19 @@ std::wstring puzzleGuideOwned(OwnedGuideAction action,const nav::Scene& observat
     if(nativeGameThread()) return {};nav::CameraScope camera(observation.forward,observation.right,observation.cameraValid);
     if(!storage.ready()) storage.prepare();auto& state=storage.get();if(!context(observation,state)) {enabled=false;if(action==OwnedGuideAction::Completed) refreshPending=false;return action==OwnedGuideAction::Completed || action==OwnedGuideAction::TileCompleted?std::wstring{}:L"No supported trial is active";}
     if(state.begin==state.end) {enabled=false;refreshPending=false;return action==OwnedGuideAction::Completed || action==OwnedGuideAction::TileCompleted?std::wstring{}:L"Finish Zanarkand's native story and encounter sequence before the return-visit puzzle guide becomes available.";}
-    if(action==OwnedGuideAction::Completed) {refreshPending=false;try {if(enabled.load()) advance(observation,state);}catch(...) {enabled=false;}return {};}
+    if(action==OwnedGuideAction::Completed) {refreshPending=false;try {if(enabled.load()) follow(observation,state);}catch(...) {enabled=false;}return {};}
     if(action==OwnedGuideAction::TileCompleted) {if(!std::strcmp(state.route->script,"dome0700") && chunk==observation.parts[state.part].span.chunk && serial==observation.parts[state.part].span.serial && local>=57 && local<=83) {synchronizeTiles(observation,state);for(const auto& candidate:puzzleTiles) if(candidate.worker==local && static_cast<int>(candidate.stage)==state.pattern) state.visited.insert(local);}return {};}
-    enabled=true;if(action==OwnedGuideAction::Next) {if(state.step+1<state.end) ++state.step;}else if(action==OwnedGuideAction::Previous) {if(state.step>state.begin) --state.step;}else if(action==OwnedGuideAction::Expected) advance(observation,state);
+    enabled=true;if(action==OwnedGuideAction::Next || action==OwnedGuideAction::Previous) follow(observation,state);
+    if(action==OwnedGuideAction::Next) {if(state.step+1<state.end) ++state.step;}else if(action==OwnedGuideAction::Previous) {if(state.step>state.begin) --state.step;}else if(action==OwnedGuideAction::Expected) {follow(observation,state);state.step=state.expected;}
     const unsigned selected=action==OwnedGuideAction::Expected?state.expected:state.step;if(action==OwnedGuideAction::Expected && !state.route->steps[selected].check && selected+1<state.end) return L"The current trial state does not identify an exact puzzle step. Use F9 and F10 to select the step you have reached.";
     const auto& current=state.route->steps[selected];const auto prefix=(state.route->returnStep?state.begin>=state.route->returnStep?std::wstring(L"Return-visit treasure. "):std::wstring(L"First-visit trial. "):std::wstring{})+L"Step "+std::to_wstring(selected-state.begin+1)+L" of "+std::to_wstring(state.end-state.begin)+L". ";
     if(!std::strcmp(state.route->script,"dome0700") && ((selected>0 && selected<=5) || selected==11)) {
         const int stage=value(observation,state,0x5c000004);if(selected==11 || (selected==1 && stage==0) || (selected>=2 && stage==static_cast<int>(selected-1))) {Point point;std::wstring label;if(tile(observation,state,point,label)) {Entity panel;panel.name=L"Floor puzzle panel";panel.position=point;return prefix+label+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,panel,false,manual,intentRevision):L"");}}}
     if(!std::strcmp(state.route->script,"bsyt0100") && current.worker==7 && value(observation,state,0x5c0000cc)!=1) return prefix+L"The Besaid Sphere must be in the pedestal before the final push. Insert it into the pedestal sphere recess first."+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,state.route->steps[8],entities),false,manual,intentRevision):L"");
-    std::wstring push;if(current.platform || (!std::strcmp(state.route->script,"dome0700") && current.worker>=44 && current.worker<=47)) {try {push=instruction(observation,target(observation,state,current,entities));}catch(...) {}}
-    return prefix+current.instruction+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,current,entities),current.platform,manual,intentRevision):push.empty()?L"":L" "+push);
+    const bool held=settling(observation);
+    std::wstring push;if(pushStep(state,current) && !held) {try {push=instruction(observation,target(observation,state,current,entities),&current,done(observation,state,current));}catch(...) {}}
+    if(held && action!=OwnedGuideAction::Path) push=puzzleGuideWaitText(observation.visibleMessage);
+    return prefix+current.instruction+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,current,entities),current.platform,manual,intentRevision,
+        !std::strcmp(state.route->script,"djyt0600") && current.worker==63?std::wstring(L"Stand still on the pedestal. It rises to the upper floor."):std::wstring{}):push.empty()?L"":L" "+push);
 }
 }

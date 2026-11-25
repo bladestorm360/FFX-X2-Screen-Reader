@@ -18,4 +18,17 @@ void rejectFieldControlsCapture(const FieldControlsSnapshot&);
 void resetFieldControls();
 bool fieldControlsCapturesKey(unsigned vk, bool control);
 bool dispatchFieldControlsKey(unsigned vk, bool control);
+// Native owner only. TK window phases 1/2 are open (as in dialogue review);
+// message mode alone can remain set throughout a script with no text window.
+inline bool nativeVisibleMessageText() {
+    for(unsigned slot=0;slot<8;++slot) {
+        const auto window=read<uintptr_t>(address(0x14676b0)+slot*4);
+        if(!window) continue;
+        const auto state=read<uint16_t>(window+0x2c);
+        if(state==0 || state>=3) continue;
+        const auto text=read<uintptr_t>(window+0x94);
+        if(text && read<uint8_t>(text)>2) return true;
+    }
+    return false;
+}
 }

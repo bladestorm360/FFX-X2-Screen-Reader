@@ -6,6 +6,11 @@
 #include <limits>
 #include <queue>
 namespace ffx {
+// Talk reach lost on a named socket face; see interactionEndpoint. A narrow
+// band outside a pedestal keep-out (Kilika: 5.5 to 5.8) keeps half its width.
+template<class Zone> double faceReachMargin(const Zone& zone) {
+    return zone.obstacleRadius>0?std::clamp((zone.range-zone.obstacleRadius-.5)/2,0.0,1.0):1.0;
+}
 namespace {
 std::vector<Point> crossWaterRoute(const Mesh&,Point,const InteractionZone&,bool);
 Point onSegment(Point a,Point b,Point p) {
@@ -84,6 +89,10 @@ std::vector<Point> interactionAnchors(const InteractionZone& zone,Point player) 
             std::vector<Point>{{1,0,0},{-1,0,0},{0,0,1},{0,0,-1}};
         for(const auto side:sides) anchors.push_back({zone.center.x+side.x*radius,zone.center.y,zone.center.z+side.z*radius});
         return anchors;
+    }
+    if(distanceXZ(zone.approach,{})>.1) {
+        const double reach=std::max(0.0,zone.range-(zone.talk?faceReachMargin(zone)+.25:.5));
+        return {{zone.center.x+zone.approach.x*reach,zone.center.y,zone.center.z+zone.approach.z*reach}};
     }
     const auto closest=onShape(zone,player);
     const double d=distanceXZ(player,closest),radius=std::max(0.0,zone.range-.25);
@@ -202,6 +211,14 @@ template<class Zone> static bool interactionEndpoint(const Zone& zone,Point p,bo
         return std::min(std::abs(x),std::abs(z))<=.65;
     }
     if(!insideShape(zone,p,true,horizontal)) return false;
+    // A guide sphere step names one face of a talk zone (Djose pedestal).
+    if(distanceXZ(zone.approach,{})>.1) {
+        const double x=p.x-zone.center.x,z=p.z-zone.center.z,along=x*zone.approach.x+z*zone.approach.z;
+        if(along<=0 || std::abs(x*zone.approach.z-z*zone.approach.x)>.65) return false;
+        // Live Djose pedestal (range 10): the socket answered at 9.3 units
+        // but not at 9.7 or 9.8, so arrival needs a 1-unit margin on the face.
+        if(zone.talk && std::hypot(x,z)>zone.range-faceReachMargin(zone)) return false;
+    }
     if(!zone.talk) return true;
     if(zone.viewAngle<=0) return false;
     const double facing=std::atan2(zone.center.z-p.z,zone.center.x-p.x);
@@ -216,6 +233,10 @@ template<class Zone> static bool interactionEndpoint(const Zone& zone,Point p,bo
     return true;
 }
 bool inInteractionZone(const InteractionZone& zone,Point p) { return interactionEndpoint(zone,p,false); }
+InteractionZone guideTileZone(const Entity& tile) {
+    InteractionZone zone;zone.worker=tile.worker;zone.shape=1;zone.center=zone.end=tile.position;zone.range=.75;zone.height=2;zone.crossing=true;
+    zone.valid=std::isfinite(tile.position.x) && std::isfinite(tile.position.y) && std::isfinite(tile.position.z);return zone;
+}
 bool inInteractionZone(const NativeInteractionZone& zone,Point p) { return zone.competing.count<=zone.competing.rows.size() && interactionEndpoint(zone,p,false); }
 std::vector<Point> interactionRoute(const Mesh& mesh,Point player,const InteractionZone& zone,bool horizontalApproach) {
     if(!zone.valid || !mesh.events.ready) return {};

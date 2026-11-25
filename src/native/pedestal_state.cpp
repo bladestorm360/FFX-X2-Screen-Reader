@@ -33,7 +33,7 @@ bool capturePedestalSnapshot(const UtilityScript& script,const NativeRouteTarget
     switch(target.pushControl) {
     case 1: value(0x5c0000cc); value(0x5c000100); break;
     case 2: value(0x0c00005a); value(0x0c000064); break;
-    case 3: for(unsigned offset:{0x99u,0x9au,0x9bu,0x9du,0x9eu,0xd9u,0xdbu}) value(0x0c000000+offset); break;
+    case 3: for(unsigned offset:{0x99u,0x9au,0x9bu,0x9du,0x9eu,0xa1u,0xd9u,0xdbu}) value(0x0c000000+offset); break;
     case 4: for(unsigned offset:{0x96u,0x97u,0xa3u,0xc6u}) value(0x0c000000+offset); break;
     case 5: value(0x0c0000de+target.pushLocal-56); break;
     case 6: value(0x0c000021); break;

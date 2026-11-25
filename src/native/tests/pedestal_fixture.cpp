@@ -228,10 +228,19 @@ void ruleTests() {
     s.position.x=50.01099; p=measuredPlan(2,6,s,"Kilika segmented production plan allocates no heap");
     check(describePedestalApproach(p,s.position,{s.position.x-4,s.position.y,s.position.z}).find(L"Push from the south side.")!=std::wstring::npos,
         "Kilika side guidance changes after the original alignment segment");
-    s=snapshot({0,-18,24},{{0x0c000099,1},{0x0c00009a,1},{0x0c00009b,0},{0x0c00009d,0},{0x0c00009e,0},{0x0c0000d9,0},{0x0c0000db,0}});
-    check(s.values.count==7,"Djose production snapshot contains all seven required facts");
+    s=snapshot({0,-18,24},{{0x0c000099,1},{0x0c00009a,1},{0x0c00009b,0},{0x0c00009d,0},{0x0c00009e,0},{0x0c0000a1,1},{0x0c0000d9,0},{0x0c0000db,0}});
+    check(s.values.count==8,"Djose production snapshot contains all eight required facts");
     p=measuredPlan(3,1,s,"Djose production plan allocates no heap"); check(p.moves[0].goal.x==70 && p.moves[0].held==0x2000,"empty Djose charger push targets verified volume");
-    s.position.x=70; check(pedestalPlan(3,1,s).complete,"empty Djose arrival does not depend on charged-sphere result");
+    // Only the charger's own write (0xa1=2) completes the charging push. A
+    // released push near the charger is not complete.
+    s.position.x=70; p=pedestalPlan(3,1,s); check(!p.complete,"Djose charger push is not complete from position alone");
+    s.values[0x0c0000a1]=2; check(pedestalPlan(3,1,s).complete,"Djose charger push completes from the charger signal");
+    s.values[0x0c0000a1]=1;
+    // Guide push text: a plan the step does not want never says complete.
+    check(pedestalStepText(pedestalPlan(3,1,s),false,true).find(L"not ready for the gap")!=std::wstring::npos,"gap step on the charging plan says the pedestal is not ready");
+    s.values[0x0c0000a1]=2; check(pedestalStepText(pedestalPlan(3,1,s),false,false).find(L"not finished")!=std::wstring::npos,"complete plan without the step signal is not called complete");
+    check(pedestalStepText(pedestalPlan(3,1,s),true,false).empty(),"complete plan with the step signal keeps the normal text");
+    s.values[0x0c0000a1]=1;
     s.position.x=0; s.values[0x0c00009b]=3; s.values[0x0c00009d]=s.values[0x0c00009e]=1;
     p=measuredPlan(3,1,s,"loaded Djose production plan allocates no heap"); check(p.phase==1 && p.moves[0].held==0x1000 && p.moves[0].goal.z>85,"loaded Djose gap uses original launch threshold");
     s=snapshot({34,39,12},{{0x0c0000a3,0},{0x0c0000c6,4},{0x0c000096,4},{0x0c000097,4}});
@@ -243,6 +252,9 @@ void ruleTests() {
     s.values[0x0c0000a3]=2; check(!pedestalPlan(4,1,s).blocked.empty(),"wrong Macalania branch cannot become first-mound success");
     for(unsigned local=56;local<=60;++local) { s=snapshot({},{{0x0c0000de+local-56,0}}); p=pedestalPlan(5,local,s); check(p.moves.size()==1 && p.moves[0].mode==PushMode::Single,"each upper Djose pedestal uses one original Confirm"); }
     for(unsigned local=44;local<=47;++local) { s=snapshot({},{{0x0c000021,0}}); check(pedestalPlan(6,local,s).moves[0].mode==PushMode::Single,"each Zanarkand pedestal activates its pattern once"); }
+    // Zanarkand pattern pedestals stay in place, so the text never says they move.
+    { s=snapshot({},{{0x0c000021,0}}); const auto text=describePedestalPlan(pedestalPlan(6,44,s),s.position,L"C");
+      check(text==L"Press C once to start this pedestal's pattern.","Zanarkand pattern pedestal text names the pattern, not a movement"); }
     bool missingRejected=false;
     try { (void)pedestalPlan(1,7,snapshot({},{{0x5c0000cc,1} })); }
     catch(const std::out_of_range&) { missingRejected=true; }

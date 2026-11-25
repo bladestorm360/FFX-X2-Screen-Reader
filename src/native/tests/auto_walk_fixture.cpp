@@ -151,6 +151,11 @@ int main() {
     stopAutoWalk(); check(!autoWalkActive(),"empty-poll revision check starts stopped");
     revision=autoWalkInputRevision(); manualKeys={}; autoWalkKeyboard(manualKeys.data()); manualPad={}; autoWalkController(manualPad);
     check(autoWalkInputRevision()==revision,"empty keyboard and controller polls leave input revision unchanged");
+    menu=true; manualKeys={}; manualKeys[0x1c]=0x80; autoWalkKeyboard(manualKeys.data()); menu=false;
+    revision=autoWalkInputRevision(); autoWalkKeyboard(manualKeys.data());
+    check(autoWalkInputRevision()==revision && manualKeys[0x1c]==0x80,"Enter still held from a mod menu row does not count as player input and stays in the key buffer");
+    manualKeys={}; autoWalkKeyboard(manualKeys.data()); manualKeys[0x1c]=0x80; autoWalkKeyboard(manualKeys.data());
+    check(autoWalkInputRevision()==revision+1,"a fresh Enter press after the menu closes counts as player input");
     stopAutoWalk();
     begin(); check(keyboard()[0xc8]==0x80,"Backslash route injects FFX forward key");
     navCollisionRevision.fetch_add(1);
@@ -171,6 +176,13 @@ int main() {
     state={}; state.lx=18000; autoWalkController(state); check(state.lx==18000 && !state.ly,"manual stick remains intact and cancels auto walk");
     begin(); clockValue+=251; check(!keyboard()[0xc8],"stale input expires after 250 ms");
     clockValue+=400; updateAutoWalk(); check(!keyboard()[0xc8],"interrupted field event cancels instead of resuming");
+    begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6;
+    clockValue+=300-clockValue%300+100; updateAutoWalk(); check(autoWalkActive() && !keyboard()[0xc8],"socket face approach rests between pulses");
+    clockValue+=210; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face approach taps forward");
+    begin({0,0,50}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6;
+    clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"distant socket face keeps running");
+    begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6; leg.goal={0,0,2};
+    clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face ring leg keeps running");
     begin(); leg.arrived=true; updateAutoWalk(); check(!keyboard()[0xc8] && faceCalls==1,"central route arrival releases input and faces the interactible");
     begin(); Event e; hooks.at(0x4b8980)(e); check(!keyboard()[0xc8],"native dialogue installation releases input immediately");
     begin(); swimmingHud=true; hooks.at(0x4b8980)(e);

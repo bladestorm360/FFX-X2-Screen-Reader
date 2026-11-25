@@ -8,6 +8,7 @@
 #include "../utility_trials_data.hpp"
 #include "../utility_warps.hpp"
 #include "../navigation_targets.hpp"
+#include "../navigation_targets_data.hpp"
 #include "../puzzle_solver.hpp"
 #include "../puzzle_solver_data.hpp"
 #include "../puzzle_completion.hpp"
@@ -30,6 +31,9 @@
 #include "../settings.hpp"
 #include "../via_purifico.hpp"
 #include "../via_purifico_data.hpp"
+#include "../puzzle_tiles.hpp"
+#include "../puzzle_tiles_data.hpp"
+#include "../zanarkand_patterns.hpp"
 #include <map>
 #include <fstream>
 #include <cstdio>
@@ -298,6 +302,19 @@ std::wstring join(const std::vector<std::wstring>& parts,const wchar_t* sep) { s
 }
 #include "via_purifico_fixture.inc"
 namespace {
+// Player control and assisted-push state copied into the guide scene.
+bool fixtureGuideControl=true;
+// An open game message window (Scene::visibleMessage).
+bool fixtureGuideMessage=false;
+ffx::PedestalNavigationState fixtureGuidePedestal{};
+const ffx::nav::Scene* fixtureGuideScene=nullptr;
+// Live scene workers for the guide: {local worker, interaction channels}.
+std::vector<std::pair<unsigned,unsigned>> fixtureGuideWorkers;
+// Placed workers with a bound actor: {local worker, position}; the player
+// position and collision map for path requests.
+std::vector<std::pair<unsigned,ffx::Point>> fixtureGuidePlaced;
+ffx::Point fixtureGuidePlayer{};
+ffx::Mesh fixtureGuideMesh{};
 std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     using namespace ffx;
     UtilityScript script=utilityScript();
@@ -306,6 +323,12 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     script.worker=worker0;script.header=read<uintptr_t>(worker0);
     nav::Scene& guideScene=*([]()->nav::Scene* { static nav::Scene value{};return &value; })();
     std::memset(&guideScene,0,sizeof(guideScene));guideScene.epoch=generation();guideScene.revision=1;guideScene.primary=script.chunk;guideScene.partCount=1;
+    guideScene.control=fixtureGuideControl;guideScene.visibleMessage=fixtureGuideMessage;guideScene.pedestal=fixtureGuidePedestal;fixtureGuideScene=&guideScene;
+    for(const auto& [local,channels]:fixtureGuideWorkers) {auto& fact=guideScene.workers[guideScene.count++];
+        fact.valid=true;fact.part=0;fact.local=local;fact.global=guideScene.count-1;fact.interactions.channels=channels;}
+    for(const auto& [local,position]:fixtureGuidePlaced) {auto& fact=guideScene.workers[guideScene.count++];
+        fact.valid=true;fact.part=0;fact.local=local;fact.global=guideScene.count-1;fact.type=1;fact.actor=0;fact.position=position;}
+    guideScene.player=fixtureGuidePlayer;
     auto& part=guideScene.parts[0];
     check(nativeAtelSpan(script.chunk,part.span),"Native guide fixture captures resource span");
     part.span.epoch=guideScene.epoch;part.guideReady=true;part.bindingsReady=true;part.identityReady=true;
@@ -317,9 +340,24 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
         const auto [low,high]=declarations[i];auto& row=part.bindings.rows[i];row.binding=low;row.high=high;
         row.value=utilityValue(script,low,high);
     }
+    // Array checks (Bevelle sphere locations) read one element per binding row.
+    for(const auto& route:puzzleRoutes) if(script.name==route.script) for(const auto& step:route.steps) if(step.check && step.done.element) {
+        check(part.bindings.count<part.bindings.rows.size(),"Native guide fixture element row bound");
+        auto& row=part.bindings.rows[part.bindings.count++];row.binding=step.done.low;row.high=step.done.high;row.element=step.done.element;
+        row.value=utilityValue(script,step.done.low,step.done.high,step.done.element);
+    }
+    // A pickup's source check (`also`) can read another array element.
+    for(const auto& route:puzzleRoutes) if(script.name==route.script) for(const auto& step:route.steps) if(step.check && step.also.element) {
+        bool have=false;for(unsigned i=0;i<part.bindings.count;++i) {const auto& row=part.bindings.rows[i];
+            if(row.binding==step.also.low && row.high==step.also.high && row.element==step.also.element) have=true;}
+        if(have) continue;
+        check(part.bindings.count<part.bindings.rows.size(),"Native guide fixture element row bound");
+        auto& row=part.bindings.rows[part.bindings.count++];row.binding=step.also.low;row.high=step.also.high;row.element=step.also.element;
+        row.value=utilityValue(script,step.also.low,step.also.high,step.also.element);
+    }
     speechq::Header header{};header.generation=guideScene.epoch;
     struct WorkerGuard {bool previous;WorkerGuard():previous(fixtureNativeOwner){fixtureNativeOwner=false;}~WorkerGuard(){fixtureNativeOwner=previous;}} guard;
-    return puzzleGuideOwned(action,guideScene,Mesh{},std::vector<Entity>{},header,0,0);
+    return puzzleGuideOwned(action,guideScene,fixtureGuideMesh,std::vector<Entity>{},header,0,0);
 }
 }
 namespace ffx::nav {
@@ -346,7 +384,8 @@ bool submitNavigationIntent(const Scene&,const Entity&,Intent,unsigned,unsigned)
 namespace ffx {
 OwnedTextContext copiedControlContext(const CopiedControls&) { return {}; }
 bool cameraBasis(Point&,Point&) { return false; }
-std::vector<Point> navigationRouteOwned(const Mesh&,Point,const Entity&,const std::vector<Entity>&) { std::abort(); }
+// Only the guide path fixtures use an open plane: a straight route to the target.
+std::vector<Point> navigationRouteOwned(const Mesh& mesh,Point origin,const Entity& target,const std::vector<Entity>&) { if(!mesh.openPlane) std::abort();return {origin,target.position}; }
 bool queuePuzzleGuidePoint(Point,int,bool,const wchar_t*,const UtilityText&) { return false; }
 bool takePuzzleGuideTarget(unsigned,unsigned,QueuedPuzzleTarget&) { return false; }
 void startPuzzleGuideTargets() { std::abort(); }
@@ -363,6 +402,7 @@ void retirePuzzleGuideTargets() { std::abort(); }
 #include "trial_collection_fixture.inc"
 #include "gagazet_fixture.inc"
 #include "gagazet_timing_fixture.inc"
+#include "puzzle_guide_route_fixture.inc"
 int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std::setvbuf(stdout,nullptr,_IONBF,0);installUtilities();
     nativeQueuedKilikaFixture();
     trialCollectionFixtures();
@@ -383,7 +423,9 @@ int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std:
     setValue(0x5c0000ec,1,1);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 1 of")!=std::wstring::npos,"reading selected step does not auto-advance");
     check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 2 of")!=std::wstring::npos,"expected read follows committed native checkpoint");
-    check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 1 of")!=std::wstring::npos,"expected read cannot move manual selection");
+    // e0c700c: manual selection starts from the exact step the guide found.
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 2 of")!=std::wstring::npos,"expected read moves manual selection to the identified step");
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Previous).find(L"Step 1 of")!=std::wstring::npos,"manual previous leaves the identified step");
     check(fixturePuzzleGuideSync(OwnedGuideAction::Next).find(L"Step 2 of")!=std::wstring::npos,"manual next increments one step");
     fixturePuzzleGuideSync(OwnedGuideAction::Completed);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Step).find(L"Step 2 of")!=std::wstring::npos,"native completion leaves manual selection unchanged");
@@ -398,7 +440,17 @@ int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std:
 
     setValue(0x5c0000dc,1,1);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 7 of")!=std::wstring::npos,"durable checkpoint recovers expected step past emptied carried sphere");
+    // Route order up to the Besaid Sphere in the pedestal, then take it back
+    // out. The pedestal flag is not a checkpoint, so only the placement
+    // tracking can move the expected step back to the pedestal.
+    setValue(0x5c0000d4,1,1); setValue(0x5c0000d8,1,1); setValue(0x5c0000e4,1,1); setValue(0x5c0000ac,1,1);
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 10 of")!=std::wstring::npos,"pedestal placement expects the Destruction Sphere");
+    setValue(0x5c0000cc,1,0);
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 9 of")!=std::wstring::npos,"taking the Besaid Sphere back out of the pedestal expects the pedestal again");
+    setValue(0x5c0000cc,1,1);
+    check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 10 of")!=std::wstring::npos,"reinserting the Besaid Sphere resumes after the pedestal");
     resetOwnedPuzzleGuide();
+    puzzleGuideRouteFixtures();
     // Both Kilika entry sphere/recess choices activate the same full native
     // destruction insertion. Only its one owned window1 choice is automatic.
     for(unsigned local:{28u,29u}) {

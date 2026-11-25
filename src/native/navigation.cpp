@@ -99,7 +99,33 @@ void emit(const Pending& event,std::wstring text,const char* producer,bool inter
 void lockSelected() {
     auto& s=owned();const auto rows=filtered();s.selection=s.selected<rows.size()?key(*rows[s.selected]):EntityKey{};interested.store(true,std::memory_order_release);
 }
+// A selected guide sphere step routes the pedestal to the socket face it
+// names, using the sphere recess zone, instead of to a push position. A
+// selected reset tile step lets auto walk reach the tile.
+void guideTargets(const nav::Scene& observation,std::vector<Entity>& found) {
+    for(auto& e:found) {
+        if(e.inactive && ownedGuideTargetsTile(observation,e)) {
+            // Live Djose 2026-11-25: the inactive reset tile row (worker 67)
+            // has no valid entry region, so auto walk refused it. Stepping on
+            // the tile works, so aim at a small circle on the tile itself.
+            if(!e.zone.valid) e.zone=guideTileZone(e);
+            if(e.zone.valid) e.inactive=false;
+            continue;
+        }
+        Point face;if(!e.pushControl || !ownedGuidePedestalFace(observation,e,face)) continue;
+        const auto recess=std::find_if(found.begin(),found.end(),[&](const Entity& r) {return r.worker==e.worker && !r.pushControl && r.name==L"Pedestal sphere recess";});
+        if(recess==found.end() || !recess->zone.valid) continue;
+        if(face.x!=0 || face.z!=0) recess->zone.approach=face;
+        // In-game 2026-11-20 Djose step 11: the recess zone has no keep-out,
+        // so the walk to the east face crossed the pedestal, touched its west
+        // face and the push script took control. Keep the pedestal body.
+        const auto obstacle=e.zone.obstacle;const double radius=e.zone.obstacleRadius;
+        e.zone=recess->zone;e.inactive=recess->inactive;
+        if(radius>0 && !(e.zone.obstacleRadius>0)) {e.zone.obstacle=obstacle;e.zone.obstacleRadius=radius;}
+    }
+}
 std::wstring instruction(const Entity& target) {
+    if(auto guided=ownedGuidePedestalStep(owned().observation,target);!guided.empty()) return guided;
     auto& s=owned();PedestalPlan plan;if(!nav::scenePedestalPlan(s.observation,target,plan)) return L"The current pedestal state is unavailable.";
     auto controls=s.observation.controls;controls.swap=false;const auto context=copiedControlContext(controls);
     const bool single=!plan.moves.empty() && plan.moves.front().mode==PushMode::Single;
@@ -147,7 +173,10 @@ void pathfind(const Pending& event,bool assist=false) {
         if(assist) return;
         if(target.butterfly) {emit(event,label(target)+(target.butterflyStart?L": within start range":L": within catching range"),"navigation-facing");return;}
         if(setting(Setting::AutoWalk)) intent(event,target,target.pushControl?nav::Intent::ArmAndFace:nav::Intent::Face);
-        if(target.pushControl) {emit(event,label(target)+L": at the push position. "+instruction(target),"navigation-facing");return;}
+        // A guide step that uses this pedestal without pushing it (a sphere
+        // socket) replaces the push plan in the arrival text.
+        if(target.pushControl) {const auto guided=ownedGuidePedestalStep(s.observation,target);
+            emit(event,label(target)+(guided.empty()?L": at the push position. "+instruction(target):L": "+guided),"navigation-facing");return;}
         const auto facing=direction({target.zone.center.x-player.x,0,target.zone.center.z-player.z});
         if(facing==L"here" || facing==L"unknown") emit(event,label(target)+L": within interaction range. Facing direction is unavailable at this position","navigation-facing");
         else emit(event,label(target)+L": within interaction range. "+(target.inactive?L"Currently inactive. ":L"")+L"Face "+facing,"navigation-facing");return;
@@ -207,8 +236,13 @@ void execute(const Pending& event) {
     case nav::Query::GuideStep:case nav::Query::GuideNext:case nav::Query::GuidePrevious:case nav::Query::GuideExpected:case nav::Query::GuidePath:case nav::Query::GuideCompleted:case nav::Query::GuideTileCompleted: {
         if(event.query.policyRevision!=ownedPuzzleGuideRevision()) break;
         const auto action=static_cast<OwnedGuideAction>(static_cast<unsigned>(event.query.query)-static_cast<unsigned>(nav::Query::GuideStep));
-        try {const auto text=puzzleGuideOwned(action,s.observation,s.mesh,s.entities,event.header,event.query.manual,event.query.intentRevision,event.query.local,event.query.chunk,event.query.resourceSerial);if(!text.empty()) {consoleReplyReady(text.c_str(),text.size());emit(event,text,"utility-reply");}}
-        catch(const std::exception& error) {const auto* reason=error.what();emit(event,L"Utility stopped: "+std::wstring(reason,reason+std::strlen(reason))+L".","utility-reply");}
+        // A guide row in the open mod menu is captured with ModalOpen, and the
+        // queue drops non-menu speech while the menu is open. Answer as the
+        // menu; game-driven completion refreshes keep the utility producer.
+        const bool asked=event.query.query!=nav::Query::GuideCompleted && event.query.query!=nav::Query::GuideTileCompleted;
+        const char* producer=asked && (event.header.context&speechq::ModalOpen)?"mod-menu":"utility-reply";
+        try {const auto text=puzzleGuideOwned(action,s.observation,s.mesh,s.entities,event.header,event.query.manual,event.query.intentRevision,event.query.local,event.query.chunk,event.query.resourceSerial);if(!text.empty()) {consoleReplyReady(text.c_str(),text.size());emit(event,text,producer);}}
+        catch(const std::exception& error) {const auto* reason=error.what();emit(event,L"Utility stopped: "+std::wstring(reason,reason+std::strlen(reason))+L".",producer);}
         break;
     }
     case nav::Query::GuideTarget: {
@@ -265,6 +299,7 @@ void receiveScene(const speechq::Header& header,const nav::SceneObservation& cap
     if(!ready) {nav::navigationWaitingForData(true);return;}
     if(overflow) {for(const auto& event:s.pending) emit(event,L"Navigation names exceed the supported observation capacity. The command is unavailable.","navigation-data-unavailable",false);s.pending.clear();nav::navigationWaitingForData(false);return;}
     if(missing) {if(names.count!=s.names.count) {s.names=names;nav::requestNavigationAreaNames(names);}nav::navigationWaitingForData(true);return;}
+    guideTargets(observation,found);
     const auto& geometry=observation.geometry;
     const bool sameMesh=s.haveMesh && reach::sameGeometry(s.meshContext.geometry,geometry.geometry) && s.meshContext.swimming==geometry.swimming && s.meshContext.waterBake==geometry.waterBake && s.meshContext.waterCrossings==geometry.waterCrossings && nav::sameRouteEvents(s.meshContext.events,geometry.events) &&
         s.meshContext.collision.actorFlags==geometry.collision.actorFlags && s.meshContext.collision.actorIsControlled==geometry.collision.actorIsControlled &&

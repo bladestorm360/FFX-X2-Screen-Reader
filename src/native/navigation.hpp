@@ -63,6 +63,8 @@ double actorContactRadius(uintptr_t actor,uintptr_t player);
 std::wstring pedestalInstruction(const Entity&);
 bool inInteractionZone(const InteractionZone&,Point);
 bool inInteractionZone(const NativeInteractionZone&,Point);
+// A small walk-in circle on a floor tile whose own entry region is unusable.
+InteractionZone guideTileZone(const Entity& tile);
 std::vector<Point> interactionRoute(const Mesh&,Point,const InteractionZone&,bool horizontalApproach=false);
 void refreshNavigation();
 bool requestNavigationAssistRoute();
