@@ -310,6 +310,11 @@ ffx::PedestalNavigationState fixtureGuidePedestal{};
 const ffx::nav::Scene* fixtureGuideScene=nullptr;
 // Live scene workers for the guide: {local worker, interaction channels}.
 std::vector<std::pair<unsigned,unsigned>> fixtureGuideWorkers;
+// Placed workers with a bound actor: {local worker, position}; the player
+// position and collision map for path requests.
+std::vector<std::pair<unsigned,ffx::Point>> fixtureGuidePlaced;
+ffx::Point fixtureGuidePlayer{};
+ffx::Mesh fixtureGuideMesh{};
 std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     using namespace ffx;
     UtilityScript script=utilityScript();
@@ -321,6 +326,9 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     guideScene.control=fixtureGuideControl;guideScene.visibleMessage=fixtureGuideMessage;guideScene.pedestal=fixtureGuidePedestal;fixtureGuideScene=&guideScene;
     for(const auto& [local,channels]:fixtureGuideWorkers) {auto& fact=guideScene.workers[guideScene.count++];
         fact.valid=true;fact.part=0;fact.local=local;fact.global=guideScene.count-1;fact.interactions.channels=channels;}
+    for(const auto& [local,position]:fixtureGuidePlaced) {auto& fact=guideScene.workers[guideScene.count++];
+        fact.valid=true;fact.part=0;fact.local=local;fact.global=guideScene.count-1;fact.type=1;fact.actor=0;fact.position=position;}
+    guideScene.player=fixtureGuidePlayer;
     auto& part=guideScene.parts[0];
     check(nativeAtelSpan(script.chunk,part.span),"Native guide fixture captures resource span");
     part.span.epoch=guideScene.epoch;part.guideReady=true;part.bindingsReady=true;part.identityReady=true;
@@ -349,7 +357,7 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     }
     speechq::Header header{};header.generation=guideScene.epoch;
     struct WorkerGuard {bool previous;WorkerGuard():previous(fixtureNativeOwner){fixtureNativeOwner=false;}~WorkerGuard(){fixtureNativeOwner=previous;}} guard;
-    return puzzleGuideOwned(action,guideScene,Mesh{},std::vector<Entity>{},header,0,0);
+    return puzzleGuideOwned(action,guideScene,fixtureGuideMesh,std::vector<Entity>{},header,0,0);
 }
 }
 namespace ffx::nav {
@@ -376,7 +384,8 @@ bool submitNavigationIntent(const Scene&,const Entity&,Intent,unsigned,unsigned)
 namespace ffx {
 OwnedTextContext copiedControlContext(const CopiedControls&) { return {}; }
 bool cameraBasis(Point&,Point&) { return false; }
-std::vector<Point> navigationRouteOwned(const Mesh&,Point,const Entity&,const std::vector<Entity>&) { std::abort(); }
+// Only the guide path fixtures use an open plane: a straight route to the target.
+std::vector<Point> navigationRouteOwned(const Mesh& mesh,Point origin,const Entity& target,const std::vector<Entity>&) { if(!mesh.openPlane) std::abort();return {origin,target.position}; }
 bool queuePuzzleGuidePoint(Point,int,bool,const wchar_t*,const UtilityText&) { return false; }
 bool takePuzzleGuideTarget(unsigned,unsigned,QueuedPuzzleTarget&) { return false; }
 void startPuzzleGuideTargets() { std::abort(); }

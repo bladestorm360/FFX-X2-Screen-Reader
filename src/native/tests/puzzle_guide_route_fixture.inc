@@ -36,6 +36,7 @@ void walkGuideRoute(const char* script,const std::vector<GuideStage>& stages) {
     }
     resetOwnedPuzzleGuide();
 }
+bool guideSays(OwnedGuideAction action,const wchar_t* expected,const char* reason);
 void djoseGuideRouteFixture() {
     // djyt0600: 0x94 carried sphere (1 Djose, 3 charged, 10 Destruction);
     // 0x95/0x96 entry, 0x97/0x98 door, 0x99/0x9a charging, 0x9b charged
@@ -130,6 +131,17 @@ void djoseGuideRouteFixture() {
         {"push upper pedestal 1",{{0x0c0000de,1}},30},
         {"push upper pedestal 2",{{0x0c0000df,1}},32},
     });
+    // Live Djose 2026-11-24: the central lift step walked to worker 63, a
+    // camera hint at the back door, and nothing moved. The lift is the lower
+    // pedestal (W1); the guide routes to its north edge and says to stand still.
+    loadGuideRoute("djyt0600",{{"lift circuit on",{{0x0000028e,1},{0x0c0000db,1},{0x0c0000e5,2},{0x0c000094,10},{0x0c00009f,0}},28}});
+    for(const auto& write:std::vector<GuideWrite>{{0x0000028e,1},{0x0c0000db,1},{0x0c0000e5,2},{0x0c000094,10},{0x0c00009f,0}}) setValue(write.low,write.high,write.value,write.element);
+    fixtureGuidePlaced={{1,{0,-18,50}}};fixtureGuideMesh=Mesh{};fixtureGuideMesh.openPlane=true;fixtureGuideMesh.fixedHeight=true;fixtureGuideMesh.planeY=-18;
+    fixtureGuidePlayer={0,-18,20};expectGuide("djyt0600","lift circuit on",28);
+    guideSays(OwnedGuideAction::Path,L". Stand still on the pedestal. It rises to the upper floor.","lift route leads onto the lower pedestal");
+    fixtureGuidePlayer={0,-18,56.6};
+    guideSays(OwnedGuideAction::Path,L"Central lift: reached. Stand still on the pedestal. It rises to the upper floor.","lift target is the pedestal's north edge, not worker 63");
+    fixtureGuidePlaced.clear();fixtureGuideMesh=Mesh{};fixtureGuidePlayer={};resetOwnedPuzzleGuide();
     // Taking from the wrong charging recess first does not count as step 13:
     // that step waits for recess 1 (0x99) to be emptied.
     walkGuideRoute("djyt0600",{

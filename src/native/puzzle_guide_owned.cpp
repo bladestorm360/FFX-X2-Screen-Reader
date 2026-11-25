@@ -112,6 +112,25 @@ bool tile(const nav::Scene& observation,State& state,Point& point,std::wstring& 
 }
 Entity target(const nav::Scene& observation,const State& state,const PuzzleStep& step,const std::vector<Entity>& entities) {
     Entity result;result.name=step.label;
+    // Djose central lift: worker 63 at the back door is only a camera hint.
+    // Once the lift circuit is on (0xdb=1) the lower pedestal (W1) is the
+    // lift. Live: standing still on top of it carried player and pedestal
+    // from Y -18 to -65; walking over it did not. Stop near its centre.
+    if(!std::strcmp(state.route->script,"djyt0600") && step.worker==63) {
+        if(value(observation,state,0x0c0000db)!=1) throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
+        for(unsigned i=0;i<observation.count;++i) {const auto& fact=observation.workers[i];
+            if(!fact.valid || fact.part!=state.part || fact.local!=1 || fact.actor<0) continue;
+            const auto p=fact.position;if(!(std::abs(p.x)<50000 && std::abs(p.z)<50000)) break;
+            // A copied point, not the pedestal entity: the live pedestal row
+            // is inactive once the lift circuit is on, and the route refresh
+            // dropped the walk as "destination inactive" (live, build 53).
+            // The centre is inside the pedestal body: a walk there stalled at
+            // its north edge (6.5 out) for the 15 s no-progress cap, and the
+            // lift rose from there (live, build 54). Stop at that north edge.
+            result.position=p;result.position.z+=6.6;return result;
+        }
+        throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
+    }
     const bool push=step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);
     if(push) configurePedestalTarget(result,state.route->script,step.worker);
     for(const auto& found:entities) if(found.worker>=0 && static_cast<unsigned>(found.worker)<observation.count) {
@@ -171,7 +190,10 @@ std::wstring path(const nav::Scene& observation,const Mesh& mesh,const std::vect
     }
     double total=0;std::vector<std::wstring> segments;
     for(unsigned i=0;i+1<points.size();++i) {const double length=distanceXZ(points[i],points[i+1])/UnitsPerStep;total+=length;if(length<=.005) continue;segments.push_back(routeSegmentText(length,direction({points[i+1].x-points[i].x,points[i+1].y-points[i].y,points[i+1].z-points[i].z}),setting(Setting::PartialSteps)!=0));}
-    if((target.zone.valid && inInteractionZone(target.zone,observation.player)) || total<.05) return target.name+(target.pushControl?L": at the push position. "+instruction(observation,target):L": within interaction range. Follow the current step.");
+    if((target.zone.valid && inInteractionZone(target.zone,observation.player)) || total<.05) {
+        if(!target.pushControl && !finish.empty() && target.name==L"Central lift") return target.name+L": reached. "+finish;
+        return target.name+(target.pushControl?L": at the push position. "+instruction(observation,target):L": within interaction range. Follow the current step.");
+    }
     if(setting(Setting::AutoWalk) && !setting(Setting::AutoWalkPath)) return {};
     if(target.pushControl) return join(segments,L", then ")+L". "+instruction(observation,target);
     return join(segments,L", then ")+L". "+(!finish.empty()?finish:platform?L"Interact with the platform control; riding is a separate step.":L"Interact with the puzzle control.");
@@ -265,6 +287,7 @@ std::wstring puzzleGuideOwned(OwnedGuideAction action,const nav::Scene& observat
     const bool held=settling(observation);
     std::wstring push;if(pushStep(state,current) && !held) {try {push=instruction(observation,target(observation,state,current,entities),&current,done(observation,state,current));}catch(...) {}}
     if(held && action!=OwnedGuideAction::Path) push=puzzleGuideWaitText(observation.visibleMessage);
-    return prefix+current.instruction+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,current,entities),current.platform,manual,intentRevision):push.empty()?L"":L" "+push);
+    return prefix+current.instruction+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,target(observation,state,current,entities),current.platform,manual,intentRevision,
+        !std::strcmp(state.route->script,"djyt0600") && current.worker==63?std::wstring(L"Stand still on the pedestal. It rises to the upper floor."):std::wstring{}):push.empty()?L"":L" "+push);
 }
 }
