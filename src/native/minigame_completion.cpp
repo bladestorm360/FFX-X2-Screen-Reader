@@ -15,13 +15,13 @@ namespace ffx {
 namespace {
 struct Rule {
     Setting setting; const char* name; unsigned hash,length,workers;
-    unsigned local,entry,pc,index,low,initial1,initial2,targetPc=0,secondPc=0;
+    unsigned local,entry,pc,index,low,initial1,initial2,targetPc=0,secondPc=0,thirdPc=0,fourthPc=0;
 };
 // Source locators/typed declarations, not executable game bytes. The companion
 // offline check matches every row against the retained original ATEL variants.
 constexpr Rule rules[]={
-    {Setting::ChocoboAssist,"nagi0000",0x6722a493,225132,150,82,7,164090,104,0x0c0000b0,163914,0,215637,215288},
-    {Setting::ChocoboAssist,"nagi0000",0x42b3fc26,225368,150,82,7,164366,104,0x0c0000b0,164190,0,215873,215524},
+    {Setting::ChocoboAssist,"nagi0000",0x6722a493,225132,150,82,7,164090,104,0x0c0000b0,163914,0,215637,215288,216847,46368},
+    {Setting::ChocoboAssist,"nagi0000",0x42b3fc26,225368,150,82,7,164366,104,0x0c0000b0,164190,0,215873,215524,217083,46368},
     {Setting::RemiemAssist,"lmyt0000",0xef16e26d,37071,105,35,7,23068,17,0x56000000,22898,0,36147,0},
     {Setting::ButterflyAssist,"mcfr0100",0x908ca3c3,78486,55,37,8,31126,50,0x56000000,30841,30956,30448,0},
     {Setting::ButterflyAssist,"mcfr0200",0xc248925f,14255,40,26,8,12339,35,0x56000000,12054,12169,11661,0},
@@ -44,7 +44,7 @@ struct Job {
     bool used=false;unsigned ticket=0,context=0,revision=0,attempt=0;
     const Rule* rule=nullptr;uintptr_t controller=0,chunk=0,worker=0,signal=0;
     unsigned epoch=0,allocation=0,writes=0,requests=0,source=0;
-    std::array<Write,8> values{};std::array<Request,2> calls{};
+    std::array<Write,12> values{};std::array<Request,3> calls{};
 };
 std::array<Job,4> jobs{};
 unsigned ticketSerial=0,contextSerial=1;
@@ -121,7 +121,19 @@ bool plan(Job& j,UtilityScript& s) {
         // One balloon makes Catcher's raw time strictly negative. Exact zero
         // alone would display0:00 without setting the native perfect-time bit.
         if(!add(j,s,0x0c0000d3,course==4?1:0)) return false;
-        return request(j,s,109,2,j.rule->targetPc) && (course!=4 || request(j,s,108,2,j.rule->secondPc));
+        if(course!=4) return request(j,s,109,2,j.rule->targetPc);
+        // Catcher's W109:2 waits on W0:104, a scripted run-on from the far
+        // finish edge that never arrives from mid-course, so it never sets the
+        // player-finished bit and the clock runs out. Leave the state W109:2
+        // would leave (time copy0, finish line1, c9 bit2), retire W109's edge
+        // with W109:4, and let W108:2 run the native second-finisher ending.
+        // W72's results then wait for the trainer's W20:20 lap, which only
+        // advances on the player's checkpoints; W20:10 ends it, as W109:2
+        // does for courses1..3.
+        for(unsigned low:{0x0c0000b9u,0x0c0000bau,0x0c0000bbu}) if(!add(j,s,low,0)) return false;
+        return add(j,s,0x0c0000c4,1) && add(j,s,0x0d0000c9,flags|2) &&
+            request(j,s,109,4,j.rule->thirdPc) && request(j,s,20,10,j.rule->fourthPc) &&
+            request(j,s,108,2,j.rule->secondPc);
     }
     if(kind==Setting::RemiemAssist) {
         // The running timer can only follow W70's real race start. W102:2 is
