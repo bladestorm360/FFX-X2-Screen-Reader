@@ -123,7 +123,9 @@ Entity target(const nav::Scene& observation,const State& state,const PuzzleStep&
     const bool push=step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);
     if(push) configurePedestalTarget(result,state.route->script,step.worker);
     for(const auto& found:entities) if(found.worker>=0 && static_cast<unsigned>(found.worker)<observation.count) {
-        const auto& fact=observation.workers[found.worker];if(fact.part==state.part && fact.local==step.worker && (found.pushControl!=0)==(result.pushControl!=0)) {result=found;result.name=step.label;return result;}}
+        const int owner=found.viaForWorker>=0?found.viaForWorker:found.worker;
+        if(static_cast<unsigned>(owner)>=observation.count) continue;
+        const auto& fact=observation.workers[owner];if(fact.part==state.part && fact.local==step.worker && (found.pushControl!=0)==(result.pushControl!=0)) {result=found;if(found.viaForWorker<0) result.name=step.label;return result;}}
     for(unsigned i=0;i<observation.count;++i) {const auto& fact=observation.workers[i];if(!fact.valid || fact.part!=state.part || fact.local!=step.worker) continue;
         bool positioned=(fact.type>=1 && fact.type<=3) || fact.type==5 || fact.type==6;
         if(fact.type==1) {uint16_t alive=0;if(fact.actor<0) positioned=false;else std::memcpy(&alive,observation.actors[fact.actor].bytes.data()+2,2);positioned=positioned && alive;}
@@ -180,6 +182,10 @@ std::wstring path(const nav::Scene& observation,const Mesh& mesh,const std::vect
     }
     double total=0;std::vector<std::wstring> segments;
     for(unsigned i=0;i+1<points.size();++i) {const double length=distanceXZ(points[i],points[i+1])/UnitsPerStep;total+=length;if(length<=.005) continue;segments.push_back(routeSegmentText(length,direction({points[i+1].x-points[i].x,points[i+1].y-points[i].y,points[i+1].z-points[i].z}),setting(Setting::PartialSteps)!=0));}
+    if(target.viaForWorker>=0) {
+        const auto directions=join(segments,L", then ");
+        return directions.empty()?target.name:directions+L". "+target.name;
+    }
     if(target.zone.valid?inInteractionZone(target.zone,observation.player):total<.05) {
         if(!target.pushControl && !finish.empty() && target.name==L"Central lift") return target.name+L": reached. "+finish;
         return target.name+(target.pushControl?L": at the push position. "+instruction(observation,target):L": within interaction range. Follow the current step.");
@@ -195,6 +201,8 @@ std::wstring puzzleTargetPathOwned(const nav::Scene& observation,const Mesh& mes
         const auto name=target.name;const auto fallback=target.position;const bool talk=target.zone.talk;
         for(unsigned i=0;i<observation.count;++i) {const auto& row=observation.workers[i];if(!row.valid || row.part>=observation.partCount || row.local!=local || observation.parts[row.part].span.chunk!=observation.primary) continue;
             mapped=true;
+            for(const auto& current:entities) if(current.viaForWorker==static_cast<int>(i))
+                return path(observation,mesh,entities,current,false,manual,intentRevision,finish);
             for(const auto& current:entities) if(current.worker==static_cast<int>(i) && current.zone.valid && distanceXZ(current.zone.center,fallback)<75 && current.zone.talk==talk) {target=current;target.name=name;positioned=true;break;}
             if(!positioned) {
                 const auto zone=nav::sceneInteractionZone(row,talk?1u:16u,observation.extraTalkRange);

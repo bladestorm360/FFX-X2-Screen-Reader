@@ -75,7 +75,10 @@ EntityKey key(const Entity& e) {
     // selection when native story staging transfers him to another worker or
     // actor slot; route/intention ownership still revalidates the fresh worker.
     if(e.actor>=0 && e.id==0x2101 && e.category==L"NPC") return {true,false,-1,e.id,0};
-    return {true,e.worker>=0,e.worker>=0?e.worker:e.actor,e.id,e.pushControl};
+    // Keep the selected destination as its boarding region gives way to the
+    // far-bank control. The steering intent still validates the physical worker.
+    const int worker=e.viaForWorker>=0?e.viaForWorker:e.worker;
+    return {true,worker>=0,worker>=0?worker:e.actor,e.id,e.pushControl};
 }
 struct Pending {speechq::Header header;nav::QueryObservation query;std::optional<QueuedPuzzleTarget> direct;};
 struct Owned {

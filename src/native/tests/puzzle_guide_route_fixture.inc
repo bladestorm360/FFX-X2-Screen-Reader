@@ -131,6 +131,25 @@ void djoseGuideRouteFixture() {
         {"push upper pedestal 1",{{0x0c0000de,1}},30},
         {"push upper pedestal 2",{{0x0c0000df,1}},32},
     });
+    loadGuideRoute("djyt0600",{{"gap filled",{{0x0c0000d9,1}},18}});
+    setValue(0x0c0000d9,1,1);fixtureGuideWorkers={{61,1},{68,0x20}};
+    Entity entry;entry.worker=1;entry.viaForWorker=0;entry.position={0,-18,89};
+    entry.zone.valid=entry.zone.crossing=true;entry.zone.shape=3;entry.zone.center=entry.position;
+    entry.zone.width=10;entry.zone.depth=5;entry.zone.height=7;
+    entry.name=L"Gap switch via pedestal. After crossing, request the path again";
+    fixtureGuideEntities={entry};fixtureGuideMesh.openPlane=true;fixtureGuidePlayer={0,-18,74};
+    expectGuide("djyt0600","gap filled",18);
+    guideSays(OwnedGuideAction::Path,entry.name.c_str(),"step 18 guides to the native crossing before the switch");
+    fixtureGuidePlayer=entry.position;
+    guideSays(OwnedGuideAction::Path,entry.name.c_str(),"standing at the crossing retains the handoff instruction");
+    {
+        const bool previous=fixtureNativeOwner;fixtureNativeOwner=false;
+        auto requested=entry;requested.worker=61;requested.viaForWorker=-1;
+        const auto explicitPath=puzzleTargetPathOwned(*fixtureGuideScene,fixtureGuideMesh,{entry},requested,L"",0,0);
+        fixtureNativeOwner=previous;
+        check(explicitPath.find(entry.name)!=explicitPath.npos,"direct puzzle route uses the same physical boarding region");
+    }
+    fixtureGuideEntities.clear();fixtureGuideWorkers.clear();fixtureGuideMesh={};fixtureGuidePlayer={};resetOwnedPuzzleGuide();
     // Live Djose 2026-11-24: the central lift step walked to worker 63, a
     // camera hint at the back door, and nothing moved. The lift is the lower
     // pedestal (W1); the guide routes to its north edge and says to stand still.

@@ -1,5 +1,7 @@
 # FFX current memory — November4
 
+[Djose gap navigation](Docs/cloisters.md) uses the native pedestal jump after the gap flag is set. Both banks have offline fixtures. Gameplay verification is pending.
+
 [Release1.0.2](Docs/release.md#release102--november4) is built, guarded-deployed,
 packaged and [published Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.2).
 807 installer/130 final-EXE dependency/20 scan-gate

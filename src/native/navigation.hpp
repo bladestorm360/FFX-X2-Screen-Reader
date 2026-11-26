@@ -24,6 +24,7 @@ struct InteractionZone : InteractionShape { std::vector<InteractionShape> compet
     Point obstacle; double obstacleRadius=0; };
 struct Entity { std::wstring name, category; unsigned id = 0; int actor = -1, worker = -1;
     Point position; double distance = 0; InteractionZone zone; bool unreachable=false, inactive=false; unsigned pushControl=0,pushLocal=0;
+    int viaForWorker=-1; // Original guide destination when this row leads to a native crossing.
     EntryMask usefulEntries; bool authoredTrialControl=false,butterfly=false,hazardous=false,butterflyStart=false,resetTile=false;
     unsigned butterflyEpoch=0; bool swimApproach=false,swimDepth=false,swimReady=true; double swimClearance=0; uintptr_t swimChunk=0; };
 // Native steering carries copied facts, never an allocating Entity/vector/string.

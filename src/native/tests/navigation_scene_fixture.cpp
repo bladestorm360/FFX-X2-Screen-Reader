@@ -156,6 +156,48 @@ int main() {try {
                 return std::find_if(entities.begin(),entities.end(),[](const Entity& row){return row.name==L"Central lift";});
             };
             auto& bindings=sceneCapture.parts[0].bindings;
+            auto gap=std::find_if(bindings.rows.begin(),bindings.rows.begin()+bindings.count,
+                [](const nav::SceneValue& v){return v.binding==0x0c0000d9;});
+            check(gap!=bindings.rows.begin()+bindings.count,"Djose copied gap completion");
+            for(unsigned local:{68u,69u}) {
+                auto& bank=sceneCapture.workers[local];
+                bank.geometry={};bank.interactions.channels=0x20;bank.interactions.entries[5]=2;
+                bank.position={0,-18,local==68?89.0:155.0};
+                put(bank.geometry.data()+4,-18.f);put(bank.geometry.data()+8,static_cast<float>(bank.position.z));
+                put(bank.geometry.data()+0x28,static_cast<int16_t>(-1));
+                put(bank.geometry.data()+0x30,20.f);put(bank.geometry.data()+0x38,5.f);put(bank.geometry.data()+0x1c,7.f);
+            }
+            for(unsigned local:{52u,53u,54u,61u}) {auto& target=sceneCapture.workers[local];
+                target.interactions.channels=1;target.interactions.entries[0]=2;
+                put(target.geometry.data()+0x30,5.f);put(target.geometry.data()+0x38,5.f);}
+            const auto findWalk=[&](unsigned destination,unsigned worker) {
+                scanLift();
+                return std::any_of(entities.begin(),entities.end(),[&](const Entity& e){
+                    return e.worker==static_cast<int>(worker) && e.name.find(destination==61?L"Gap switch":L"Charged Sphere door recess")==0;
+                });
+            };
+            sceneCapture.player={0,-18,70};gap->value=0;
+            check(findWalk(61,61),"unfilled gap never supplies a crossing");
+            for(int worker:{52,53,54}) {
+                const auto wall=std::find_if(entities.begin(),entities.end(),[&](const Entity& e){return e.worker==worker;});
+                check(wall!=entities.end() && wall->zone.talk && wall->zone.preciseTalk==(worker!=52),
+                    "charged door and second charging wall use precise box arrival");
+            }
+            gap->value=1;check(findWalk(61,68),"filled gap routes the switch to the south entry");
+            check(findWalk(54,54),"south side keeps the direct door recess");
+            sceneCapture.player.z=94;check(findWalk(61,68),"south region far edge keeps its crossing");
+            sceneCapture.player.z=94.01;check(findWalk(61,61),"inside the gap never points back to the south bank");
+            sceneCapture.player.z=165;
+            check(findWalk(61,61) && findWalk(54,69),"far bank gives the switch and the return entry");
+            sceneCapture.player.z=150;check(findWalk(54,69),"north region near edge keeps its crossing");
+            sceneCapture.player.z=149.99;check(findWalk(54,54),"inside the gap never points back to the north bank");
+            sceneCapture.player.z=70;auto& south=sceneCapture.workers[68];
+            south.interactions.channels=0;check(findWalk(61,61),"disabled crossing never supplies a staging route");
+            south.interactions.channels=0x20;south.interactions.entries[5]=3;
+            check(findWalk(61,61),"leave callback cannot start the crossing");
+            south.interactions.entries[5]=2;put(south.geometry.data()+0x28,static_cast<int16_t>(1));
+            check(findWalk(61,61),"nonplayer region cannot stage the crossing");
+            sceneCapture.player=originalPosition;gap->value=0;
             auto circuit=std::find_if(bindings.rows.begin(),bindings.rows.begin()+bindings.count,[](const nav::SceneValue& v){return v.binding==0x0c0000db;});
             check(circuit!=bindings.rows.begin()+bindings.count,"Djose copied lift circuit");
             circuit->value=0;auto lift=scanLift();check(lift==entities.end(),"unpowered lift has no walkable camera-hint row");

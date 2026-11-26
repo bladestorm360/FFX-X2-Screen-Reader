@@ -316,6 +316,7 @@ std::vector<std::pair<unsigned,unsigned>> fixtureGuideWorkers;
 std::vector<std::pair<unsigned,ffx::Point>> fixtureGuidePlaced;
 ffx::Point fixtureGuidePlayer{};
 ffx::Mesh fixtureGuideMesh{};
+std::vector<ffx::Entity> fixtureGuideEntities;
 std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     using namespace ffx;
     UtilityScript script=utilityScript();
@@ -358,7 +359,7 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     }
     speechq::Header header{};header.generation=guideScene.epoch;
     struct WorkerGuard {bool previous;WorkerGuard():previous(fixtureNativeOwner){fixtureNativeOwner=false;}~WorkerGuard(){fixtureNativeOwner=previous;}} guard;
-    return puzzleGuideOwned(action,guideScene,fixtureGuideMesh,std::vector<Entity>{},header,0,0);
+    return puzzleGuideOwned(action,guideScene,fixtureGuideMesh,fixtureGuideEntities,header,0,0);
 }
 }
 namespace ffx::nav {
