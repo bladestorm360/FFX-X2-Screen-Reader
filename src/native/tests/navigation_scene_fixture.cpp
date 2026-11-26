@@ -149,6 +149,23 @@ int main() {try {
         nativeOwner=false;std::vector<Entity> entities;
         check(nav::scanNavigationScene(sceneCapture,entities,[](int) {return std::wstring(L"Copied native area");},[](int) {return std::wstring(L"Copied native person");}),"owned scene proof and labels ready");
         check(nav::scenePersonName(sceneCapture,0,OwnedTextContext{}).empty(),"copied native empty person name remains empty");
+        if(!std::strcmp(name,"djyt0600")) {
+            auto scanLift=[&]() {
+                entities.clear();
+                check(nav::scanNavigationScene(sceneCapture,entities,[](int){return std::wstring{};},[](int){return std::wstring{};}),"scan Djose lift destinations");
+                return std::find_if(entities.begin(),entities.end(),[](const Entity& row){return row.name==L"Central lift";});
+            };
+            auto& bindings=sceneCapture.parts[0].bindings;
+            auto circuit=std::find_if(bindings.rows.begin(),bindings.rows.begin()+bindings.count,[](const nav::SceneValue& v){return v.binding==0x0c0000db;});
+            check(circuit!=bindings.rows.begin()+bindings.count,"Djose copied lift circuit");
+            circuit->value=0;auto lift=scanLift();check(lift==entities.end(),"unpowered lift has no walkable camera-hint row");
+            circuit->value=1;sceneCapture.workers[1].position={0,-18,50};
+            sceneCapture.workers[63].position={90,-18,10};lift=scanLift();
+            check(lift!=entities.end() && lift->worker<0 && lift->actor<0 && !lift->inactive && !lift->pushControl &&
+                distanceXZ(lift->position,{0,-18,56.6})<.001 && lift->position.y==-18,
+                "powered Central lift row targets the lower pedestal north edge as a fixed point");
+            sceneCapture.workers[1].actor=-1;lift=scanLift();check(lift==entities.end(),"missing pedestal never falls back to the camera hint");
+        }
         const auto mesh=nav::decodeNavigationSceneMesh(sceneCapture);check(mesh.openPlane && mesh.fixedHeight && mesh.planeY==originalPosition.y,"actual owned open swimming plane");
         check(!nav::captureNavigationScene(sceneCapture,1,false),"worker cannot enter native scene capture");
         for(const auto& e:entities) check(std::isfinite(e.position.x) && std::isfinite(e.position.y) && std::isfinite(e.position.z),"source reuse cannot change copied entities");

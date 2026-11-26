@@ -348,6 +348,11 @@ void buildPart(const OwnedAtelGuardView& view,void* opaque) {
     for(unsigned i=0;i<s.count;++i) {
         const auto& w=s.workers[i];const auto& row=context.rows[i];if(!row.valid || w.part!=context.part) continue;
         const auto index=w.local;butterflyTarget(s,w,row,course,context.butterflies);
+        if(catalog && script.name=="djyt0600" && index==63) {
+            Entity lift;
+            if(djoseLiftTarget(s,w.part,lift)) context.entities.push_back(std::move(lift));
+            continue;
+        }
         if(w.type==4) {
             if(catalog && script.name=="cdsp0000" && index==30 && s.primary==s.parts[w.part].span.chunk && s.room==71 &&
                 (s.area==19 || s.area==20) && s.control && s.controlled && field<uint16_t>(s.actors[s.playerIndex].bytes,2)) {

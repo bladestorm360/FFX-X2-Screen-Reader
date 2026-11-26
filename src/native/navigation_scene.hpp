@@ -53,6 +53,31 @@ struct Scene {
     std::array<RawNavigationVertex,32767> vertices;
 };
 static_assert(std::is_trivially_copyable_v<Scene> && std::is_trivially_destructible_v<Scene>);
+// Callers qualify djyt0600. Its central lift is the lower pedestal (W1).
+// W63 supplies the catalog label, but its back-door position is a camera hint.
+inline bool djoseLiftTarget(const Scene& observation,unsigned part,Entity& lift) {
+    if(part>=observation.partCount || part>=SceneParts || observation.count>SceneWorkers) return false;
+    const auto& facts=observation.parts[part];
+    if(facts.span.chunk!=observation.primary || !(facts.bindingsReady || facts.guideReady) ||
+       facts.bindings.count>facts.bindings.rows.size()) return false;
+    bool circuitOn=false;
+    for(unsigned i=0;i<facts.bindings.count;++i) {
+        const auto& row=facts.bindings.rows[i];
+        if(row.binding==0x0c0000db && row.high==1 && row.element==0) {circuitOn=row.value==1;break;}
+    }
+    if(!circuitOn) return false;
+    for(unsigned i=0;i<observation.count;++i) {
+        const auto& w=observation.workers[i];
+        if(!w.valid || w.part!=part || w.local!=1 || w.actor<0) continue;
+        const auto p=w.position;
+        if(!validNativePoint(p) || std::abs(p.x)>=50000 || std::abs(p.z)>=50000) return false;
+        // The lift rises while standing at its north edge. Its body blocks a
+        // walk to the centre, and its push interaction is inactive here.
+        lift={};lift.name=L"Central lift";lift.category=L"Object";lift.position=p;lift.position.z+=6.6;
+        lift.distance=distanceXZ(observation.player,lift.position);return true;
+    }
+    return false;
+}
 bool captureNavigationScene(Scene&,unsigned revision,bool geometry);
 void prepareNavigationSceneStorage(); // Bootstrap, fixed Native title-cache storage.
 void captureNavigationAreaNames(Scene&,const AreaNameDemand&);

@@ -117,18 +117,7 @@ Entity target(const nav::Scene& observation,const State& state,const PuzzleStep&
     // lift. Live: standing still on top of it carried player and pedestal
     // from Y -18 to -65; walking over it did not. Stop near its centre.
     if(!std::strcmp(state.route->script,"djyt0600") && step.worker==63) {
-        if(value(observation,state,0x0c0000db)!=1) throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
-        for(unsigned i=0;i<observation.count;++i) {const auto& fact=observation.workers[i];
-            if(!fact.valid || fact.part!=state.part || fact.local!=1 || fact.actor<0) continue;
-            const auto p=fact.position;if(!(std::abs(p.x)<50000 && std::abs(p.z)<50000)) break;
-            // A copied point, not the pedestal entity: the live pedestal row
-            // is inactive once the lift circuit is on, and the route refresh
-            // dropped the walk as "destination inactive" (live, build 53).
-            // The centre is inside the pedestal body: a walk there stalled at
-            // its north edge (6.5 out) for the 15 s no-progress cap, and the
-            // lift rose from there (live, build 54). Stop at that north edge.
-            result.position=p;result.position.z+=6.6;return result;
-        }
+        if(nav::djoseLiftTarget(observation,state.part,result)) return result;
         throw std::runtime_error("This control is not positioned yet; perform the preceding step first");
     }
     const bool push=step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);
