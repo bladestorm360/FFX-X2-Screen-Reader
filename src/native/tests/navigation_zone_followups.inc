@@ -67,6 +67,23 @@ void zoneFixtures() {
     const auto doorPath=interactionRoute(room,fringe,door);
     check(doorPath.size()>=2 && distanceXZ(doorPath.back(),door.center)<=9 && inInteractionZone(door,doorPath.back()),
         "door recess routes inward from the fringe without imposing a pedestal face");
+    // Archived Djose W54 is a rotated 7 by 7 talk box. W53 uses 5 by 5.
+    for(double width:{7.0,5.0}) {
+        auto wall=door; wall.shape=3; wall.width=wall.depth=width; wall.range=4;
+        wall.angle=width==7?-.6:0;
+        for(unsigned side=0;side<8;++side) {
+            const auto angle=side*3.141592653589793/4-wall.angle;
+            auto at=[&](double r){return Point{wall.center.x+r*std::cos(angle),0,wall.center.z+r*std::sin(angle)};};
+            const double extent=width*(side%2?std::sqrt(2.0):1.0);
+            check(!inInteractionZone(wall,at(extent+1)), "expanded talk fringe must not finish a recess walk");
+            check(!inInteractionZone(wall,at(width+.01)), "diagonal corners must not finish farther out than a face");
+            check(inInteractionZone(wall,at(width-.3)), "reachable interior on every approach side");
+            auto path=interactionRoute(room,at(20),wall);
+            check(!path.empty() && distanceXZ(path.back(),wall.center)<width, "route ends inside the recess core");
+        }
+        wall.preciseTalk=false;
+        check(inInteractionZone(wall,{wall.center.x+width+1,0,wall.center.z}), "ordinary rectangle keeps expanded native reach");
+    }
     pedestal.competing[0].viewAngle=.05;
     check(inInteractionZone(pedestal,{50,0,30}),"native facing cone excludes a competing control outside the facing direction");
     pedestal.competing[0].center=pedestal.center; pedestal.competing[0].range=100;

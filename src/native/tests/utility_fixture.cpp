@@ -70,7 +70,8 @@ unsigned epoch=1, writes=0, requests=0, warps=0, dialogue=0, targetLocal=0;
 unsigned nextRoom=0, nextSpawn=0, initPc=0;
 int storyAtWarp=-1;
 bool viaLoaded=false;
-bool fixtureNativeOwner=true;
+bool fixtureNativeOwner=true,fixtureGuideAutoWalk=false;
+nav::Intent fixtureGuideIntent=nav::Intent::Start;
 bool gagAutomatic=false,gagCues=true,gagFocus=true;
 unsigned gagBeeps=0;
 float gagLastFrequency=0;
@@ -259,7 +260,7 @@ void hotkey(unsigned id,void(*callback)(bool)) { keys[id]=callback; }
 void hotkeyChordWhen(unsigned vk,bool shift,void(*callback)(bool),bool(*available)(),bool exclusive) { check(exclusive,"developer console chord is exclusive under queue pressure");consoleVk=vk; consoleShift=shift; consoleCallback=callback; consoleAvailable=available; }
 void installModMenu() { hotkey(VK_F8,[](bool){}); }
 bool modMenuActive() { return false; }
-int setting(Setting s) { return s==Setting::AutoDetail?patternAutoDetail:s==Setting::GagazetAssist?gagAutomatic:s==Setting::GagazetCues?gagCues:0; }
+int setting(Setting s) { return s==Setting::AutoWalk?fixtureGuideAutoWalk:s==Setting::AutoDetail?patternAutoDetail:s==Setting::GagazetAssist?gagAutomatic:s==Setting::GagazetCues?gagCues:0; }
 bool gameFocused() {return gagFocus;}
 void navAudioOverdriveBeep(float,unsigned) {++gagBeeps;}
 void navAudioCancelGagazetBeep() {}
@@ -379,7 +380,9 @@ bool scenePedestalPlan(const Scene&,const Entity&,PedestalPlan&) { return false;
 InteractionZone sceneInteractionZone(const WorkerFact&,unsigned,float) { return {}; }
 unsigned navigationIntentRevision() { return 0; }
 void invalidateNavigationIntents() {}
-bool submitNavigationIntent(const Scene&,const Entity&,Intent,unsigned,unsigned) { return false; }
+bool submitNavigationIntent(const Scene&,const Entity&,Intent kind,unsigned,unsigned) {
+    fixtureGuideIntent=kind;return fixtureGuideAutoWalk;
+}
 }
 namespace ffx {
 OwnedTextContext copiedControlContext(const CopiedControls&) { return {}; }
@@ -404,6 +407,24 @@ void retirePuzzleGuideTargets() { std::abort(); }
 #include "gagazet_timing_fixture.inc"
 #include "puzzle_guide_route_fixture.inc"
 int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std::setvbuf(stdout,nullptr,_IONBF,0);installUtilities();
+    {
+        static nav::Scene copied;copied.partCount=copied.count=1;copied.workers[0].valid=true;
+        copied.workers[0].part=0;copied.workers[0].local=54;
+        Entity door;door.worker=0;door.position={20,0,20};door.zone.center=door.position;
+        door.zone.valid=door.zone.preciseTalk=door.zone.talk=true;door.zone.shape=3;
+        door.zone.width=door.zone.depth=5;door.zone.range=4;door.zone.height=7;
+        auto requested=door;requested.worker=54;
+        Mesh floor;floor.openPlane=true;fixtureGuideAutoWalk=true;fixtureNativeOwner=false;
+        copied.player={19,0,20};
+        auto text=puzzleTargetPathOwned(copied,floor,{door},requested,L"",0,0);
+        check(fixtureGuideIntent==nav::Intent::Face && text.find(L"within interaction range")!=text.npos,
+            "guide faces a reachable talk target without starting another walk");
+        copied.player={14,0,20};door.position=copied.player; // Short route alone cannot prove a usable endpoint.
+        text=puzzleTargetPathOwned(copied,floor,{door},requested,L"",0,0);
+        check(fixtureGuideIntent==nav::Intent::Start && text.find(L"within interaction range")==text.npos,
+            "guide walks from the fringe even when the returned route is short");
+        fixtureGuideAutoWalk=false;fixtureNativeOwner=true;
+    }
     nativeQueuedKilikaFixture();
     trialCollectionFixtures();
     djoseSolverFixtures();

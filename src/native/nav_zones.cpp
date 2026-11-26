@@ -71,6 +71,11 @@ double talkInset(const InteractionShape& zone) {
 bool insideShape(const InteractionShape& zone,Point p,bool target=true,bool horizontal=false) {
     if(!zone.valid) return false;
     const auto closest=onShape(zone,p);
+    // Djose wall controls are boxes. The expanded corner is selectable in
+    // the model but a confirm there missed in play. Aim inside the circle
+    // inscribed in the copied box, independent of its rotation or approach.
+    if(target && zone.preciseTalk && zone.shape==3 &&
+        distanceXZ(zone.center,p)>=std::min(zone.width,zone.depth)) return false;
     if(!horizontal && zone.height>0 && std::abs(p.y-closest.y)>=zone.height) return false;
     if(zone.shape==1 && (zone.height==0 || zone.range<=0)) return false;
     const double planar=distanceXZ(closest,p);
@@ -98,8 +103,10 @@ std::vector<Point> interactionAnchors(const InteractionZone& zone,Point player) 
         const double reach=std::max(0.0,zone.range-(zone.talk?faceReachMargin(zone)+.25:.5));
         return {{zone.center.x+zone.approach.x*reach,zone.center.y,zone.center.z+zone.approach.z*reach}};
     }
-    const auto closest=onShape(zone,player);
-    const double d=distanceXZ(player,closest),radius=std::max(0.0,zone.range-talkInset(zone)-.25);
+    const bool recessBox=zone.preciseTalk && zone.shape==3;
+    const auto closest=recessBox?zone.center:onShape(zone,player);
+    const double d=distanceXZ(player,closest);
+    const double radius=std::max(0.0,recessBox?std::min(zone.width,zone.depth)-.5:zone.range-talkInset(zone)-.25);
     Point desired=closest;
     if(d>1e-8 && radius>0) { desired.x+=(player.x-closest.x)*std::min(1.0,radius/d); desired.z+=(player.z-closest.z)*std::min(1.0,radius/d); }
     if(zone.crossing && zone.shape==2 && d>1e-8) {
