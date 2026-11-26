@@ -82,6 +82,17 @@ void fixtureUpdateNavTarget(const Entity& target) {
     if(same) fixtureTarget=target;
     pump(); updateNavTarget(target);
 }
+void djoseStandBeforeTurn() {
+    Entity stand;stand.worker=1;stand.pushControl=3;stand.name=L"Pedestal";stand.position={40,0,5};
+    stand.zone.valid=true;stand.zone.shape=3;stand.zone.center={33,0,5};stand.zone.width=1;stand.zone.depth=2;stand.zone.height=9.5;
+    player={48,0,5};fixtureRouteNavAudio({player,{40,0,15},stand.zone.center},stand);
+    NavLeg leg;check(navLeg(leg) && !leg.arrived,"opposite push face does not finish a detour");
+    player={33,9,5};pump();check(navLeg(leg) && !leg.arrived,"different floor cannot finish the stand");
+    player=stand.zone.center;pump();
+    check(navLeg(leg) && leg.arrived && distanceXZ(leg.goal,stand.zone.center)<.01,
+        "list walk accepts the native push stand before an unvisited tangent waypoint");
+    clearNavRoute();
+}
 void dynamicGateFixtures() {
     // Connected two-row floor: the middle lower cell is a native mutable gate.
     // Closing it leaves a real detour through the upper row, with a fixed goal.
@@ -149,6 +160,7 @@ int main() {
     player={22,0,5}; pump(); check(published.beacon && published.steps>2,"movement passing a waypoint advances without exact pixel contact");
     player={45,0,5}; pump(); pump();
     check(arrivals==1 && said.size()==1 && !published.beacon,"arrival sounds and speech happen once");
+    djoseStandBeforeTurn();
     player={5,0,5}; fixtureRouteNavAudio({player,target.position},target);
     target.position={5,0,50}; fixtureUpdateNavTarget(target); pump();
     check(published.pan<-.9f,"moving destination recomputes connected route");

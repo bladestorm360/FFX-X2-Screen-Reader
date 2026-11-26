@@ -57,6 +57,7 @@ struct PedestalPlan {
     bool startsPattern=false;
 };
 static_assert(std::is_trivially_copyable_v<PedestalSnapshot> && std::is_trivially_destructible_v<PedestalPlan>);
+InteractionZone djosePushStand(Point pedestal,Point direction,double bodyRadius);
 PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot&);
 std::wstring describePedestalPlan(const PedestalPlan&,Point,const std::wstring& action=L"push control");
 std::wstring pedestalConsentName(const PedestalPlan&);

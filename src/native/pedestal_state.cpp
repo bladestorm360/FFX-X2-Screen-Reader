@@ -89,6 +89,7 @@ void preparePedestalZone(Entity& entity,uintptr_t worker) {
         }
         const auto actor=read<uintptr_t>(worker+0x9c);
         const double radius=actorContactRadius(actor,playerActor());
+        if(entity.pushControl==3) {zone=djosePushStand(p,delta,radius);entity.inactive=!zone.valid;return;}
         const double approach=std::max(5.0,radius+.7);
         zone={}; zone.shape=3; zone.height=9.5;
         zone.width=zone.depth=.4;

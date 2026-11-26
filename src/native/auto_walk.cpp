@@ -130,11 +130,11 @@ void updateAutoWalk() {
     if(cancel || epoch!=generation() || !safe() || (previous && now-previous>600)) { stop("context or player input"); return; }
     previous=now;
     NavLeg leg;
-    if(!navLeg(leg)) { stop("route lost",true); return; }
+    if(!navLeg(leg) && !leg.publishing) { stop("route lost",true); return; }
     // Withhold only synthetic input while the worker rebuilds a changed gate.
     // No wait occurs on this owner. An unavailable result stops immediately;
     // a pending result has the existing600ms field-recovery bound.
-    if(leg.pendingCollision) {
+    if(leg.publishing || leg.pendingCollision) {
         mask=0;
         if(!collisionPendingSince) collisionPendingSince=now;
         else if(now-collisionPendingSince>600) stop("collision route update unavailable",true);
@@ -167,7 +167,9 @@ void updateAutoWalk() {
     if(!leg.target.swimDepth && now-movingSince>1800 && now>=unstickUntil) {
         if(leg.target.butterfly) { stop("butterfly route stalled",true); return; }
         refreshNavCollision();
-        if(!navLeg(leg) || leg.arrived) { stop("replan unavailable",true); return; }
+        const bool ready=navLeg(leg);
+        if(leg.publishing || leg.pendingCollision) { mask=0; return; }
+        if(!ready || leg.arrived) { stop("replan unavailable",true); return; }
         unstickRight=!unstickRight; unstickUntil=now+700; movingSince=now;
         recordLog("auto walk bounded sidestep/replan at %.2f %.2f %.2f",player.x,player.y,player.z);
     }
@@ -197,7 +199,8 @@ void updateAutoWalk() {
     // such a face, tap the key in short pulses the way a player would.
     // Only on the last legs: pulsing round the ring stuck on its corner.
     const auto& zone=leg.target.zone;
-    if(zone.talk && (zone.obstacleRadius>0 || zone.preciseTalk) && distanceXZ(leg.goal,leg.final)<2 && distanceXZ(player,leg.final)<12 && now%300>=60) { mask=0; stamp=now; return; }
+    const bool preciseStop=(zone.talk && (zone.obstacleRadius>0 || zone.preciseTalk)) || leg.target.pushControl==3;
+    if(preciseStop && distanceXZ(leg.goal,leg.final)<2 && distanceXZ(player,leg.final)<12 && now%300>=60) { mask=0; stamp=now; return; }
     mask=octMasks[desired] | (leg.target.swimDepth?16u:0u); stamp=now;
 }
 void autoWalkPlayerInput(unsigned vk) {

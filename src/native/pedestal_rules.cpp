@@ -1,12 +1,27 @@
 // Original trial script rules. This module neither changes state nor requests scripts.
 #include "pedestal.hpp"
 #include "nav_format.hpp"
+#include <algorithm>
 #include <cmath>
 namespace ffx {
 namespace {
 void move(PedestalPlan& plan,Point goal,unsigned held,PushMode mode=PushMode::Slide) {
     plan.moves.push_back({goal,held,mode});
 }
+}
+InteractionZone djosePushStand(Point pedestal,Point direction,double bodyRadius) {
+    // Worker 42 accepts a strict side rectangle for 15 frames. Keep a
+    // quarter-unit margin at the actor body and each native boundary.
+    InteractionZone zone;
+    const double inner=std::max(2.0,bodyRadius)+.25,outer=9.6-.25;
+    if(!std::isfinite(bodyRadius) || bodyRadius<=0 || inner>=outer) return zone;
+    const bool alongX=direction.x!=0;
+    const double mid=(inner+outer)*.5,half=(outer-inner)*.5;
+    zone.valid=true;zone.shape=3;zone.height=9.5;
+    zone.center={pedestal.x-direction.x*mid,pedestal.y,pedestal.z-direction.z*mid};
+    zone.width=alongX?half:1.6-.25;zone.depth=alongX?2.4-.25:half;
+    zone.obstacle=pedestal;zone.obstacleRadius=bodyRadius;
+    return zone;
 }
 PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot& s) {
     PedestalPlan plan;

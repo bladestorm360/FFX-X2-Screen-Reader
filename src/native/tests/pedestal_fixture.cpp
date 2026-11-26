@@ -304,6 +304,29 @@ int main() {
     check(target.zone.approach.x== -1 && target.zone.approach.z==0,
         "armed current segment keeps its west-side approach at .9 residual despite live plan threshold");
     target=setup(3,1,{0,-18,24}); values[0x0c000099]=values[0x0c00009a]=1; ready(target);
+    for(const auto start: {Point{-30,-18,24},Point{30,-18,24},Point{0,-18,54},Point{0,-18,-6},
+                          Point{30,-18,54},Point{-30,-18,54},Point{-30,-18,-6},Point{30,-18,-6}}) {
+        Mesh floor;floor.openPlane=true;floor.planeY=-18;
+        const auto path=interactionRoute(floor,start,target.zone);
+        check(!path.empty() && inInteractionZone(target.zone,path.back()) && path.back().x<0,
+            "every approach ends in the west push rectangle");
+    }
+    check(inInteractionZone(target.zone,{-8,-18,26}) && inInteractionZone(target.zone,{-8,-18,22}),
+        "west stand accepts both lateral edges inside the native push window");
+    check(!inInteractionZone(target.zone,{-9.6,-18,24}) && !inInteractionZone(target.zone,{-8,-18,26.4}) &&
+        !inInteractionZone(target.zone,{-4,-18,24}) && !inInteractionZone(target.zone,{8,-18,24}),
+        "west stand excludes collision, the wrong side and native strict boundaries");
+    for(const Point direction:{Point{1,0,0},Point{-1,0,0},Point{0,0,1},Point{0,0,-1}}) {
+        const auto zone=djosePushStand({},direction,6);
+        check(zone.valid && inInteractionZone(zone,{-direction.x*8,0,-direction.z*8}),
+            "each slide direction stages on the opposite face");
+        check(!inInteractionZone(zone,{-direction.x*9.6,0,-direction.z*9.6}), "native outer limit is strict");
+        const double lateral=direction.x?2.4:1.6;
+        check(!inInteractionZone(zone,{-direction.x*8+direction.z*lateral,0,-direction.z*8+direction.x*lateral}),
+            "native lateral limit depends on the slide axis");
+    }
+    check(!djosePushStand({},{1,0,0},0).valid && !djosePushStand({},{1,0,0},9.2).valid &&
+        djosePushStand({},{1,0,0},9.0).valid, "missing body or empty staging band fails closed");
     position(playerActor(),target.zone.center); check(frame()==0x2000,"lower Djose uses configured Space consent with original scripted direction");
     disable(42,1,0xd17c); check(frame()==0x2000,"lower Djose retains owned direction without exposing sphere Confirm");
     check(frame(0)==0,"lower Djose stops input immediately when Space is released");

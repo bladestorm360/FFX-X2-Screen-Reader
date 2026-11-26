@@ -297,6 +297,7 @@ void pedestalZone(Entity& e,const Scene& s,const WorkerFact& w,const std::array<
             zone.valid=edgeZone.valid && std::isfinite(r) && r>0;e.inactive=!zone.valid || !edge || entries(*edge,rows[edge->global].channels,EntryMask{1u<<6}).empty();return;
         }
         const double r=actor?radius(*actor)+radius(player):0,approach=std::max(5.0,r+.7);
+        if(e.pushControl==3) {zone=djosePushStand(p,delta,r);e.inactive=!zone.valid;return;}
         zone={};zone.shape=3;zone.height=9.5;zone.width=zone.depth=.4;zone.center={p.x-delta.x*approach,p.y,p.z-delta.z*approach};
         zone.obstacle=p;zone.obstacleRadius=r;zone.valid=std::isfinite(r) && r>0 && approach+.4<9.6;
         if(e.pushControl==7) {zone.height=2;zone.center={p.x,p.y,std::max(268.0,p.z+approach)};}e.inactive=!zone.valid;

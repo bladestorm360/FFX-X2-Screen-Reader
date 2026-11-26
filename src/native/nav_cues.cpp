@@ -104,6 +104,11 @@ void advance() {
             const auto dx=s.player.x-goal.x,dz=s.player.z-goal.z;const bool passed=length>.001 && dx*x+dz*z>=0 && std::abs(dx*z-dz*x)/length<=1;
             if(distanceXZ(s.player,goal)>1 && !passed) break;++s.nextLeg;
         }
+        // Held push checks the live stand directly. A list walk can also
+        // enter it before a copied tangent waypoint advances.
+        if(s.nextLeg+1<s.legs.size() && s.target.pushControl==3 && s.target.zone.shape==3 &&
+            !s.target.zone.talk && std::abs(s.player.y-s.legs.back().y)<=8 && navigationTargetReached(s.target,s.player))
+            s.nextLeg=s.legs.size()-1;
         const auto goal=s.legs[s.nextLeg];const double steps=distanceXZ(s.player,goal)/11.13;
         const auto pointRange=setting(Setting::AutoWalk)?1.0:11.13;
         if(s.nextLeg+1==s.legs.size() && (s.target.swimDepth?navigationTargetReached(s.target,s.player):
@@ -147,7 +152,8 @@ bool captureRoute(unsigned kind,const std::vector<Point>& points,const Entity& t
 }
 bool navRouteKnown() {return known.load(std::memory_order_acquire);}
 bool navLeg(NavLeg& leg) {
-    LegSnapshot p;if(!publishedLeg.tryRead(p) || p.revision!=clearRevision.load(std::memory_order_acquire) || p.leg.epoch!=generation() || !p.valid) return false;
+    LegSnapshot p;leg.publishing=!publishedLeg.tryRead(p);
+    if(leg.publishing || p.revision!=clearRevision.load(std::memory_order_acquire) || p.leg.epoch!=generation() || !p.valid) return false;
     leg=p.leg;leg.pendingCollision=leg.collisionSerial!=navCollisionSerial();return true;
 }
 void prepareNavRetirement() {

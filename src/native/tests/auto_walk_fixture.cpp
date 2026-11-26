@@ -71,7 +71,8 @@ bool relativeBearing(Point delta,double& pan,double& front) {
     front=length?(delta.x*forward.x+delta.z*forward.z)/length:1;
     return camera;
 }
-bool navLeg(NavLeg& result) { result=leg;result.pendingCollision=result.collisionSerial!=navCollisionSerial(); return known; }
+bool writingLeg=false;
+bool navLeg(NavLeg& result) { if(writingLeg) {result.publishing=true;return false;} result=leg;result.pendingCollision=result.collisionSerial!=navCollisionSerial(); return known; }
 void resetNavAudio() {}
 void clearNavRoute() { known=false; }
 void refreshNavCollision() { ++replans; }
@@ -188,6 +189,16 @@ int main() {
     clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"distant socket face keeps running");
     begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6; leg.goal={0,0,2};
     clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face ring leg keeps running");
+    begin({0,0,5}); leg.target.pushControl=3;
+    clockValue+=300-clockValue%300+100; updateAutoWalk();
+    check(autoWalkActive() && !keyboard()[0xc8],"Djose push stand rests on its final leg without held consent");
+    writingLeg=true;clockValue+=10;updateAutoWalk();
+    check(autoWalkActive() && !keyboard()[0xc8],"overlapping route publication releases the steering mask");
+    writingLeg=false;clockValue+=200;updateAutoWalk();
+    check(autoWalkActive() && keyboard()[0xc8],"fresh stand leg resumes after a single overlapping read");
+    known=false;updateAutoWalk();check(!autoWalkActive(),"retired route still stops immediately");
+    begin();writingLeg=true;updateAutoWalk();clockValue+=350;updateAutoWalk();clockValue+=251;updateAutoWalk();
+    check(!autoWalkActive(),"persistent publication failure stays bounded");writingLeg=false;
     begin(); leg.arrived=true; updateAutoWalk(); check(!keyboard()[0xc8] && faceCalls==1,"central route arrival releases input and faces the interactible");
     begin(); Event e; hooks.at(0x4b8980)(e); check(!keyboard()[0xc8],"native dialogue installation releases input immediately");
     begin(); swimmingHud=true; hooks.at(0x4b8980)(e);
