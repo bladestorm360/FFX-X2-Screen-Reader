@@ -187,9 +187,32 @@ int main() {
     check(published.beacon && arrivals==priorArrival,"moving NPC updates arrival zone as well as route");
     target.zone.range=10; fixtureUpdateNavTarget(target); player={52,0,5}; pump();
     check(arrivals==priorArrival+1 && !published.beacon,"geometry-only range change refreshes the strict arrival zone");
+    for(auto stand:{Point{55,0,5},Point{60,0,0}}) {
+        auto push=target;push.worker=1;push.pushControl=3;push.pushLocal=1;push.position={60,0,5};
+        push.zone={};push.zone.valid=true;push.zone.shape=3;push.zone.center=stand;
+        push.zone.width=push.zone.depth=1;push.zone.height=2;
+        auto& hold=sceneFacts.pedestal;hold={};hold.armed=hold.held=true;hold.control=3;
+        hold.epoch=epoch;hold.local=1;hold.worker=1;hold.id=push.id;
+        hold.plan.moves.push_back({push.position,stand.x<60?0x2000u:0x1000u});
+        player=stand;const auto priorSpeechCount=said.size();const auto sounds=arrivals;
+        fixtureRouteNavAudio({player,stand},push);
+        player.x+=3;push.position.x+=.25;push.zone.center.x+=.25;
+        fixtureRouteNavAudio({player,push.zone.center},push);NavLeg correction;
+        check(navLeg(correction) && !correction.arrived,"same held push can correct its stand");
+        player=stand;pump();fixtureRouteNavAudio({player,stand},push);
+        check(said.size()==priorSpeechCount+1 && arrivals==sounds+1,"one arrival and one sound through held stand retries");
+        hold.plan.moves.front().held^=0x3000;fixtureRouteNavAudio({player,stand},push);
+        check(said.size()==priorSpeechCount+2,"a new push direction announces its own stand");
+        clearNavRoute();fixtureRouteNavAudio({player,stand},push);
+        check(said.size()==priorSpeechCount+3 && arrivals==sounds+3,"new explicit stand walk has its own arrival");
+        hold={};fixtureRouteNavAudio({player,stand},push);
+        check(said.size()==priorSpeechCount+4,"separate unheld walk announces normally");
+        clearNavRoute();
+    }
+    const auto afterPushArrivals=arrivals;
     target.zone.range=5; player={36,0,5}; fixtureRouteNavAudio({player,{56,0,5}},target);
     player={56,0,5}; pump();
-    check(arrivals==priorArrival+2 && !published.beacon,"arrival occurs inside moved native interaction zone");
+    check(arrivals==afterPushArrivals+1 && !published.beacon,"arrival occurs inside moved native interaction zone");
     target.inactive=false; player={36,0,5}; fixtureRouteNavAudio({player,{56,0,5}},target);
     target.inactive=true; fixtureUpdateNavTarget(target); NavLeg inactiveLeg;
     check(!navLeg(inactiveLeg) && said.back().find(L"Currently inactive")!=std::wstring::npos,

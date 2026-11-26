@@ -37,7 +37,9 @@ struct State {
     Point player;
     unsigned epoch=0,revision=0,routeEpoch=0,audioContext=0,collisionSerial=0,routeCollisionSerial=0;
     nav::CollisionSnapshot copiedCollision,routeCollision;
-    bool arrived=false,allowed=false,ready=false;
+    int heldPushWorker=-1;
+    unsigned heldDirection=0;
+    bool arrived=false,arrivalReported=false,allowed=false,ready=false;
     speechq::Header header{};
     nav::CopiedCamera camera;
 } ;
@@ -45,7 +47,7 @@ ProcessStorage<State> state;
 State& owned() {return state.get();}
 void release(unsigned slot,unsigned ticket) {if(slot<Slots) tickets[slot].compare_exchange_strong(ticket,0,std::memory_order_release,std::memory_order_relaxed);}
 void clearOwned() {
-    auto& s=owned();s.legs.clear();s.destination.clear();s.target={};s.routeEpoch=0;s.nextLeg=1;s.arrived=false;
+    auto& s=owned();s.legs.clear();s.destination.clear();s.target={};s.routeEpoch=0;s.nextLeg=1;s.arrived=s.arrivalReported=false;
     s.revision=clearRevision.load(std::memory_order_acquire);known=false;publishedLeg.publish({});
 }
 bool current() {return state.ready() && owned().epoch==generation() && owned().revision==clearRevision.load(std::memory_order_acquire);}
@@ -75,8 +77,16 @@ bool sameTarget(const Entity& a,const Entity& b) {
     return equal && a.swimReady==b.swimReady && std::abs(a.swimClearance-b.swimClearance)<.1 && a.swimApproach==b.swimApproach &&
         a.inactive==b.inactive && distanceXZ(a.position,b.position)<.1 && std::abs(a.position.y-b.position.y)<.1;
 }
+bool sameHeldStand(const State& s,const Entity& target) {
+    return s.heldPushWorker>=0 && target.worker==s.heldPushWorker && target.pushControl==3 && !target.zone.talk &&
+        target.worker==s.target.worker && target.pushControl==s.target.pushControl && target.id==s.target.id && target.actor==s.target.actor;
+}
 void setRoute(const std::vector<Point>& points,const Entity& target) {
-    reconcile();auto& s=owned();s.epoch=generation();s.legs=points;s.nextLeg=1;s.routeEpoch=s.epoch;s.arrived=false;
+    reconcile();auto& s=owned();s.epoch=generation();
+    // A held slide can request another approach as Tidus coasts off the
+    // stand. It still needs steering, but owns the same arrival until release.
+    if(!sameHeldStand(s,target)) s.arrivalReported=false;
+    s.legs=points;s.nextLeg=1;s.routeEpoch=s.epoch;s.arrived=false;
     s.routeCollisionSerial=s.collisionSerial;s.routeCollision=s.copiedCollision;
     s.destination=target.name.empty()?target.category:target.name;s.target=target;known=!s.destination.empty();publishLeg();
 }
@@ -113,7 +123,7 @@ void advance() {
         const auto pointRange=setting(Setting::AutoWalk)?1.0:11.13;
         if(s.nextLeg+1==s.legs.size() && (s.target.swimDepth?navigationTargetReached(s.target,s.player):
             (s.target.zone.valid?navigationTargetReached(s.target,s.player):distanceXZ(s.player,goal)<=pointRange) && (horizontal || std::abs(s.player.y-goal.y)<=8))) {
-            s.arrived=true;emit(s.destination+L": route destination reached"+(s.target.pushControl?L". "+s.pedestal:L""),"navigation-arrival");
+            s.arrived=true;if(!s.arrivalReported) emit(s.destination+L": route destination reached"+(s.target.pushControl?L". "+s.pedestal:L""),"navigation-arrival");
         } else if(!s.target.swimDepth || distanceXZ(s.player,goal)>.1) {
             double pan=0,front=1;
             if(relativeBearing({goal.x-s.player.x,0,goal.z-s.player.z},pan,front)) {audio.beacon=true;audio.pan=static_cast<float>(pan);audio.front=static_cast<float>(front);audio.steps=static_cast<float>(steps);}
@@ -121,7 +131,7 @@ void advance() {
     }
     if(!current()) return;
     publishLeg();publishNavAudio(audio);
-    if(s.arrived && s.routeEpoch) {if(setting(Setting::Beacon) && setting(Setting::Arrival)) navAudioArrival();s.routeEpoch=0;}
+    if(s.arrived && s.routeEpoch) {if(!s.arrivalReported && setting(Setting::Beacon) && setting(Setting::Arrival)) navAudioArrival();s.arrivalReported=true;s.routeEpoch=0;}
 }
 void process(const speechq::Header& header,const std::wstring& bytes) {
     preparationOwner.store(GetCurrentThreadId(),std::memory_order_release);
@@ -170,6 +180,7 @@ void routeNavAudio(const std::vector<Point>& points,const Entity& target) {
 void updateNavTarget(const Entity& target) {
     if(!onOwner()) {if(!captureRoute(1,{},target)) output(L"Navigation updates are busy. Updates resume when it recovers.",false,"navigation-pressure");return;}
     reconcile();auto& s=owned();if(s.routeEpoch!=s.epoch || target.actor!=s.target.actor || target.worker!=s.target.worker || target.id!=s.target.id || target.pushControl!=s.target.pushControl || target.pushLocal!=s.target.pushLocal || sameTarget(s.target,target)) return;
+    if(!sameHeldStand(s,target)) s.arrivalReported=false;
     s.target=target;if(target.inactive) {pauseNavRouteAudio();s.routeEpoch=0;publishedLeg.publish({});emit(s.destination+L": route unavailable. Currently inactive","navigation-route-lost");return;}
     const auto route=navigationRouteOwned(s.collision,s.player,target,s.live);
     if(route.empty()) {pauseNavRouteAudio();s.routeEpoch=0;publishedLeg.publish({});emit(s.destination+L": route lost. The destination moved outside the connected floor","navigation-route-lost");}
@@ -179,6 +190,11 @@ void updateNavAudio(Point,bool) {nav::requestNavigationScene();captureWallCues()
 void updateOwnedNavAudio(const nav::Scene& observation,const Mesh& mesh,const std::vector<Entity>& targets,const speechq::Header& header,const std::wstring& pedestal) {
     if(observation.collisionSerial!=navCollisionSerial()) {nav::requestNavigationScene();return;}
     if(nativeGameThread()) return;preparationOwner.store(GetCurrentThreadId(),std::memory_order_release);reconcile();auto& s=owned();s.epoch=observation.epoch;s.revision=clearRevision.load(std::memory_order_acquire);s.player=observation.player;s.audioContext=observation.audioContext;s.allowed=observation.allowed;s.ready=true;s.header=header;s.pedestal=pedestal;
+    const auto& push=observation.pedestal;
+    const int held=push.armed && push.held && push.epoch==s.epoch && push.control==3?push.worker:-1;
+    const unsigned direction=held>=0 && !push.plan.moves.empty()?push.plan.moves.front().held:0;
+    if(s.heldPushWorker>=0 && (held!=s.heldPushWorker || direction!=s.heldDirection)) s.arrivalReported=false;
+    s.heldPushWorker=held;s.heldDirection=direction;
     s.collisionSerial=observation.collisionSerial;s.copiedCollision=observation.geometry.collision;
     s.collision=mesh;s.live=targets;s.camera={observation.forward,observation.right,observation.cameraValid};nav::CameraScope camera(observation.forward,observation.right,observation.cameraValid);
     if(s.routeEpoch==s.epoch) {
