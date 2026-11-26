@@ -61,6 +61,12 @@ void zoneFixtures() {
     const auto margin=interactionRoute(room,{20,0,40},face);
     check(!margin.empty() && inInteractionZone(face,margin.back()),"socket face route ends inside the reach margin");
     face.range=6;
+    auto door=face; door.range=10; door.approach={}; door.preciseTalk=true;
+    const Point fringe{door.center.x,0,door.center.z-9.7};
+    check(!inInteractionZone(door,fringe),"door recess does not claim arrival at the outer talk fringe");
+    const auto doorPath=interactionRoute(room,fringe,door);
+    check(doorPath.size()>=2 && distanceXZ(doorPath.back(),door.center)<=9 && inInteractionZone(door,doorPath.back()),
+        "door recess routes inward from the fringe without imposing a pedestal face");
     pedestal.competing[0].viewAngle=.05;
     check(inInteractionZone(pedestal,{50,0,30}),"native facing cone excludes a competing control outside the facing direction");
     pedestal.competing[0].center=pedestal.center; pedestal.competing[0].range=100;

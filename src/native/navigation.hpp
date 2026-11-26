@@ -18,7 +18,7 @@ struct Mesh { std::vector<Triangle> triangles; bool openPlane=false,fixedHeight=
     const nav::CrossWaterBake* crossWater=nullptr;unsigned waterCrossings=0;std::vector<Triangle> terrain;RouteEvents events; };
 bool swimmingPlane();
 struct InteractionShape { Point center,end; double angle=0,width=0,depth=0,range=0,height=-1,viewAngle=3.141592653589793;
-    unsigned shape=0; int worker=-1; bool valid=false,crossing=false,talk=false; };
+    unsigned shape=0; int worker=-1; bool valid=false,crossing=false,talk=false,preciseTalk=false; };
 struct InteractionZone : InteractionShape { std::vector<InteractionShape> competing;
     double contactRadius=0,contactMinY=-1e30,contactMaxY=1e30; Point approach;
     Point obstacle; double obstacleRadius=0; };

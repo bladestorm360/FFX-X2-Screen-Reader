@@ -65,6 +65,9 @@ Point onFloor(const Triangle& t,Point p) {
     }
     return best;
 }
+double talkInset(const InteractionShape& zone) {
+    return zone.preciseTalk?std::min(1.0,zone.range*.5):0;
+}
 bool insideShape(const InteractionShape& zone,Point p,bool target=true,bool horizontal=false) {
     if(!zone.valid) return false;
     const auto closest=onShape(zone,p);
@@ -72,7 +75,8 @@ bool insideShape(const InteractionShape& zone,Point p,bool target=true,bool hori
     if(zone.shape==1 && (zone.height==0 || zone.range<=0)) return false;
     const double planar=distanceXZ(closest,p);
     const double distance=zone.shape==1 && zone.height<0 && !horizontal?std::hypot(planar,p.y-closest.y):planar;
-    return zone.range>0?distance<std::max(0.0,zone.range-(target?.1:zone.shape==1?0:-.00001)):distance<.001;
+    const double inset=target?std::max(.1,talkInset(zone)):(zone.shape==1?0:-.00001);
+    return zone.range>0?distance<std::max(0.0,zone.range-inset):distance<.001;
 }
 double talkScore(const InteractionShape& zone,Point p,bool horizontal=false) {
     // 866920 scores circles by distance squared. 866C60 and 8665B0
@@ -95,7 +99,7 @@ std::vector<Point> interactionAnchors(const InteractionZone& zone,Point player) 
         return {{zone.center.x+zone.approach.x*reach,zone.center.y,zone.center.z+zone.approach.z*reach}};
     }
     const auto closest=onShape(zone,player);
-    const double d=distanceXZ(player,closest),radius=std::max(0.0,zone.range-.25);
+    const double d=distanceXZ(player,closest),radius=std::max(0.0,zone.range-talkInset(zone)-.25);
     Point desired=closest;
     if(d>1e-8 && radius>0) { desired.x+=(player.x-closest.x)*std::min(1.0,radius/d); desired.z+=(player.z-closest.z)*std::min(1.0,radius/d); }
     if(zone.crossing && zone.shape==2 && d>1e-8) {

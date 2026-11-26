@@ -30,7 +30,7 @@ inline void copyInteractionShape(const InteractionShape& from, InteractionShape&
     to.width=from.width; to.depth=from.depth; to.range=from.range;
     to.height=from.height; to.viewAngle=from.viewAngle; to.shape=from.shape;
     to.worker=from.worker; to.valid=from.valid; to.crossing=from.crossing;
-    to.talk=from.talk;
+    to.talk=from.talk; to.preciseTalk=from.preciseTalk;
 }
 
 inline bool captureOwnedNavTarget(const Entity& source, OwnedNavTarget& destination) noexcept {

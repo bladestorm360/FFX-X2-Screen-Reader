@@ -385,6 +385,7 @@ void buildPart(const OwnedAtelGuardView& view,void* opaque) {
         } else continue;
         e.position=w.position;e.distance=distanceXZ(s.player,e.position);e.actor=w.actor;e.id=bound?model:e.category==L"Exit"?0xffff:0xfffe;
         configurePedestalTarget(e,catalog?catalog->name:nullptr,index);e.zone=sceneInteractionZone(w,channels?channels:trial || presence?1u:region?0x20u:0u,s.extraTalkRange);
+        e.zone.preciseTalk=trial && script.name=="djyt0600" && index==54 && e.zone.talk;
         if(w.type==6 && !e.zone.valid) e.inactive=true;
         if(!e.pushControl || e.pushControl>2) competitors(e,s,context.rows);pedestalZone(e,s,w,context.rows,script);butterflyStarter(e,s,w,row,course);
         if(e.category==L"Exit" && room!=-2) {if(room<0) room=scanWorker(script,index,&activeEntries).room;e.name=navigationExitName(script,index,room,e.name,context.areas);}

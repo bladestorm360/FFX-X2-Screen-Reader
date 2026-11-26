@@ -189,7 +189,7 @@ void updateAutoWalk() {
     // such a face, tap the key in short pulses the way a player would.
     // Only on the last legs: pulsing round the ring stuck on its corner.
     const auto& zone=leg.target.zone;
-    if(zone.talk && zone.obstacleRadius>0 && distanceXZ(leg.goal,leg.final)<2 && distanceXZ(player,leg.final)<12 && now%300>=60) { mask=0; stamp=now; return; }
+    if(zone.talk && (zone.obstacleRadius>0 || zone.preciseTalk) && distanceXZ(leg.goal,leg.final)<2 && distanceXZ(player,leg.final)<12 && now%300>=60) { mask=0; stamp=now; return; }
     mask=octMasks[desired] | (leg.target.swimDepth?16u:0u); stamp=now;
 }
 void autoWalkPlayerInput(unsigned vk) {

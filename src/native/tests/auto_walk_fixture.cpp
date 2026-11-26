@@ -179,6 +179,10 @@ int main() {
     begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6;
     clockValue+=300-clockValue%300+100; updateAutoWalk(); check(autoWalkActive() && !keyboard()[0xc8],"socket face approach rests between pulses");
     clockValue+=210; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face approach taps forward");
+    begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.preciseTalk=true;
+    clockValue+=300-clockValue%300+100; updateAutoWalk();
+    check(autoWalkActive() && !keyboard()[0xc8],"door recess without a pedestal body rests between final approach pulses");
+    clockValue+=210; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"door recess resumes the final approach");
     begin({0,0,50}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6;
     clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"distant socket face keeps running");
     begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6; leg.goal={0,0,2};

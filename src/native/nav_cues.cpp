@@ -60,7 +60,7 @@ void publishLeg() {
 }
 void emit(std::wstring text,const char* producer) {speechq::emitOwned(std::move(text),owned().header,producer,false,false);}
 bool sameShape(const InteractionShape& a,const InteractionShape& b) {
-    return a.valid==b.valid && a.shape==b.shape && a.crossing==b.crossing && a.talk==b.talk && a.worker==b.worker &&
+    return a.valid==b.valid && a.shape==b.shape && a.crossing==b.crossing && a.talk==b.talk && a.preciseTalk==b.preciseTalk && a.worker==b.worker &&
         distanceXZ(a.center,b.center)<.1 && std::abs(a.center.y-b.center.y)<.1 && distanceXZ(a.end,b.end)<.1 &&
         std::abs(a.end.y-b.end.y)<.1 && std::abs(a.range-b.range)<.1 && std::abs(a.height-b.height)<.1 &&
         std::abs(a.width-b.width)<.1 && std::abs(a.depth-b.depth)<.1 && std::abs(a.angle-b.angle)<.0001 && std::abs(a.viewAngle-b.viewAngle)<.0001;
