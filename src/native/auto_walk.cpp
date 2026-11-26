@@ -84,7 +84,15 @@ void textOpened(Event& e) {
     }
     stop("dialogue");
 }
-void controlDisabled(Event&) { stop("player control disabled"); }
+void controlDisabled(Event&) {
+    // The reset scene consumes the walk. Retire its route before a later
+    // worker refresh can announce that the tile has become inactive.
+    if(autoWalkActive()) {
+        NavLeg leg;
+        if(navLeg(leg) && leg.target.resetTile) clearNavRoute();
+    }
+    stop("player control disabled");
+}
 }
 void setNavigationInputAssist(NavigationKeyboardAssist keyAssist,NavigationControllerAssist padAssist) { keyboardAssist=keyAssist;controllerAssist=padAssist; }
 void stopAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("cancelled");else {engaged=false;cancel=true;mask=0;stamp=0;}}

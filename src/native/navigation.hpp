@@ -24,7 +24,7 @@ struct InteractionZone : InteractionShape { std::vector<InteractionShape> compet
     Point obstacle; double obstacleRadius=0; };
 struct Entity { std::wstring name, category; unsigned id = 0; int actor = -1, worker = -1;
     Point position; double distance = 0; InteractionZone zone; bool unreachable=false, inactive=false; unsigned pushControl=0,pushLocal=0;
-    EntryMask usefulEntries; bool authoredTrialControl=false,butterfly=false,hazardous=false,butterflyStart=false;
+    EntryMask usefulEntries; bool authoredTrialControl=false,butterfly=false,hazardous=false,butterflyStart=false,resetTile=false;
     unsigned butterflyEpoch=0; bool swimApproach=false,swimDepth=false,swimReady=true; double swimClearance=0; uintptr_t swimChunk=0; };
 // Native steering carries copied facts, never an allocating Entity/vector/string.
 // At most500 loaded workers supply competitors;512 includes authored recess facts.
@@ -44,7 +44,7 @@ struct NativeRouteTarget {
     std::array<wchar_t,2049> name{};
     unsigned id=0,pushControl=0,pushLocal=0;int actor=-1,worker=-1;
     Point position;NativeInteractionZone zone;
-    bool inactive=false,butterfly=false,swimDepth=false;uintptr_t swimChunk=0;
+    bool inactive=false,butterfly=false,swimDepth=false,resetTile=false;uintptr_t swimChunk=0;
 };
 static_assert(std::is_trivially_copyable_v<NativeRouteTarget> && std::is_trivially_destructible_v<NativeRouteTarget>);
 std::vector<unsigned> interactionEntries(uintptr_t worker,EntryMask entryMask,unsigned* channels=nullptr);

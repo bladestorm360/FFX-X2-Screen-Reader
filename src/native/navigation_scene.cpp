@@ -372,6 +372,7 @@ void buildPart(const OwnedAtelGuardView& view,void* opaque) {
         if(activeEntries.empty() && !trial && !region && !presence) continue;
         Entity e;e.worker=i;e.inactive=activeEntries.empty();e.swimApproach=catalog && script.name=="stbv0000" && (index==16 || index==17 || index==25 || index==26);
         e.usefulEntries=useful;e.authoredTrialControl=trial;
+        e.resetTile=trial && script.name=="djyt0600" && index==67;
         if(bound && (!field<uint16_t>(s.actors[w.actor].bytes,2) || field<unsigned>(s.actors[w.actor].bytes,0x824)==0xcdcdcdcd)) continue;
         if(w.type==1 && !bound) continue;int room=-1;
         if(nativeObject) {

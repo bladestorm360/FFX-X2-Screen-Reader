@@ -49,7 +49,7 @@ inline bool captureOwnedNavTarget(const Entity& source, OwnedNavTarget& destinat
     native.id=source.id; native.actor=source.actor; native.worker=source.worker;
     native.position=source.position; native.pushControl=source.pushControl;
     native.pushLocal=source.pushLocal; native.inactive=source.inactive;
-    native.butterfly=source.butterfly; native.swimDepth=source.swimDepth;
+    native.butterfly=source.butterfly; native.swimDepth=source.swimDepth; native.resetTile=source.resetTile;
     native.swimChunk=source.swimChunk;
     copyInteractionShape(static_cast<const InteractionShape&>(source.zone),
                          static_cast<InteractionShape&>(native.zone));
@@ -99,6 +99,7 @@ inline bool restoreOwnedNavTarget(const OwnedNavTarget& source, Entity& destinat
     restored.pushControl=source.native.pushControl; restored.pushLocal=source.native.pushLocal;
     restored.usefulEntries=source.usefulEntries;
     restored.authoredTrialControl=source.authoredTrialControl;
+    restored.resetTile=source.native.resetTile;
     restored.butterfly=source.native.butterfly;
     restored.hazardous=source.hazardous; restored.butterflyStart=source.butterflyStart;
     restored.butterflyEpoch=source.butterflyEpoch;

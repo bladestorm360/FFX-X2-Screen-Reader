@@ -73,6 +73,7 @@ bool relativeBearing(Point delta,double& pan,double& front) {
 }
 bool navLeg(NavLeg& result) { result=leg;result.pendingCollision=result.collisionSerial!=navCollisionSerial(); return known; }
 void resetNavAudio() {}
+void clearNavRoute() { known=false; }
 void refreshNavCollision() { ++replans; }
 bool output(const std::wstring& text,bool,const char*) { speech.push_back(text); return true; }
 // Semantic-only fixture adapter: it checks bounded Literal/Concat recipes and
@@ -199,6 +200,11 @@ int main() {
     swimmingHud=false; hooks.at(0x4b8980)(e);
     check(!keyboard()[0xc8],"real swimming dialogue still cancels the same route");
     begin(); hooks.at(0x471980)(e); check(!keyboard()[0xc8],"native silent cutscene control-disable event cancels immediately");
+    check(known,"an ordinary destination keeps its route when a scene stops movement");
+    begin(); leg.target.resetTile=true; hooks.at(0x471980)(e);
+    check(!autoWalkActive() && !known,"the reset scene retires the tile route before it can announce inactivity");
+    begin(); leg.target.resetTile=true; stopAutoWalk(); hooks.at(0x471980)(e);
+    check(known,"control loss without an active tile walk leaves route feedback alone");
     begin(); *reinterpret_cast<uint8_t*>(address(0x1000000))=0;
     check(!keyboard()[0xc8],"already disabled native field control cannot receive synthetic input");
     for(unsigned context=0;context<7;++context) {

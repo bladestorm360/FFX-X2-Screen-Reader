@@ -182,6 +182,13 @@ int main() {
     target.inactive=true; fixtureUpdateNavTarget(target); NavLeg inactiveLeg;
     check(!navLeg(inactiveLeg) && said.back().find(L"Currently inactive")!=std::wstring::npos,
         "availability-only changes invalidate the route instead of retaining stale push eligibility");
+    target.inactive=false; target.resetTile=true;
+    fixtureRouteNavAudio({player,{56,0,5}},target);
+    check(navLeg(inactiveLeg) && inactiveLeg.target.resetTile,"tile route retains its identity in the native steering snapshot");
+    clearNavRoute();
+    const auto beforeResetRefresh=said.size(); target.inactive=true; fixtureUpdateNavTarget(target);
+    check(!navLeg(inactiveLeg) && said.size()==beforeResetRefresh,"inactive tile refresh after scene takeover stays silent");
+    target.resetTile=false;
     target.inactive=false;
     target.zone={}; target.position={45,0,5}; player={5,0,5};
     const auto priorSilent=arrivals; const auto priorSpeech=said.size(); beacon=false;
