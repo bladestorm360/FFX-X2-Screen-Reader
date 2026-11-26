@@ -121,7 +121,7 @@ int main(){
     const auto code=read<unsigned>(chunk()+0x30);fileBytes[chunkOffset+code]^=1;set(0,27,99);prepareResource();
     wait([]{return collected.size()==2;},"first copied start/catch resume after resource-ready wake");
     const auto firstUsable=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-accepted).count();
-    check(collected[0].text==L"Butterfly hunt started"&&collected[1].text==L"Blue butterfly. 1 of 7","real FIFO uses original captured facts after engine source overwrite");
+    check(collected[0].text==L"Butterfly hunt started"&&collected[1].text==L"Blue butterfly caught","real FIFO uses original captured facts after engine source overwrite");
     hold();load();prepareResource();change(0,26,1);resume();wait([]{return collected.size()==1&&cueActive.load();},"fresh prepared hunt audio and headline");collected.clear();
     hold();query();query();resume();wait([]{return collected.size()==4;},"equal direction queries plus hazard warnings retained");check(collected[0].text==collected[2].text&&collected[1].text==L"Red butterfly nearby"&&collected[1].text==collected[3].text,"actual equal output is never deduplicated");collected.clear();
     hold();query();speechq::interrupt();resume();wait([]{return !speechq::capturesPending();},"canceled query drains");Sleep(20);takeReady();check(collected.empty(),"actual original cancellation anchor remains silent");

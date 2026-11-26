@@ -54,18 +54,7 @@ std::wstring swimmingGoalInstruction() {
     if(read<uint8_t>(playerActor()+0x186)!=2 || !read<uint8_t>(address(swimming_rva::DiveEnabled)))
         return L"Dive first to enter the water, then request the route again";
     const auto name=nativeButtonMaskName(0x40);
-    auto text=L"Dive first. Hold "+(name.empty()?L"the configured Dive button":name)+L" and follow the route until the map changes";
-    const auto controller=read<uintptr_t>(address(0xf26ae8)),chunk=read<uintptr_t>(controller+0x48);
-    const auto start=read<unsigned>(chunk+4),end=read<unsigned>(chunk+8);
-    if(read<uint16_t>(address(0xd2ca90))==71 && read<uint16_t>(address(0xd2ca90)+0xe)==20 &&
-        chunk && start && end>=start+64 && end<0x800000) {
-        const auto surface=read<float>(chunk+start+32+16);
-        const auto y=playerPosition().y;
-        if(std::isfinite(surface) && std::isfinite(y) && surface<250) {
-            const auto remaining=static_cast<unsigned>(std::ceil(std::clamp((250-y)/(250-surface),0.0,1.0)*100));
-            text+=L". "+std::to_wstring(remaining)+L" percent of the descent remains";
-        }
-    }
-    return text;
+    // The game draws no depth gauge during the descent, so no remaining percent is spoken.
+    return L"Dive first. Hold "+(name.empty()?L"the configured Dive button":name)+L" and follow the route until the map changes";
 }
 }

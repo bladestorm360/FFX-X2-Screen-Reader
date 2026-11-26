@@ -48,7 +48,7 @@ void swimmingProgressionFixtures() {
         keys[VK_OEM_6](true);navigationFixturePump();
     }
     check(said.back().first.find(L"Exit to Salvage Ship - Underwater. Dive first. Hold ")==0 &&
-        said.back().first.find(L"85 percent of the descent remains")!=std::wstring::npos,
+        said.back().first.find(L"percent")==std::wstring::npos,
         "entity list describes actual Dive action rather than zero steps here");
     set<int>(0xf01a48,0); set<uintptr_t>(0xf01a44,0); setSetting(Setting::AutoWalk,1);
     const auto before=autoStarts; keys[VK_OEM_5](false);navigationFixturePump();
@@ -56,7 +56,7 @@ void swimmingProgressionFixtures() {
         "normal route command starts Auto walk for depth transition without a floor route");
     setSetting(Setting::AutoWalk,0);
     set<float>(actor+0x10,200);
-    check(swimmingGoalInstruction().find(L"23 percent of the descent remains")!=std::wstring::npos,"descent guidance updates from actual player depth");
+    check(swimmingGoalInstruction().find(L"percent")==std::wstring::npos,"descent guidance speaks no depth percent because the game draws no depth gauge");
     for(unsigned guard=0;guard<5;++guard) {
         if(guard==0) set<uint8_t>(actor+0x186,0);
         if(guard==1) set<uint8_t>(swimming_rva::DiveEnabled,0);
