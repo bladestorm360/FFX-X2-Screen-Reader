@@ -74,6 +74,17 @@ void zoneFixtures() {
     pedestal.competing[0].viewAngle=3.141592653589793; pedestal.shape=3; pedestal.range=100;
     check(interactionRoute(room,{20,0,40},pedestal).empty(),"indistinguishable native controls cannot produce a false arrival");
     InteractionZone contact; contact.valid=true; contact.shape=1; contact.center={50,0,40};
+    // Step 9 pushes east. A player on the east must go around the body to
+    // the west stand. Running on from the first turn must miss the body.
+    InteractionZone stand; stand.valid=true; stand.shape=3; stand.width=stand.depth=.4;
+    stand.height=9.5; stand.center={43.3,0,40}; stand.obstacle={50,0,40}; stand.obstacleRadius=6;
+    const auto fromEast=interactionRoute(room,{80,0,40},stand);
+    check(fromEast.size()>2 && inInteractionZone(stand,fromEast.back()),"east start routes to the Djose west push stand");
+    const auto start=fromEast.front(),turn=fromEast[1]; const auto firstLeg=distanceXZ(start,turn);
+    const Point coast{turn.x+6*(turn.x-start.x)/firstLeg,turn.y,turn.z+6*(turn.z-start.z)/firstLeg};
+    check(distanceXZ(coast,stand.obstacle)>stand.obstacleRadius,"first turn from the east must not aim through the pedestal");
+    const auto fromWest=interactionRoute(room,{20,0,40},stand);
+    check(fromWest.size()==2 && inInteractionZone(stand,fromWest.back()),"west start keeps the direct walk to the same push stand");
     contact.contactRadius=7; contact.approach={0,0,1};
     contact.competing={recess};
     auto approach=interactionRoute(room,{20,0,40},contact);

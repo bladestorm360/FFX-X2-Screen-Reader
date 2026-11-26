@@ -166,10 +166,23 @@ std::vector<Point> contactRoute(const Mesh& mesh,Point player,Point goal,const I
         return (static_cast<int>(std::round(std::atan2(p.z-zone.center.z,p.x-zone.center.x)/countAngle))+count)%count;
     };
     const int first=index(player),last=index(goal);
+    const double from=distanceXZ(player,zone.center);
     std::vector<Point> best; double bestLength=std::numeric_limits<double>::infinity();
     for(int side:{-1,1}) {
         std::vector<Point> candidate{player}; bool valid=true;
         int at=first;
+        // The Djose charger requires a west stand. From the east, a radial
+        // first leg aims straight into the body if the player runs on.
+        if(zone.obstacleRadius>0 && zone.shape==3 && !zone.talk && from>radius) {
+            const double angle=std::atan2(player.z-zone.center.z,player.x-zone.center.x)+side*std::acos(radius/from);
+            const int next=(static_cast<int>(side>0?std::ceil(angle/countAngle):std::floor(angle/countAngle))+count)%count;
+            const auto ahead=[&](int i) {return ((i-first)*side+static_cast<int>(count))%static_cast<int>(count);};
+            if(ahead(next)<=ahead(last)) {
+                const Point tangent{zone.center.x+radius*std::cos(angle),zone.center.y,zone.center.z+radius*std::sin(angle)};
+                const auto entry=routePoints(mesh,player,tangent);
+                if(clearsPedestal(entry,zone)) {candidate.insert(candidate.end(),entry.begin()+1,entry.end());at=next;}
+            }
+        }
         for(unsigned n=0;n<count;++n) {
             nav::checkComputation();
             const double angle=at*countAngle;
