@@ -33,14 +33,23 @@ after the hold is lifted.
   [local verification](../../Analysis/FFX/CleanCloneCI_20261126/verification.json).
 - **Field menu speech hand-merge.** The owner approved blank-cell speech,
   reopened Save/Load and Yes/No focus, and optional field list indexing in
-  PR #4. Replace the proposed timer with the verified native opening and
+  PR #4. The hand-merge at `199fd8f` uses the verified native opening and
   cancellation boundaries. Fixed scope keeps the existing menus, F8 default
-  and deployment guard. The focused x86 fixture passes 463 checks, including
-  immediate reopen on the same row, equal text on separate rows, popup
-  replacement and all eight UI locales. Current local deployment is blocked
-  because no FFX executable was found in the mounted Steam libraries.
+  and deployment guard. The previous source reproduces the duplicate in the
+  focused x86 fixture. The candidate passes all 463 checks, including immediate
+  reopen on the same row, equal text on separate rows, popup replacement and all
+  eight UI locales. Both retained 173-hook reader profiles pass. Hosted Windows
+  CI passes the x86 release build and both public test suites. Across 64
+  synthetic opening episodes, announcements decrease from 128 to 64. Combined
+  native callback time is 0.252 ms before and 0.163 ms after across those
+  episodes. Across 1,000 idle callbacks it is 0.357 ms before and 0.349 ms after.
+  The fixture uses controlled capture and speech output. Game and audio
+  response remain unmeasured. Local deployment is blocked because no FFX
+  executable was found in the mounted Steam libraries.
   [PR #4](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/4),
-  [field menu behavior](features/menus/index.md#field-item-focus-and-system-popups).
+  [field menu behavior](features/menus/index.md#field-item-focus-and-system-popups),
+  [Windows CI run](https://github.com/bladestorm360/FFX-X2-Screen-Reader/actions/runs/45924950918),
+  [local verification](../../Analysis/FFX/MenuSpeech_20261126/verification.json).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

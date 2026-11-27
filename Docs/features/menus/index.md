@@ -17,7 +17,7 @@ The existing scene open/close hooks retire the initial-focus record when the
 Items or Abilities scene membership changes, including beneath an overlay.
 The Items controller also retires it on accepted item use or grid cancel. The
 record holds one focus key, a resource generation and an opaque window offset.
-The first accepted queue submission marks the initialization as spoken.
+The reader records the initial focus after a successful queue submission.
 Another opening, window, resource generation or ordinary focus change can
 speak the same words. The record stays on the native owner. The worker
 formats copied text, counts and language. No new hook is registered.

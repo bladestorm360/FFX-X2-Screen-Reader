@@ -5,6 +5,10 @@ Review each PR with the user and record the decision. The approved
 [clean-checkout build and Windows CI](Docs/release.md#developer-build-and-ci)
 is integrated. PR #3 closed after successful CI. The review hold still applies
 outside specific approvals.
+The approved [PR #4 hand-merge](Docs/plan.md#november24-pull-request-review-hold)
+uses native Items opening and cancellation events. Blank cells, popup focus
+and optional field indexing pass offline. Local deployment awaits an FFX
+installation.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
