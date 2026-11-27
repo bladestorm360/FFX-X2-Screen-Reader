@@ -36,6 +36,7 @@ Four independent preparation options assist Calm Lands Chocobo training, the Rem
 4. Wait for **Installation complete**, close setup, start your screen reader and launch through Steam.
 
 The installer checks supported original game files, backs up and removes added DLL/ASI mods and known old Frida files, and preserves settings, saves and unrelated launcher XML.
+Install or reinstall other mods after running this setup.
 
 File backups are stored in `FFX_SR_Install_Backups`.
 

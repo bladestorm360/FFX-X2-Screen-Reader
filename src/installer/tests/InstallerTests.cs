@@ -397,9 +397,17 @@ internal static class InstallerTests
             Assert(combo is ComboBox && ((ComboBox)combo).DropDownStyle == ComboBoxStyle.DropDownList, "Detected installations need ordinary Windows selection");
             Control install = all.Find(delegate(Control c) { return c.AccessibleName == "Install"; });
             Assert(!install.Enabled, "Install must be disabled before a game folder is selected");
-            Assert(!all.Find(delegate(Control c) { return c.AccessibleName == "Repair launch redirection"; }).Enabled, "Repair must require selected installation");
+            Control repair = all.Find(delegate(Control c) { return c.AccessibleName == "Repair launch redirection"; });
+            Control check = all.Find(delegate(Control c) { return c.AccessibleName == "Check launch redirection"; });
+            Assert(!repair.Enabled, "Repair must require selected installation");
+            Assert(Control.IsMnemonic('P', repair.Text) && !Control.IsMnemonic('R', repair.Text), "Alt+P selects Repair");
+            Assert(Control.IsMnemonic('R', check.Text), "Alt+R selects Check");
             Assert(all.Find(delegate(Control c) { return c.AccessibleName == "Restore launch backup"; }) is Button, "Restore uses standard accessible button");
             Assert(window.AcceptButton == install && window.CancelButton != null, "Enter/Escape keyboard controls");
+            foreach (char key in "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                Assert(all.FindAll(delegate(Control c) {
+                    return (c is Button || c is Label) && Control.IsMnemonic(key, c.Text);
+                }).Count <= 1, "Setup access keys must be unique: Alt+" + key);
         }
     }
 

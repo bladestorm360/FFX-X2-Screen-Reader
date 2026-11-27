@@ -20,7 +20,9 @@ except canonical root payload names and the exact top-level
 legacy Frida Gadget/config/script names also participate. Backups preserve relative
 paths, include every affected preexisting file, and complete before any deletion.
 Settings, saves, assets and unrelated XML are preserved; other added DLL mods are
-intentionally removed, following the user's request. Rollback restores old files
+intentionally backed up and removed. The owner retained this migration policy
+because the previous accessibility mod used registry-based launch redirection.
+Install or reinstall other mods after this setup. Rollback restores old files
 and removes newly installed files; incomplete restoration names failures and backup.
 Linked descendants, linked backup roots, traversal and directory/file conflicts
 are refused. File targets are rechecked before mutation/restoration. Close the
@@ -84,6 +86,26 @@ The private modder's exact key is unconfirmed. Detecting a Debugger entry establ
 a supported redirect, not attribution. Unknown proprietary Steam path overrides
 cannot be guessed. README covers clearing this game's custom Steam Launch Options
 and reporting the exact missing path if no supported redirect is found.
+
+## Setup keyboard shortcuts and dialog text
+
+Alt+R runs Check launch redirection, Alt+P selects Repair launch redirection,
+and Alt+K selects Restore launch backup. Repair still uses the separate review
+and confirmation described above.
+
+Setup result and error messages use an owned Windows task dialog. Its content
+preserves literal ampersands in executable names and paths, such as
+`FFX&X-2_LAUNCHER.exe`. It offers OK and allows Escape to dismiss. The full
+message also remains in Setup status.
+
+The x86 public suite passed 145 assertions including distinct access keys. The
+full suite passed 835 assertions using the hash-verified PRISM fixture. It also
+passed short- and long-path embedded-installer checks and module cleanup.
+An isolated Windows UI Automation check on the actual form found the exact
+content, including single and consecutive ampersands and non-ASCII text, in
+both result and error dialogs. The old message box omitted a single ampersand
+from its accessible text. This check exercised dialog ownership and dismissal.
+Live screen-reader speech was outside this checkpoint.
 
 ## Missing executable investigation
 

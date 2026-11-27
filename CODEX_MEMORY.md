@@ -13,6 +13,9 @@ and optional field indexing pass offline. PRs #1 through #4 are closed.
 [PR #5](Docs/plan.md#november24-pull-request-review-hold) remains open. Its
 settings-write protection is integrated and passes offline and Windows CI
 with the same INI format. The owner deferred the remaining proposals.
+[PR #6](Docs/plan.md#november24-pull-request-review-hold) integrates only the
+setup keyboard shortcut and dialog text fixes. The owner retained the existing
+[installer cleanup policy](Docs/windows_installer_20261007.md#current-migration-behavior).
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)

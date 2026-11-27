@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
@@ -219,11 +220,67 @@ namespace FfxScreenReader.Setup
             ShowMessage("Installation complete. Original game files verified; other added DLL/ASI mods removed. Start your screen reader, then launch normally through Steam. Previous files are backed up in: " + e.Result, false);
         }
 
+        // Match the packed TASKDIALOGCONFIG in commctrl.h.
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
+        private struct TaskDialogConfig
+        {
+            public int Size;
+            public IntPtr Owner;
+            public IntPtr Instance;
+            public int Flags;
+            public int CommonButtons;
+            public string Title;
+            public IntPtr MainIcon;
+            public string MainInstruction;
+            public string Content;
+            public int ButtonCount;
+            public IntPtr Buttons;
+            public int DefaultButton;
+            public int RadioButtonCount;
+            public IntPtr RadioButtons;
+            public int DefaultRadioButton;
+            public string VerificationText;
+            public string ExpandedInformation;
+            public string ExpandedControlText;
+            public string CollapsedControlText;
+            public IntPtr FooterIcon;
+            public string Footer;
+            public IntPtr Callback;
+            public IntPtr CallbackData;
+            public int Width;
+        }
+
+        [DllImport("comctl32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+        private static extern int TaskDialogIndirect(ref TaskDialogConfig config, IntPtr button, IntPtr radioButton, IntPtr verification);
+
+        private bool TryShowTaskDialog(string text, string title, bool error)
+        {
+            const int allowDialogCancellation = 0x0008;
+            const int okButton = 0x0001;
+            const int errorIcon = 0xfffe;
+            const int informationIcon = 0xfffd;
+            var config = new TaskDialogConfig {
+                Size = Marshal.SizeOf(typeof(TaskDialogConfig)),
+                Owner = Handle,
+                Flags = allowDialogCancellation,
+                CommonButtons = okButton,
+                Title = title,
+                Content = text,
+                MainIcon = new IntPtr(error ? errorIcon : informationIcon)
+            };
+            // Task dialog content keeps literal ampersands in paths and executable names.
+            // The setup manifest enables Common Controls 6.
+            try { return TaskDialogIndirect(ref config, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero) >= 0; }
+            catch (EntryPointNotFoundException) { return false; }
+        }
+
         private void ShowMessage(string text, bool error)
         {
             status.Text = text;
-            MessageBox.Show(this, text, error ? "Setup could not finish" : "Screen reader setup", MessageBoxButtons.OK,
-                error ? MessageBoxIcon.Error : MessageBoxIcon.Information);
+            string title = error ? "Setup could not finish" : "Screen reader setup";
+            if (!TryShowTaskDialog(text, title, error))
+                MessageBox.Show(this, text, title, MessageBoxButtons.OK,
+                    error ? MessageBoxIcon.Error : MessageBoxIcon.Information);
             status.Focus();
             status.SelectionStart = 0;
             status.SelectionLength = 0;
