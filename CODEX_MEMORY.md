@@ -30,6 +30,10 @@ feedback, destination browsing and field cues. Control and route updates use
 native events, a one-update facing handoff and complete observations. Future PR
 timing fixes follow the native-event requirement in AGENTS.md. Focused offline
 checks pass. Gameplay remains pending.
+[PR #8](Docs/plan.md#november24-pull-request-review-hold) adapts verified sphere
+undo cues for Besaid and the Kilika and Djose entrances. All six manual trial
+guides have offline regression coverage. Other sphere transfers still require
+exact script evidence before they can drive automatic guide rollback.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)

@@ -34,6 +34,42 @@ Controller Mod mode then L1/LB now requests the same F11 selected guidance when
 that mod control is unassigned. It shares actual-guide/context checks, preserves
 saved assignments and does not enable automatic puzzle solving.
 
+### Manual guide sphere transfers
+
+Shift+F11 can revisit verified sphere steps in Besaid and the opening
+sequences of Kilika and Djose. The guide uses copied script declarations for
+the held sphere, source, destination and native doorway state. A missing
+observation or ambiguous layout uses the existing checkpoint and manual
+selection behavior. The same native request completion already used by the
+guide refreshes those facts. F9 and F10 continue to select steps independently.
+
+- In Besaid, an empty pedestal and the held Besaid Sphere route back to the
+  insertion, even if the Destruction Sphere has revealed the chest or the
+  chest is collected. The pedestal remains a prerequisite for the final push.
+  The Glyph, Besaid and Destruction Sphere pickup steps can also recover when
+  the sphere is returned to a recognized source. Permanent reveal flags
+  continue to represent the related glyph or chest reveal.
+- Kilika uses the entry sphere's identity through pickup, door placement and
+  the authored removal. The native door stage ends the opening inference.
+- Djose uses the two separate entry recesses because both spheres have the same
+  carried value. The native door opening and completion facts prevent the
+  scripted clearing of both slots from being classified as an undo.
+
+The retained `puzzle_flow_20261003_1710` reports identify Besaid workers
+39–44 and 46, Kilika workers 28–29, and Djose workers 7–10, 44 and 48–51.
+The Besaid pedestal transfer uses worker 44 entry 2, including the insertion
+and removal at ATEL PCs C19E and C65C. Worker 46 sets the separate, durable
+reveal at D4EA. Kilika worker 29 commits its entry doorway stage at 6901.
+Djose worker 44 entry 4 sets the opening state at 135FC, requests the two
+socket clears at 1362F and 1363A, and commits the open door at 136FE.
+The original EV hashes and all 18 referenced worker-zero declarations match
+the retained manifest. The `--utilities` x86 fixture replays the state changes
+through the production guide in both development and release configurations.
+Later socket aliases, lift and reset steps, and the Bevelle rail still use the
+existing guide behavior. Gameplay confirmation is pending.
+
+### Automatic trial completion
+
 Natural interaction interception substitutes only the qualified owned script
 entry/choice and arranges its actual native solver job. Suppressing every script
 is not solving; allowing the original sphere prompt and solver together is also

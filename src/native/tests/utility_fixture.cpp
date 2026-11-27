@@ -306,6 +306,7 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     script.worker=worker0;script.header=read<uintptr_t>(worker0);
     nav::Scene& guideScene=*([]()->nav::Scene* { static nav::Scene value{};return &value; })();
     std::memset(&guideScene,0,sizeof(guideScene));guideScene.epoch=generation();guideScene.revision=1;guideScene.primary=script.chunk;guideScene.partCount=1;
+    guideScene.allowed=guideScene.control=guideScene.controlled=true;guideScene.message=dialogue!=0;
     auto& part=guideScene.parts[0];
     check(nativeAtelSpan(script.chunk,part.span),"Native guide fixture captures resource span");
     part.span.epoch=guideScene.epoch;part.guideReady=true;part.bindingsReady=true;part.identityReady=true;
@@ -320,6 +321,83 @@ std::wstring fixturePuzzleGuideSync(ffx::OwnedGuideAction action) {
     speechq::Header header{};header.generation=guideScene.epoch;
     struct WorkerGuard {bool previous;WorkerGuard():previous(fixtureNativeOwner){fixtureNativeOwner=false;}~WorkerGuard(){fixtureNativeOwner=previous;}} guard;
     return puzzleGuideOwned(action,guideScene,Mesh{},std::vector<Entity>{},header,0,0);
+}
+void prepareGuideFixture(unsigned trial,const unsigned* progress=nullptr,unsigned progressCount=0) {
+    load(trialUtilities[trial],trialUtilities[trial].collect);
+    resetOwnedPuzzleGuide();
+    for(const auto& step:puzzleRoutes[trial].steps) if(step.check) declaration(step.done.low,step.done.high);
+    for(unsigned i=0;i<progressCount;++i) declaration(progress[i],1);
+    if(trial==5) for(const auto& row:nav::guide_dome0700) declaration(row.low,row.high);
+    put(chunk,0x402,static_cast<uint16_t>(declarations.size()));
+    utility_fixture_resources::prepareUtilityResources(ptr(chunk),chunk.data(),chunk.size());
+}
+void trialGuideProgressFixtures() {
+    using namespace nav;
+    const auto read=[](OwnedGuideAction action=OwnedGuideAction::Expected) {return fixturePuzzleGuideSync(action);};
+    const auto step=[&](unsigned number,const char* reason) {
+        const auto text=read();
+        const bool matches=text.find(L"Step "+std::to_wstring(number)+L" of")!=std::wstring::npos;
+        if(!matches) std::fwprintf(stderr,L"Expected guide step %u, received [%ls]\n",number,text.c_str());
+        check(matches,reason);
+    };
+    const auto fact=[](unsigned key,int current) {setValue(key,1,current);};
+    const auto uncertain=[&](const char* reason) {check(read().find(L"does not identify an exact puzzle step")!=std::wstring::npos,reason);};
+
+    prepareGuideFixture(0,besaidProgress,_countof(besaidProgress));
+    fact(0x5c0000d4,1);fact(besaidHeld,2);step(4,"Besaid takes the Glyph Sphere to the door");
+    fact(besaidHeld,0);fact(besaidGlyphSource,2);step(3,"Besaid returns to the initial Glyph Sphere source");
+    fact(besaidGlyphSource,0);fact(besaidDoor,2);fact(0x5c0000d8,1);step(5,"Besaid follows the planned door pickup");
+    fact(besaidDoor,0);fact(besaidHeld,2);step(6,"Besaid keeps progress after the planned pickup");
+    fact(besaidDoor,2);fact(besaidHeld,0);step(5,"Besaid can retrieve a sphere put back in the open door");
+    fact(besaidDoor,0);fact(besaidHiddenOpened,1);fact(0x5c0000e4,1);fact(besaidHeld,1);
+    step(9,"Besaid takes the revealed sphere to the pedestal");
+    fact(besaidHeld,0);fact(besaidSphereSource,1);step(8,"Besaid returns to the revealed sphere source after a put-back");
+    fact(besaidSphereSource,0);fact(besaidPedestal,1);step(10,"Besaid pedestal placement advances to the Destruction Sphere");
+    fact(besaidPedestal,0);fact(besaidHeld,1);step(9,"Besaid pedestal removal before the chest rewinds");
+    fact(besaidPedestal,1);fact(besaidHeld,3);step(11,"Besaid carries the Destruction Sphere");
+    fact(besaidHeld,0);fact(besaidDestructionSource,3);step(10,"Besaid returns to the Destruction Sphere source");
+    fact(besaidDestructionSource,0);fact(0x5c0000e8,1);step(12,"Besaid reveals the chest");
+    fact(besaidPedestal,0);fact(besaidHeld,1);step(9,"Besaid pedestal removal immediately after the reveal still rewinds");
+    fact(0x01000a70,1);step(9,"Besaid pedestal remains necessary after the chest is collected");
+    fact(besaidPedestal,2);
+    check(read().find(L"Besaid Sphere must be in the pedestal")!=std::wstring::npos,"another sphere in the pedestal preserves the final prerequisite report");
+    fact(besaidPedestal,0);
+    fact(besaidHeld,0);fact(besaidSphereSource,1);step(8,"Besaid after chest can recover the sphere at its original source");
+    fact(besaidSphereSource,0);fact(besaidPedestal,1);step(13,"Besaid reinsertion resumes the final push with the chest collected");
+    check(read(OwnedGuideAction::Step).find(L"Step 1 of 13")!=std::wstring::npos,"rollback leaves manually selected Besaid step alone");
+
+    prepareGuideFixture(1,kilikaProgress,_countof(kilikaProgress));
+    fact(kilikaSource,1);step(1,"Kilika expects the original entry sphere");
+    fact(kilikaSource,0);fact(kilikaHeld,1);step(2,"Kilika native pickup advances to insertion");
+    fact(kilikaSource,1);fact(kilikaHeld,0);step(1,"Kilika source put-back rewinds");
+    fact(kilikaSource,0);fact(kilikaDoor,1);step(3,"Kilika follows the planned removal");
+    fact(kilikaDoor,0);fact(kilikaHeld,1);fact(kilikaDoorStage,1);
+    uncertain("Kilika native door completion cannot infer a later unchecked step");
+    fact(0x01000a70,2);uncertain("Kilika retains its unchecked post-chest removal");
+
+    prepareGuideFixture(2,djoseProgress,_countof(djoseProgress));
+    fact(djoseSource1,1);fact(djoseSource2,1);step(1,"Djose expects the first entry sphere");
+    fact(djoseSource1,0);fact(djoseHeld,1);step(2,"Djose distinguishes the first held sphere by its source");
+    fact(djoseSource1,1);fact(djoseHeld,0);step(1,"Djose first source put-back rewinds");
+    fact(djoseSource1,0);fact(djoseDoor1,1);step(3,"Djose first door placement advances to the other pickup");
+    fact(djoseDoor1,0);fact(djoseHeld,1);step(2,"Djose removing the first placed sphere rewinds");
+    fact(djoseDoor1,1);fact(djoseSource2,0);step(4,"Djose second sphere in hand leaves the first placement passed");
+    fact(djoseSource2,1);fact(djoseHeld,0);step(3,"Djose second source put-back rewinds to its own pickup");
+    fact(djoseSource2,0);fact(djoseHeld,1);dialogue=1;uncertain("guide does not infer a sphere transfer during a message");
+    dialogue=0;step(4,"Djose retries from a complete field observation");
+    fact(djoseHeld,0);fact(djoseDoor2,1);fact(djoseDoorOpening,1);uncertain("Djose in-flight doorway does not infer a rollback");
+    fact(djoseDoor1,0);fact(djoseDoor2,0);fact(djoseDoorOpen,1);fact(djoseDoorOpening,0);
+    uncertain("Djose scripted cleanup of both sockets preserves the later manual fallback");
+    fact(0x01000a70,4);step(38,"Djose native chest flag still finds the exit");
+
+    for(unsigned trial:{3u,4u,5u}) {
+        prepareGuideFixture(trial);
+        check(read(OwnedGuideAction::Step).find(L"Step 1 of")!=std::wstring::npos,"manual guide still starts at its first step");
+        uncertain("an unchecked first step still uses manual selection");
+        check(read(OwnedGuideAction::Previous).find(L"Step 1 of")!=std::wstring::npos,"previous still clamps at the first step");
+    }
+    resetOwnedPuzzleGuide();
+    std::puts("PASS: all six trial guides, exact Besaid, Kilika and Djose sphere rollback, native door commits, chest checkpoints and manual selection.");
 }
 }
 namespace ffx::nav {
@@ -398,7 +476,7 @@ int main() try { SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);std:
 
     setValue(0x5c0000dc,1,1);
     check(fixturePuzzleGuideSync(OwnedGuideAction::Expected).find(L"Step 7 of")!=std::wstring::npos,"durable checkpoint recovers expected step past emptied carried sphere");
-    resetOwnedPuzzleGuide();
+    trialGuideProgressFixtures();
     // Both Kilika entry sphere/recess choices activate the same full native
     // destruction insertion. Only its one owned window1 choice is automatic.
     for(unsigned local:{28u,29u}) {

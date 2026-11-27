@@ -81,6 +81,14 @@ void captureBindings(PartFact& part,uintptr_t controller,uintptr_t workerZero) {
         part.bindings.rows[part.bindings.count++]={wanted.low,value,wanted.high,wanted.element};
     }
     part.guideReady=true;
+    const unsigned* progress=nullptr;unsigned progressCount=0;
+    if(guide==guide_bsyt0100) {progress=besaidProgress;progressCount=_countof(besaidProgress);}
+    else if(guide==guide_klyt1000) {progress=kilikaProgress;progressCount=_countof(kilikaProgress);}
+    else if(guide==guide_djyt0600) {progress=djoseProgress;progressCount=_countof(djoseProgress);}
+    for(unsigned i=0;i<progressCount && part.bindings.count<part.bindings.rows.size();++i) {
+        int value=0;
+        if(captureUtilityValue(script,progress[i],1,0,value)) part.bindings.rows[part.bindings.count++]={progress[i],value};
+    }
 }
 }
 void prepareNavigationSceneStorage() {cachedAreaNames.prepare();}

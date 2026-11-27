@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Shift+F11 updates Cloister guidance when you undo a verified sphere transfer. This covers Besaid's pedestal and supported source recesses, and the opening sphere sequences in Kilika and Djose.
+
 ## 1.0.2 — 2026-11-04
 
 - Blitzball auto-win is available during team setup and completes a match when either team gains possession first. Thanks to Paul Lemm (Sephiroth101) for the worker-discovery and foreground-context fixes in [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1), adapted with the existing safety checks.

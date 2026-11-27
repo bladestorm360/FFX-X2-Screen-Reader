@@ -1,6 +1,7 @@
 #include "puzzle_guide_owned.hpp"
 #include "puzzle_guide.hpp"
 #include "puzzle_guide_data.hpp"
+#include "puzzle_guide_progress.hpp"
 #include "puzzle_tiles.hpp"
 #include "puzzle_tiles_data.hpp"
 #include "zanarkand_patterns.hpp"
@@ -26,15 +27,30 @@ struct State {unsigned epoch=0,revision=0,step=0,expected=0,part=0,begin=0,end=0
 ProcessStorage<State> storage;
 std::atomic<unsigned> revision{1};std::atomic<bool> enabled{false};
 std::atomic<bool> refreshPending{false};
-int value(const nav::Scene& observation,const State& state,unsigned low,unsigned high=1,unsigned element=0) {
-    const auto& facts=observation.parts[state.part];if(!facts.guideReady) throw std::runtime_error("The puzzle observations are unavailable");
+std::optional<int> copiedValue(const nav::Scene& observation,const State& state,unsigned low,unsigned high=1,unsigned element=0) {
+    const auto& facts=observation.parts[state.part];if(!facts.guideReady) return {};
     for(unsigned i=0;i<facts.bindings.count;++i) {const auto& row=facts.bindings.rows[i];if(row.binding==low && row.high==high && row.element==element) return row.value;}
+    return {};
+}
+int value(const nav::Scene& observation,const State& state,unsigned low,unsigned high=1,unsigned element=0) {
+    if(!observation.parts[state.part].guideReady) throw std::runtime_error("The puzzle observations are unavailable");
+    if(const auto current=copiedValue(observation,state,low,high,element)) return *current;
     throw std::runtime_error("Required puzzle observation is missing");
 }
 bool done(const nav::Scene& observation,const State& state,const PuzzleStep& step) {if(!step.check) return false;const auto current=value(observation,state,step.done.low,step.done.high,step.done.element);return step.done.low==0x01000a70?(current&step.done.value)!=0:current==step.done.value;}
-void advance(const nav::Scene& observation,State& state) {
+bool advance(const nav::Scene& observation,State& state) {
     for(unsigned i=state.expected;i+1<state.end;++i) if(state.route->steps[i].checkpoint && done(observation,state,state.route->steps[i])) state.expected=i+1;
     while(state.expected+1<state.end && done(observation,state,state.route->steps[state.expected])) ++state.expected;
+    if(!observation.allowed || !observation.control || !observation.controlled || observation.message) return false;
+    const std::string_view script=state.route->script;
+    const auto read=[&](unsigned key) {return copiedValue(observation,state,key);};
+    std::optional<unsigned> expected;
+    if(script=="bsyt0100") expected=nav::besaidSphereStep(state.expected,read);
+    else if(script=="klyt1000" && state.expected<3) expected=nav::kilikaEntryStep(read);
+    else if(script=="djyt0600" && state.expected<4) expected=nav::djoseEntryStep(read);
+    if(!expected) return false;
+    state.expected=*expected;
+    return true;
 }
 bool context(const nav::Scene& observation,State& state) {
     const auto current=revision.load(std::memory_order_acquire);const PuzzleRoute* route=nullptr;unsigned selected=observation.partCount;
@@ -154,8 +170,12 @@ std::wstring puzzleGuideOwned(OwnedGuideAction action,const nav::Scene& observat
     if(state.begin==state.end) {enabled=false;refreshPending=false;return action==OwnedGuideAction::Completed || action==OwnedGuideAction::TileCompleted?std::wstring{}:L"Finish Zanarkand's native story and encounter sequence before the return-visit puzzle guide becomes available.";}
     if(action==OwnedGuideAction::Completed) {refreshPending=false;try {if(enabled.load()) advance(observation,state);}catch(...) {enabled=false;}return {};}
     if(action==OwnedGuideAction::TileCompleted) {if(!std::strcmp(state.route->script,"dome0700") && chunk==observation.parts[state.part].span.chunk && serial==observation.parts[state.part].span.serial && local>=57 && local<=83) {synchronizeTiles(observation,state);for(const auto& candidate:puzzleTiles) if(candidate.worker==local && static_cast<int>(candidate.stage)==state.pattern) state.visited.insert(local);}return {};}
-    enabled=true;if(action==OwnedGuideAction::Next) {if(state.step+1<state.end) ++state.step;}else if(action==OwnedGuideAction::Previous) {if(state.step>state.begin) --state.step;}else if(action==OwnedGuideAction::Expected) advance(observation,state);
-    const unsigned selected=action==OwnedGuideAction::Expected?state.expected:state.step;if(action==OwnedGuideAction::Expected && !state.route->steps[selected].check && selected+1<state.end) return L"The current trial state does not identify an exact puzzle step. Use F9 and F10 to select the step you have reached.";
+    enabled=true;bool sphereStep=false;
+    if(action==OwnedGuideAction::Next) {if(state.step+1<state.end) ++state.step;}
+    else if(action==OwnedGuideAction::Previous) {if(state.step>state.begin) --state.step;}
+    else if(action==OwnedGuideAction::Expected) sphereStep=advance(observation,state);
+    const unsigned selected=action==OwnedGuideAction::Expected?state.expected:state.step;
+    if(action==OwnedGuideAction::Expected && !sphereStep && !state.route->steps[selected].check && selected+1<state.end) return L"The current trial state does not identify an exact puzzle step. Use F9 and F10 to select the step you have reached.";
     const auto& current=state.route->steps[selected];const auto prefix=(state.route->returnStep?state.begin>=state.route->returnStep?std::wstring(L"Return-visit treasure. "):std::wstring(L"First-visit trial. "):std::wstring{})+L"Step "+std::to_wstring(selected-state.begin+1)+L" of "+std::to_wstring(state.end-state.begin)+L". ";
     if(!std::strcmp(state.route->script,"dome0700") && ((selected>0 && selected<=5) || selected==11)) {
         const int stage=value(observation,state,0x5c000004);if(selected==11 || (selected==1 && stage==0) || (selected>=2 && stage==static_cast<int>(selected-1))) {Point point;std::wstring label;if(tile(observation,state,point,label)) {Entity panel;panel.name=L"Floor puzzle panel";panel.position=point;return prefix+label+(action==OwnedGuideAction::Path?L" "+path(observation,mesh,entities,panel,false,manual,intentRevision):L"");}}}

@@ -109,6 +109,20 @@ and any approved hand-merge has been completed and verified.
   responses to real camera transitions. Local deployment remains on hold.
   [PR #7](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/7),
   [navigation behavior and test scope](features/navigation/index.md#movement).
+- **Trial guide sphere undo.** The owner approved the part of PR #8 that can
+  be verified offline. The hand-merge uses exact held-sphere, source, socket
+  and doorway facts for Besaid and for the opening sequences in Kilika and
+  Djose. The Besaid pedestal remains required after the treasure reveal and
+  after chest collection. Kilika's native removal and Djose's native clearing
+  of both door slots preserve legitimate progress. Later actions with
+  ambiguous shared state, reset and lift transitions, and Bevelle's rail
+  retain the current manual or checkpoint guidance. No gameplay or deployment
+  took place. The three original EV hashes, 18 worker-zero declarations and
+  24 source event assertions agree with the retained archive. The utility
+  regressions pass in both development and release configurations and cover
+  all six trial guides. Both 173-hook reader profiles pass.
+  [PR #8](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/8),
+  [guide behavior and source evidence](features/puzzles/index.md#manual-guide-sphere-transfers).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

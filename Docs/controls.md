@@ -201,6 +201,12 @@ it says so. Manual selection stays independent of native completion. The F8
 Cloister submenu provides Read Path and the opt-in trial solver. Guide target
 names match the pathfinder, which marks temporarily disabled controls as inactive.
 
+In Besaid, Shift+F11 can return to the pedestal insertion or a known sphere
+pickup when you undo it. In the opening sequences of Kilika and Djose, it
+uses the held sphere and recess contents to recover a placement or pickup.
+When the script clears a door recess as part of opening a passage, the guide
+uses the next known checkpoint or reports that it cannot identify an exact step.
+
 Zanarkand selects separate solver and guide paths from the game's current visit.
 On the first visit, solving opens the normal trial gate and stops. Take the
 native exit to continue the boss sequence. On the later return, solving collects

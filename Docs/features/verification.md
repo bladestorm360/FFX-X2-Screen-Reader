@@ -1,5 +1,22 @@
 # Verification and remaining gameplay checks
 
+## Trial guide sphere undo — November27
+
+After deployment resumes, press Shift+F11 in Besaid after inserting the
+Besaid Sphere into the pedestal. Expect the Destruction Sphere step. Remove
+the Besaid Sphere and press Shift+F11 again. Expect the pedestal insertion.
+Repeat after revealing or collecting the chest. Reinserting the Besaid Sphere
+should recover the correct later step. F9 and F10 should continue from the
+manually selected step.
+
+At the Kilika entrance, put the entry sphere back into its original recess
+and confirm the guide returns to its pickup. At the Djose entrance, remove
+the sphere from door recess 1 and expect that placement again. Place both
+spheres and wait for the native door sequence. The guide should use a later
+known checkpoint or report that the exact step is unavailable. A return to the
+empty door recesses after the door opens is a failure. Both sequences have
+offline script evidence. [Guide details](puzzles/index.md#manual-guide-sphere-transfers).
+
 ## Controller puzzle guidance — November4
 
 At the next supported Cloister, Via or Gagazet puzzle, press View/Select, release
