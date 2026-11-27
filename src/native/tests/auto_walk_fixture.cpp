@@ -181,6 +181,12 @@ int main() {
     begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6;
     clockValue+=300-clockValue%300+100; updateAutoWalk(); check(autoWalkActive() && !keyboard()[0xc8],"socket face approach rests between pulses");
     clockValue+=210; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face approach taps forward");
+    leg.settling=true;updateAutoWalk();
+    check(autoWalkActive() && !keyboard()[0xc8],"release movement while the copied socket pose settles");
+    leg.settling=false;updateAutoWalk();check(keyboard()[0xc8],"a coast correction resumes movement");
+    leg.settling=true;
+    for(unsigned i=0;i<151;++i) {clockValue+=100;updateAutoWalk();}
+    check(!autoWalkActive() && !keyboard()[0xc8],"missing settlement observations retain the no-progress limit");
     begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.preciseTalk=true;
     clockValue+=300-clockValue%300+100; updateAutoWalk();
     check(autoWalkActive() && !keyboard()[0xc8],"door recess without a pedestal body rests between final approach pulses");

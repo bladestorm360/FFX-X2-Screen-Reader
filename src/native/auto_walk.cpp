@@ -164,6 +164,7 @@ void updateAutoWalk() {
         if(best<0 || distance<best-1) { best=distance; improved=now; }
         else if(now-improved>=15000) { stop("no progress",true); return; }
     }
+    if(leg.settling) {mask=0;stamp=now;return;}
     if(!leg.target.swimDepth && now-movingSince>1800 && now>=unstickUntil) {
         if(leg.target.butterfly) { stop("butterfly route stalled",true); return; }
         refreshNavCollision();

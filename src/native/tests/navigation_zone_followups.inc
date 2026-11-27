@@ -60,6 +60,21 @@ void zoneFixtures() {
     check(!inInteractionZone(face,{59.7,0,40}) && inInteractionZone(face,{58.9,0,40}),"socket face arrival keeps a 1-unit reach margin");
     const auto margin=interactionRoute(room,{20,0,40},face);
     check(!margin.empty() && inInteractionZone(face,margin.back()),"socket face route ends inside the reach margin");
+    for(const double side:{-1.0,1.0}) {
+        auto socket=face;socket.preciseTalk=true;socket.range=9.6;socket.obstacleRadius=6;
+        socket.obstacle=face.center;socket.center.z+=2;socket.approach={side,0,0};
+        const auto point=[&](double along,double across) {return Point{50+along*side,0,40+across};};
+        check(!inInteractionZone(socket,point(2,0)) && !inInteractionZone(socket,point(9.6,0)) &&
+            !inInteractionZone(socket,point(8,2)) && !inInteractionZone(socket,point(-8,0)),
+            "socket side is measured from the pedestal actor, independent of the talk centre");
+        check(inInteractionZone(socket,point(8,.65)) && !inInteractionZone(socket,point(8,.66)),
+            "either usable face includes its centred band and excludes the corner");
+        for(Point start:{point(30,0),point(-30,0),point(0,30),point(0,-30)}) {
+            const auto socketRoute=interactionRoute(room,start,socket);
+            check(!socketRoute.empty() && inInteractionZone(socket,socketRoute.back()) && std::abs(socketRoute.back().z-40)<=.65,
+                "all four approach sides route to the chosen physical socket face");
+        }
+    }
     face.range=6;
     auto door=face; door.range=10; door.approach={}; door.preciseTalk=true;
     const Point fringe{door.center.x,0,door.center.z-9.7};

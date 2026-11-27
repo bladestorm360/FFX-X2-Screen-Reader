@@ -15,7 +15,7 @@ inline std::atomic<unsigned> navCollisionRevision{1};
 inline unsigned navCollisionSerial() noexcept {return navCollisionRevision.load(std::memory_order_acquire);}
 struct NavAudioState {unsigned contextSerial=navAudioContextSerial(); float pan=0,front=1,steps=0; unsigned walls=0; bool beacon=false,active=false; };
 struct NavLeg { Point start,goal,final; NativeRouteTarget target; unsigned epoch=0; bool arrived=false;
-    unsigned collisionSerial=navCollisionSerial();bool pendingCollision=false,publishing=false; };
+    unsigned collisionSerial=navCollisionSerial();bool pendingCollision=false,publishing=false,settling=false; };
 bool navLeg(NavLeg&);
 void publishNavAudio(const NavAudioState&);
 void pauseNavAudio();

@@ -90,6 +90,9 @@ double talkScore(const InteractionShape& zone,Point p,bool horizontal=false) {
     const double x=p.x-zone.center.x,z=p.z-zone.center.z,y=zone.height<0 && !horizontal?p.y-zone.center.y:0;
     return x*x+y*y+z*z;
 }
+template<class Zone> bool pedestalSocket(const Zone& zone) {
+    return zone.preciseTalk && zone.shape==1 && zone.approach.x!=0 && zone.obstacleRadius>0;
+}
 std::vector<Point> interactionAnchors(const InteractionZone& zone,Point player) {
     if(zone.contactRadius>0) {
         const double radius=zone.contactRadius+.25;
@@ -101,7 +104,8 @@ std::vector<Point> interactionAnchors(const InteractionZone& zone,Point player) 
     }
     if(distanceXZ(zone.approach,{})>.1) {
         const double reach=std::max(0.0,zone.range-(zone.talk?faceReachMargin(zone)+.25:.5));
-        return {{zone.center.x+zone.approach.x*reach,zone.center.y,zone.center.z+zone.approach.z*reach}};
+        const auto origin=pedestalSocket(zone)?zone.obstacle:zone.center;
+        return {{origin.x+zone.approach.x*reach,origin.y,origin.z+zone.approach.z*reach}};
     }
     const bool recessBox=zone.preciseTalk && zone.shape==3;
     const auto closest=recessBox?zone.center:onShape(zone,player);
@@ -237,7 +241,10 @@ template<class Zone> static bool interactionEndpoint(const Zone& zone,Point p,bo
     if(!insideShape(zone,p,true,horizontal)) return false;
     // A guide sphere step names one face of a talk zone (Djose pedestal).
     if(distanceXZ(zone.approach,{})>.1) {
-        const double x=p.x-zone.center.x,z=p.z-zone.center.z,along=x*zone.approach.x+z*zone.approach.z;
+        const bool socket=pedestalSocket(zone);
+        const auto origin=socket?zone.obstacle:zone.center;
+        const double x=p.x-origin.x,z=p.z-origin.z,along=x*zone.approach.x+z*zone.approach.z;
+        if(socket && along<=2) return false; // W42 never assigns a socket side inside two units.
         if(along<=0 || std::abs(x*zone.approach.z-z*zone.approach.x)>.65) return false;
         // Live Djose pedestal (range 10): the socket answered at 9.3 units
         // but not at 9.7 or 9.8, so arrival needs a 1-unit margin on the face.

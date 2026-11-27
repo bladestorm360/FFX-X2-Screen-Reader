@@ -419,6 +419,19 @@ void buildPart(const OwnedAtelGuardView& view,void* opaque) {
         if(e.pushControl>=2 && e.pushControl<=4) {
             Entity recess=e;recess.name=L"Pedestal sphere recess";recess.pushControl=recess.pushLocal=0;recess.usefulEntries=EntryMask{1u<<2};
             recess.zone=sceneInteractionZone(w,1,s.extraTalkRange);competitors(recess,s,context.rows);recess.inactive=!(row.channels&1) || !recess.usefulEntries.contains(w.interactions.entries[0]);recess.unreachable=false;
+            if(e.pushControl==3 && recess.zone.valid && w.actor>=0) {
+                const auto& part=s.parts[w.part];
+                const int held=partBinding(part,0x0c000094),east=partBinding(part,0x0c00009d),west=partBinding(part,0x0c00009e);
+                if(held>=0 && east>=0 && west>=0) {
+                    recess.zone.approach=djoseSocketFace(held!=0,east,west);
+                    // W1's talk callback also requires W42 side 2 or 8.
+                    // Extra talk range cannot extend that actor-relative window.
+                    recess.zone.preciseTalk=true;
+                    recess.zone.range=std::min(recess.zone.range,DjoseSideReach);
+                    recess.zone.obstacle=e.position;
+                    recess.zone.obstacleRadius=radius(s.actors[w.actor])+radius(s.actors[s.playerIndex]);
+                }
+            }
             if(recess.zone.valid) context.entities.push_back(std::move(recess));
         }
         if(trial && script.name=="djyt0600") djoseGapApproach(e,s,w.part,index);

@@ -114,6 +114,11 @@ catalog now contains 2,442 targets across 397 scripts; audit:
 is 6; Djose's upper pedestal uses binding 0181F0, and Macalania's pedestal
 sphere uses 015A8F rather than its position state.
 
+For the lower Djose pedestal, the sphere recess row uses the east or west
+face that can accept or supply the sphere. Auto walk releases movement at
+that face and corrects a slide into a corner before announcing arrival.
+Press Confirm once after the arrival line.
+
 In Djose, the gap switch and charged door recess use the pedestal crossing
 when approached from the opposite bank. Once the loaded pedestal lands,
 the field script sets D9 to 1. The list and guide route to the walkable takeoff on the current bank.

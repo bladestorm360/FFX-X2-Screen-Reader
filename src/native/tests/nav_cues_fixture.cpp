@@ -82,6 +82,31 @@ void fixtureUpdateNavTarget(const Entity& target) {
     if(same) fixtureTarget=target;
     pump(); updateNavTarget(target);
 }
+void socketCoastFixtures() {
+    autoWalk=true;
+    const Mesh previousFloor=fixtureFloor;
+    fixtureFloor={};fixtureFloor.openPlane=true;
+    for(const double face:{1.0,-1.0}) {
+        Entity socket;socket.worker=1;socket.name=L"Pedestal sphere recess";
+        auto& z=socket.zone;z.valid=z.talk=z.preciseTalk=true;z.shape=1;z.range=10;z.height=5;
+        z.approach={face,0,0};z.obstacleRadius=6;
+        player={20*face,0,0};sceneFacts.capturedAt=1000;
+        fixtureRouteNavAudio({player,{8.75*face,0,0}},socket);
+        const auto before=arrivals;NavLeg leg;
+        player={8.9*face,0,0};sceneFacts.capturedAt+=33;pump();
+        check(navLeg(leg) && !leg.arrived && arrivals==before,"passing through the socket face cannot announce arrival");
+        player.z=3;sceneFacts.capturedAt+=33;pump();
+        check(navLeg(leg) && !leg.arrived && inInteractionZone(z,leg.final),"coasting to a corner keeps a usable correction");
+        player=leg.final;sceneFacts.capturedAt+=33;pump();
+        player.x-=face*.2;sceneFacts.capturedAt+=180;pump();
+        sceneFacts.capturedAt+=100;pump();
+        check(navLeg(leg) && !leg.arrived,"motion within the socket band restarts the settling time");
+        sceneFacts.capturedAt+=180;pump();pump();
+        check(navLeg(leg) && leg.arrived && arrivals==before+1,"settled east or west face announces once");
+        clearNavRoute();
+    }
+    fixtureFloor=previousFloor;autoWalk=false;
+}
 void djoseStandBeforeTurn() {
     Entity stand;stand.worker=1;stand.pushControl=3;stand.name=L"Pedestal";stand.position={40,0,5};
     stand.zone.valid=true;stand.zone.shape=3;stand.zone.center={33,0,5};stand.zone.width=1;stand.zone.depth=2;stand.zone.height=9.5;
@@ -161,6 +186,7 @@ int main() {
     player={45,0,5}; pump(); pump();
     check(arrivals==1 && said.size()==1 && !published.beacon,"arrival sounds and speech happen once");
     djoseStandBeforeTurn();
+    socketCoastFixtures();
     player={5,0,5}; fixtureRouteNavAudio({player,target.position},target);
     target.position={5,0,50}; fixtureUpdateNavTarget(target); pump();
     check(published.pan<-.9f,"moving destination recomputes connected route");

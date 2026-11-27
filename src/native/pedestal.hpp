@@ -57,6 +57,12 @@ struct PedestalPlan {
     bool startsPattern=false;
 };
 static_assert(std::is_trivially_copyable_v<PedestalSnapshot> && std::is_trivially_destructible_v<PedestalPlan>);
+inline constexpr double DjoseSideReach=9.6;
+// W15 owns the east socket and W16 the west. Prefer east when either can serve.
+inline Point djoseSocketFace(bool insert,int east,int west) {
+    const bool useEast=insert?(east==0 || west!=0):(east!=0 || west==0);
+    return {useEast?1.0:-1.0,0,0};
+}
 InteractionZone djosePushStand(Point pedestal,Point direction,double bodyRadius);
 PedestalPlan pedestalPlan(unsigned control,unsigned local,const PedestalSnapshot&);
 std::wstring describePedestalPlan(const PedestalPlan&,Point,const std::wstring& action=L"push control");

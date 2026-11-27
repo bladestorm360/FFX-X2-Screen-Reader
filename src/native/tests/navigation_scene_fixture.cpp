@@ -175,6 +175,23 @@ int main() {try {
                 check(wall!=entities.end() && wall->zone.talk && wall->zone.preciseTalk==(worker!=52),
                     "charged door and second charging wall use precise box arrival");
             }
+            // List walks use W1's own collision clearance and the usable socket,
+            // even when the player has never selected a puzzle guide step.
+            const auto setBinding=[&](unsigned low,int value) {
+                for(unsigned i=0;i<bindings.count;++i) if(bindings.rows[i].binding==low) {bindings.rows[i].value=value;return;}
+                check(false,"copied Djose sphere binding");
+            };
+            put(sceneCapture.workers[1].geometry.data()+0x40,18.f);
+            sceneCapture.workers[1].interactions.channels=1;sceneCapture.workers[1].interactions.entries[0]=2;
+            for(int held:{0,1}) for(int east:{0,1}) for(int west:{0,1}) {
+                setBinding(0x0c000094,held);setBinding(0x0c00009d,east);setBinding(0x0c00009e,west);
+                scanLift();
+                const auto socket=std::find_if(entities.begin(),entities.end(),[](const Entity& e){
+                    return e.worker==1 && e.name==L"Pedestal sphere recess";});
+                const bool eastFace=east==west || held!=east;
+                check(socket!=entities.end() && !socket->inactive && socket->zone.range==DjoseSideReach && socket->zone.obstacleRadius>0 && socket->zone.preciseTalk &&
+                    socket->zone.approach.x==(eastFace?1.0:-1.0),"Djose take and insert use the loaded or empty face on the list");
+            }
             // The walkable banks end before the jump rectangles. The script
             // carries Tidus over the gap. Neither bank connects to the other.
             Mesh banks;

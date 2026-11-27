@@ -260,8 +260,7 @@ bool ownedGuidePedestalFace(const nav::Scene& observation,const Entity& pedestal
         const auto& step=state.route->steps[state.step];
         const bool insert=step.done.low==0x0c000094 && step.done.value==0;
         const int east=value(observation,state,0x0c00009d),west=value(observation,state,0x0c00009e);
-        const bool useEast=insert?east==0 || west!=0:east!=0 || west==0;
-        face={useEast?1.0:-1.0,0,0};return true;
+        face=djoseSocketFace(insert,east,west);return true;
     } catch(...) {return false;}
 }
 void resetOwnedPuzzleGuide() {enabled=false;refreshPending=false;revision.fetch_add(1,std::memory_order_acq_rel);}
