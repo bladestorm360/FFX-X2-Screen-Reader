@@ -122,7 +122,7 @@ Entity target(const nav::Scene& observation,const State& state,const PuzzleStep&
     }
     const bool push=step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);
     if(push) configurePedestalTarget(result,state.route->script,step.worker);
-    for(const auto& found:entities) if(found.worker>=0 && static_cast<unsigned>(found.worker)<observation.count) {
+    for(const auto& found:entities) {
         const int owner=found.viaForWorker>=0?found.viaForWorker:found.worker;
         if(static_cast<unsigned>(owner)>=observation.count) continue;
         const auto& fact=observation.workers[owner];if(fact.part==state.part && fact.local==step.worker && (found.pushControl!=0)==(result.pushControl!=0)) {result=found;if(found.viaForWorker<0) result.name=step.label;return result;}}

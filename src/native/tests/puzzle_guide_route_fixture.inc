@@ -133,10 +133,8 @@ void djoseGuideRouteFixture() {
     });
     loadGuideRoute("djyt0600",{{"gap filled",{{0x0c0000d9,1}},18}});
     setValue(0x0c0000d9,1,1);fixtureGuideWorkers={{61,1},{68,0x20}};
-    Entity entry;entry.worker=1;entry.viaForWorker=0;entry.position={0,-18,89};
-    entry.zone.valid=entry.zone.crossing=true;entry.zone.shape=3;entry.zone.center=entry.position;
-    entry.zone.width=10;entry.zone.depth=5;entry.zone.height=7;
-    entry.name=L"Gap switch via pedestal. After crossing, request the path again";
+    Entity entry;entry.worker=-1;entry.viaForWorker=0;entry.position={0,-18,74.6};
+    entry.name=L"Gap switch via pedestal. Hold north to cross, then request the path again";
     fixtureGuideEntities={entry};fixtureGuideMesh.openPlane=true;fixtureGuidePlayer={0,-18,74};
     expectGuide("djyt0600","gap filled",18);
     guideSays(OwnedGuideAction::Path,entry.name.c_str(),"step 18 guides to the native crossing before the switch");

@@ -159,14 +159,6 @@ int main() {try {
             auto gap=std::find_if(bindings.rows.begin(),bindings.rows.begin()+bindings.count,
                 [](const nav::SceneValue& v){return v.binding==0x0c0000d9;});
             check(gap!=bindings.rows.begin()+bindings.count,"Djose copied gap completion");
-            for(unsigned local:{68u,69u}) {
-                auto& bank=sceneCapture.workers[local];
-                bank.geometry={};bank.interactions.channels=0x20;bank.interactions.entries[5]=2;
-                bank.position={0,-18,local==68?89.0:155.0};
-                put(bank.geometry.data()+4,-18.f);put(bank.geometry.data()+8,static_cast<float>(bank.position.z));
-                put(bank.geometry.data()+0x28,static_cast<int16_t>(-1));
-                put(bank.geometry.data()+0x30,20.f);put(bank.geometry.data()+0x38,5.f);put(bank.geometry.data()+0x1c,7.f);
-            }
             for(unsigned local:{52u,53u,54u,61u}) {auto& target=sceneCapture.workers[local];
                 target.interactions.channels=1;target.interactions.entries[0]=2;
                 put(target.geometry.data()+0x30,5.f);put(target.geometry.data()+0x38,5.f);}
@@ -183,20 +175,45 @@ int main() {try {
                 check(wall!=entities.end() && wall->zone.talk && wall->zone.preciseTalk==(worker!=52),
                     "charged door and second charging wall use precise box arrival");
             }
-            gap->value=1;check(findWalk(61,68),"filled gap routes the switch to the south entry");
-            check(findWalk(54,54),"south side keeps the direct door recess");
-            sceneCapture.player.z=94;check(findWalk(61,68),"south region far edge keeps its crossing");
-            sceneCapture.player.z=94.01;check(findWalk(61,61),"inside the gap never points back to the south bank");
-            sceneCapture.player.z=165;
-            check(findWalk(61,61) && findWalk(54,69),"far bank gives the switch and the return entry");
-            sceneCapture.player.z=150;check(findWalk(54,69),"north region near edge keeps its crossing");
-            sceneCapture.player.z=149.99;check(findWalk(54,54),"inside the gap never points back to the north bank");
-            sceneCapture.player.z=70;auto& south=sceneCapture.workers[68];
-            south.interactions.channels=0;check(findWalk(61,61),"disabled crossing never supplies a staging route");
-            south.interactions.channels=0x20;south.interactions.entries[5]=3;
-            check(findWalk(61,61),"leave callback cannot start the crossing");
-            south.interactions.entries[5]=2;put(south.geometry.data()+0x28,static_cast<int16_t>(1));
-            check(findWalk(61,61),"nonplayer region cannot stage the crossing");
+            // The walkable banks end before the jump rectangles. The script
+            // carries Tidus over the gap. Neither bank connects to the other.
+            Mesh banks;
+            for(double z:{74.6,162.9}) {
+                const double inside=z<100?-45.0:45.0;
+                Triangle t;t.valid=true;t.points[0]={-30,-18,z};t.points[1]={30,-18,z};t.points[2]={0,-18,z+inside};
+                for(int& neighbour:t.neighbours) neighbour=-1;
+                banks.triangles.push_back(t);
+            }
+            gap->value=1;sceneCapture.forward={0,0,1};sceneCapture.cameraValid=true;
+            for(bool south:{true,false}) {
+                const unsigned destination=south?61:54;
+                const double z=south?74.6:162.9;
+                for(double startZ:{z,z+(south?-12:12)}) {
+                    sceneCapture.player={0,-18,startZ};scanLift();
+                    const auto stage=std::find_if(entities.begin(),entities.end(),[&](const Entity& e){
+                        return e.viaForWorker==static_cast<int>(destination);});
+                    check(stage!=entities.end() && !stage->inactive && stage->name.find(south?L"north":L"south")!=stage->name.npos,
+                        "both banks give a crossing direction even without a walkable trigger rectangle");
+                    const auto route=routePoints(banks,sceneCapture.player,stage->position);
+                    check(!stage->zone.valid && !route.empty() && distanceXZ(route.back(),{0,-18,z})<.1 &&
+                        !destinationUnreachable(banks,sceneCapture.player,*stage),"jump approach survives Hide unreachable and ends on this bank");
+                    check(findWalk(south?54:61,south?54:61),"same-bank control keeps its own worker");
+                }
+            }
+            sceneCapture.player={0,-18,74.6};sceneCapture.forward={0,0,-1};scanLift();
+            const auto hasHint=[&](const wchar_t* text) {
+                return std::any_of(entities.begin(),entities.end(),[&](const Entity& e){
+                    return e.viaForWorker==61 && e.name.find(text)!=e.name.npos;});
+            };
+            check(hasHint(L"Hold south"),"crossing instructions follow the copied camera");
+            sceneCapture.cameraValid=false;scanLift();
+            check(hasHint(L"Move toward the pedestal"),"missing camera still identifies the handoff");
+            sceneCapture.player.z=94.764;check(findWalk(61,-1),"south bank includes its outer trigger edge");
+            sceneCapture.player.z=94.765;check(findWalk(61,61),"south trigger ends inside the gap");
+            sceneCapture.player.z=149.480;check(findWalk(54,-1),"north bank includes its outer trigger edge");
+            sceneCapture.player.z=149.479;check(findWalk(54,54),"north trigger ends inside the gap");
+            sceneCapture.player={0,-18,117};check(findWalk(61,61) && findWalk(54,54),"in-flight pose never stages another jump");
+            sceneCapture.player={0,-65,70};check(findWalk(61,61),"upper floor never stages a lower-floor jump");
             sceneCapture.player=originalPosition;gap->value=0;
             auto circuit=std::find_if(bindings.rows.begin(),bindings.rows.begin()+bindings.count,[](const nav::SceneValue& v){return v.binding==0x0c0000db;});
             check(circuit!=bindings.rows.begin()+bindings.count,"Djose copied lift circuit");

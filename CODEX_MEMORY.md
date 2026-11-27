@@ -1,6 +1,6 @@
 # FFX current memory — November4
 
-[Djose gap navigation](Docs/cloisters.md) uses the native pedestal jump after the gap flag is set. Both banks have offline fixtures. Gameplay verification is pending.
+[Djose gap navigation](Docs/cloisters.md) guides to the reachable takeoff on either bank once the gap flag is set. The game owns the jump. Disconnected-bank fixtures cover both directions. Gameplay verification is pending.
 
 [Release1.0.2](Docs/release.md#release102--november4) is built, guarded-deployed,
 packaged and [published Latest](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases/tag/v1.0.2).

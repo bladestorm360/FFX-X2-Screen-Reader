@@ -116,11 +116,11 @@ sphere uses 015A8F rather than its position state.
 
 In Djose, the gap switch and charged door recess use the pedestal crossing
 when approached from the opposite bank. Once the loaded pedestal lands,
-the field script sets D9 to 1. Entering worker 68 on the south bank or
-worker 69 on the north bank starts the game's jump. Request the path again
-after landing to walk to the named control. The archived script and copied
-scene fixtures cover this handoff. The next gameplay check is first-Enter
-interaction at the recess and switch after approaching from the far bank.
+the field script sets D9 to 1. The list and guide route to the walkable takeoff on the current bank.
+At the spoken instruction, hold the announced direction toward the
+pedestal until the game jumps. Request the path again after landing
+to walk to the named control. Crossing and first-Enter interaction on this
+build still need a gameplay check.
 
 The local development build was installed at 2026-10-04 13:33 UTC after
 rechecking that FFX and its launcher were closed. The canonical deploy script

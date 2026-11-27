@@ -2,6 +2,7 @@
 #include "airship_map.hpp"
 #include "navigation_targets.hpp"
 #include "interaction_region.hpp"
+#include "camera_direction.hpp"
 #include "exit_labels.hpp"
 #include "field_controls.hpp"
 #include "room_areas.hpp"
@@ -317,25 +318,24 @@ InteractionZone touchZone(const Scene& s,const WorkerFact& w) {
     const double ar=radius(actor),pr=radius(player);zone.range=ar+pr;contactBounds(zone,actor,player);
     zone.valid=std::isfinite(ar) && ar>0 && std::isfinite(pr) && pr>0 && std::isfinite(zone.range) && zone.range>0 && validNativePoint(zone.center);return zone;
 }
-// W68 and W69 run player entries 32 and 33. The game jumps between the
-// banks after D9 is set; no walkable triangle spans that jump.
-void djoseGapApproach(Entity& target,const Scene& observation,unsigned part,unsigned destination,
-    const std::array<OwnedRow,SceneWorkers>& rows) {
-    if((destination!=61 && destination!=54) || target.inactive || observation.primary!=observation.parts[part].span.chunk ||
-        partBinding(observation.parts[part],0x0c0000d9)!=1) return;
+// The jump rectangles extend into the gap. Route to the connected landing
+// used by the opposite player animation, then let normal movement start it.
+void djoseGapApproach(Entity& target,const Scene& observation,unsigned part,unsigned destination) {
+    if((destination!=61 && destination!=54) || observation.primary!=observation.parts[part].span.chunk ||
+        partBinding(observation.parts[part],0x0c0000d9)!=1 || std::abs(observation.player.y+18)>=10) return;
     const bool northbound=destination==61;
-    for(unsigned i=0;i<observation.count;++i) {
-        const auto& bank=observation.workers[i];
-        if(!rows[i].valid || bank.part!=part || bank.type!=6 || bank.local!=(northbound?68u:69u)) continue;
-        if(!(rows[i].channels&0x20) || bank.interactions.entries[5]!=2) return;
-        auto zone=sceneInteractionZone(bank,0x20,observation.extraTalkRange);
-        if(!zone.valid || (northbound?observation.player.z>zone.center.z+zone.depth:observation.player.z<zone.center.z-zone.depth)) return;
-        target.viaForWorker=target.worker;target.worker=i;target.actor=-1;
-        target.position=zone.center;target.distance=distanceXZ(observation.player,zone.center);
-        target.zone=std::move(zone);target.usefulEntries=EntryMask{1u<<2};
-        target.name+=L" via pedestal. After crossing, request the path again";
-        return;
-    }
+    // W68 is centred at Z 89.764, W69 at 154.480 (both have half-depth 5).
+    if(northbound?observation.player.z>94.764:observation.player.z<149.480) return;
+    target.viaForWorker=target.worker;target.worker=target.actor=-1;
+    target.position={0,-18,northbound?74.6:162.9};
+    target.distance=distanceXZ(observation.player,target.position);
+    target.zone={};target.inactive=false;
+    target.name+=L" via pedestal. ";
+    if(observation.cameraValid) {
+        const auto heading=cameraDirectionLabel({0,0,northbound?1.0:-1.0},observation.forward,true);
+        target.name+=std::wstring(L"Hold ")+heading+L" to cross";
+    } else target.name+=L"Move toward the pedestal to cross";
+    target.name+=L", then request the path again";
 }
 bool visibleButterfly(const ActorBody& actor) {
     const auto& b=actor.bytes;const auto alpha=field<float>(b,0x354),targetAlpha=field<float>(b,0x358);
@@ -421,7 +421,7 @@ void buildPart(const OwnedAtelGuardView& view,void* opaque) {
             recess.zone=sceneInteractionZone(w,1,s.extraTalkRange);competitors(recess,s,context.rows);recess.inactive=!(row.channels&1) || !recess.usefulEntries.contains(w.interactions.entries[0]);recess.unreachable=false;
             if(recess.zone.valid) context.entities.push_back(std::move(recess));
         }
-        if(trial && script.name=="djyt0600") djoseGapApproach(e,s,w.part,index,context.rows);
+        if(trial && script.name=="djyt0600") djoseGapApproach(e,s,w.part,index);
         context.entities.push_back(std::move(e));
     }
 }

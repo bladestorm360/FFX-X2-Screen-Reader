@@ -193,7 +193,8 @@ void pathfind(const Pending& event,bool assist=false) {
     const auto points=navigationRouteOwned(s.mesh,player,target,s.entities);
     if(points.empty()) {resetNavAudio();emit(event,label(target)+(target.zone.valid?L": no reachable interaction zone on the connected floor":L": no connected collision route"),"navigation-path");if(assist) intent(event,target,nav::Intent::AssistFailed);return;}
     routeNavAudio(points,target);
-    if(!assist && (target.butterfly || !setting(Setting::AutoWalk) || setting(Setting::AutoWalkPath))) {const auto directions=routeDirectionsText(points,UnitsPerStep,setting(Setting::PartialSteps)!=0);emit(event,directions.empty()?L"Inside the trigger zone":directions,"navigation-path");}
+    if(!assist && (target.butterfly || !setting(Setting::AutoWalk) || setting(Setting::AutoWalkPath))) {const auto directions=routeDirectionsText(points,UnitsPerStep,setting(Setting::PartialSteps)!=0);if(target.viaForWorker>=0) emit(event,directions.empty()?target.name:directions+L". "+target.name,"navigation-path");
+        else emit(event,directions.empty()?L"Inside the trigger zone":directions,"navigation-path");}
     if(setting(Setting::AutoWalk)) intent(event,target,assist?nav::Intent::AssistStart:target.pushControl?nav::Intent::ArmAndStart:nav::Intent::Start);
 }
 void execute(const Pending& event) {
