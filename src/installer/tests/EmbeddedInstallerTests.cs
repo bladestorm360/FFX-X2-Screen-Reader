@@ -49,6 +49,8 @@ internal static class EmbeddedInstallerTests
             new[] { typeof(Func<string, byte[]>), typeof(IDictionary<string, string>), factoryType }, null).Invoke(new object[] { reader, hashes, factory });
         Directory.CreateDirectory(Path.Combine(game, "mods"));
         File.WriteAllText(Path.Combine(game, "mods", "foreign.dll"), "foreign mod");
+        File.WriteAllText(Path.Combine(game, "mods", "keeper.asi"), "protected plugin");
+        File.WriteAllText(Path.Combine(game, "FFX_SR_ModSafeList.txt"), @"mods\keeper.asi");
         const string savedSettings = "; Keep existing choices, not new defaults\r\n[Accessibility]\r\noverdrive_assist=1\r\njecht_assist=0\r\nlightning_auto_dodge=1\r\n[Controller]\r\nrepeat=7\r\n";
         File.WriteAllText(Path.Combine(game, "FFXAccessibility.ini"), savedSettings);
         string backup = (string)engine.GetMethod("Install").Invoke(fixtureEngine, new object[] { game, quiet });
@@ -60,8 +62,10 @@ internal static class EmbeddedInstallerTests
                 if (BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(Path.Combine(game, entry.Key)))).Replace("-", "").ToLowerInvariant() != entry.Value.ToLowerInvariant()) throw new Exception("Actual packaged payload mismatch: " + entry.Key);
         }
         if (File.Exists(Path.Combine(game, "mods", "foreign.dll")) || File.ReadAllText(Path.Combine(backup, "mods", "foreign.dll")) != "foreign mod" ||
+            File.ReadAllText(Path.Combine(game, "mods", "keeper.asi")) != "protected plugin" ||
+            File.Exists(Path.Combine(backup, "mods", "keeper.asi")) ||
             File.ReadAllText(Path.Combine(game, "FFXAccessibility.ini")) != savedSettings) throw new Exception("Packaged cleanup/preservation failed");
-        Console.WriteLine("PASS: actual packaged EXE validates both pinned inventories, refuses non-stock files, and installs 7 verified payloads twice with synthetic stock validation and module cleanup; Prism runtime preserved.");
+        Console.WriteLine("PASS: actual packaged EXE validates both pinned inventories, refuses non-stock files, and installs 7 verified payloads twice. Safe-listed files and Prism runtime are preserved; unlisted modules are cleaned up.");
         return 0;
     }
 }

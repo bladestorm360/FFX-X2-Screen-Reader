@@ -101,6 +101,10 @@ removes Tolk as the documented migration requires, and supports the verified
 long-path I/O route. Distributed batch/PowerShell setup helpers are retired;
 internal build/deploy batches remain the developer workflow.
 
+The [mod safe list](../../windows_installer_20261007.md#mod-safe-list) preserves
+player-selected DLL and ASI paths across installer cleanup. Unlisted files
+follow the regular migration policy.
+
 Normal Install/Check launch redirection never writes registry values. Optional
 Repair launch redirection and Restore launch backup are separate explicitly
 requested UI actions, limited to five documented IFEO Debugger names with

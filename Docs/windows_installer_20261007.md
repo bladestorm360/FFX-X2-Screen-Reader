@@ -14,15 +14,16 @@ updated installer. `SteamAppManifest` validates app359870, installation location
 sole depot359871 and manifest identity. Direct-folder fallback uses exact known
 FFX/launcher fingerprints. Discovery also recognizes damaged Steam installations.
 
-All added nonstock DLL/ASI files in the selected game tree are cleanup targets,
-except canonical root payload names and the exact top-level
-`FFX_SR_Install_Backups` tree. Legitimate stock nested DLLs are preserved. Known
+Added nonstock DLL/ASI files in the selected game tree are cleanup targets
+unless protected by the [mod safe list](#mod-safe-list). The scan also excludes
+canonical root payload paths and setup-managed backup and PRISM directories.
+Legitimate stock nested DLLs are preserved. Known
 legacy Frida Gadget/config/script names also participate. Backups preserve relative
 paths, include every affected preexisting file, and complete before any deletion.
-Settings, saves, assets and unrelated XML are preserved; other added DLL mods are
-intentionally backed up and removed. The owner retained this migration policy
+Settings, saves, assets and unrelated XML are preserved. Unlisted DLL and ASI
+mods are intentionally backed up and removed. The owner retained this default
 because the previous accessibility mod used registry-based launch redirection.
-Install or reinstall other mods after this setup. Rollback restores old files
+Install or reinstall unlisted mods after this setup. Rollback restores old files
 and removes newly installed files; incomplete restoration names failures and backup.
 Linked descendants, linked backup roots, traversal and directory/file conflicts
 are refused. File targets are rechecked before mutation/restoration. Close the
@@ -106,6 +107,37 @@ content, including single and consecutive ampersands and non-ASCII text, in
 both result and error dialogs. The old message box omitted a single ampersand
 from its accessible text. This check exercised dialog ownership and dismissal.
 Live screen-reader speech was outside this checkpoint.
+
+## Mod safe list
+
+Select a game folder, press Alt+L, choose Add files, and choose each loader and
+plugin DLL or ASI to preserve. Remove selected revokes protection when followed
+by Save. Escape discards edits. Entries apply to exact paths relative to the
+selected installation, including nested files. Matching is case-insensitive.
+The same path stays protected when a mod replaces or temporarily removes its
+file. Non-DLL and non-ASI mod files are outside the general cleanup scan.
+
+Setup stores the list in `FFX_SR_ModSafeList.txt` in the game folder. The list
+starts empty and is read during install. Save atomically publishes a changed
+list. Setup and safe-list saves serialize on the selected folder. A stale
+editor must be reopened before saving. If setup reports a malformed list,
+restore a known-good copy of the file. Moving it aside clears the list, so
+verify the entries in setup before installing again.
+
+The safe list excludes original game paths, setup's own payload and managed
+folders, and root legacy files required for migration. In particular, another
+loader cannot share the root `dinput8.dll` with the screen reader. Stock file
+validation, launch-redirection checks, and registry repair consent still apply.
+An ineligible entry in the saved list stops setup before cleanup. Remove it
+through Mod safe list to continue. The install report names protected files
+present during preflight. The installer uses the same path list for its final
+cleanup check, and protected files stay out of backup and rollback.
+
+The public installer suite passed 180 assertions. The full suite passed 909
+and exercised protected and unlisted files on install, repeat install,
+rollback, and revocation. Embedded-installer tests verified protection on short
+and long paths. The safe-list controls were checked through WinForms
+accessibility objects. Live screen-reader and game use remain unverified.
 
 ## Missing executable investigation
 

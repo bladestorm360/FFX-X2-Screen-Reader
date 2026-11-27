@@ -33,7 +33,7 @@ internal static class InstallerTests
         Assert(rejected, "Expected refusal: " + message);
     }
 
-    private static string Game(string name)
+    private static string Game(string name, bool preparePrism = true)
     {
         string path = Path.Combine(fixture, name);
         Directory.CreateDirectory(path);
@@ -41,7 +41,7 @@ internal static class InstallerTests
         File.WriteAllText(Path.Combine(path, "FFX&X-2_LAUNCHER.exe"), "Synthetic fixture; not a launcher executable.");
         Directory.CreateDirectory(Path.Combine(path, "magicFiles", "stock"));
         File.WriteAllText(Path.Combine(path, "magicFiles", "stock", "original.dll"), "Synthetic stock DLL");
-        PrismTestSupport.Prepare(path);
+        if (preparePrism) PrismTestSupport.Prepare(path);
         return path;
     }
 
@@ -379,12 +379,127 @@ internal static class InstallerTests
         foreach (Control child in control.Controls) { all.Add(child); Controls(child, all); }
     }
 
+    private static void SafeListPolicy()
+    {
+        string game = Game("Safe list & unicode é", false);
+        BaseGameCatalog catalog = FixtureCatalog();
+        ICollection<string> stock = catalog.Files.Keys;
+        string settings = Path.Combine(game, ModSafeList.FileName);
+        var empty = ModSafeList.Read(game);
+        Assert(empty.Count == 0 && !File.Exists(settings), "Reading a new installation must not write a safe list");
+        ModSafeList.Save(game, empty, new string[0], stock);
+        Assert(!File.Exists(settings), "Saving an empty new list skips the write");
+        string directory = Path.Combine(game, "mods & extensions");
+        Directory.CreateDirectory(directory);
+        string nested = Path.Combine(directory, "Acçent & plug-in.ASI");
+        string loader = Path.Combine(game, "dxgi.dll");
+        File.WriteAllText(nested, "selected nested plugin");
+        File.WriteAllText(loader, "selected loader");
+        string other = Path.Combine(game, Path.GetFileName(nested));
+        File.WriteAllText(other, "same name in a different directory");
+        string plugin = ModSafeList.SelectFile(game, nested, stock);
+        Assert(plugin == @"mods & extensions\Acçent & plug-in.ASI", "Picker records the exact nested Windows file");
+        Assert(ModSafeList.SelectFile(game, loader, stock) == "dxgi.dll", "Picker accepts a root loader");
+        Reject(delegate { ModSafeList.SelectFile(game, Path.Combine(fixture, "outside.dll"), stock); }, "inside the selected game folder");
+        Reject(delegate { ModSafeList.SelectFile(game, Path.Combine(game, "missing.dll"), stock); }, "selected file is missing");
+        Reject(delegate { ModSafeList.SelectFile(game, Path.Combine(game, "FFX.exe"), stock); }, "Choose a DLL or ASI");
+        Reject(delegate { ModSafeList.SelectFile(game, Path.Combine(game, "magicFiles", "stock", "original.dll"), stock); }, "original game path");
+        File.WriteAllText(Path.Combine(game, "DINPUT8.dll"), "conflicting loader");
+        Reject(delegate { ModSafeList.SelectFile(game, Path.Combine(game, "DINPUT8.dll"), stock); }, "own files");
+        File.WriteAllText(Path.Combine(game, "Tolk.dll"), "legacy Tolk");
+        Reject(delegate { ModSafeList.SelectFile(game, Path.Combine(game, "Tolk.dll"), stock); }, "legacy screen reader");
+        using (ModSafeList.LockChanges(game))
+            Reject(delegate { ModSafeList.Save(game, empty, new[] { plugin }, stock); }, "could not reserve this game folder");
+        Assert(!File.Exists(settings), "A concurrent save must not publish");
+        ModSafeList.Save(game, empty, new[] { plugin, plugin.Replace('\\', '/').ToUpperInvariant(), "DXGI.DLL" }, stock);
+        var saved = ModSafeList.Read(game);
+        Assert(saved.Count == 2 && saved.Contains(plugin) && saved.Contains("dxgi.dll"), "Relative paths persist and deduplicate without regard to casing");
+        Reject(delegate { ModSafeList.Save(game, empty, new[] { plugin }, stock); }, "changed in another setup window");
+        Assert(ModSafeList.Read(game).SetEquals(saved), "A stale editor must not overwrite newer changes");
+        var plan = MigrationPlan.FromCatalog(game, catalog, delegate { });
+        Assert(!plan.Remove.Contains(plugin) && !plan.Remove.Contains("dxgi.dll"), "Selected files stay out of the removal plan");
+        Assert(plan.Remove.Contains(Path.GetFileName(other)) && plan.Remove.Contains("Tolk.dll"), "Exact relative paths leave unrelated and legacy removal intact");
+        Reject(delegate { plan.Verify(game, delegate { }); }, "Another added DLL or ASI");
+        File.Delete(other);
+        File.Delete(Path.Combine(game, "Tolk.dll"));
+        plan.Verify(game, delegate { });
+        ModSafeList.Save(game, saved, new[] { plugin }, stock);
+        Assert(MigrationPlan.FromCatalog(game, catalog, delegate { }).Remove.Contains("dxgi.dll"), "Removing an entry restores the normal cleanup policy");
+        using (var dialog = new ModSafeListDialog(game, stock))
+        {
+            var all = new List<Control>(); Controls(dialog, all);
+            foreach (string name in new[] { "Protected DLL and ASI files", "Add files", "Remove selected", "Save", "Cancel" })
+            {
+                Control control = all.Find(c => c.AccessibleName == name);
+                Assert(control != null && control.TabStop && control.AccessibilityObject.Name == name, "Safe list keyboard and screen reader control: " + name);
+            }
+            var list = (ListBox)all.Find(c => c.AccessibleName == "Protected DLL and ASI files");
+            Assert(list.Items.Count == 1 && (string)list.Items[0] == plugin, "Safe list opens with the saved path");
+            Assert(dialog.AcceptButton == null && ((Button)dialog.CancelButton).DialogResult == DialogResult.Cancel,
+                "Escape cancels and Enter on the list cannot save");
+            list.Items.AddRange(new object[] { "First.dll", "Last.dll" });
+            list.SetSelected(list.Items.IndexOf("First.dll"), true);
+            list.SetSelected(list.Items.IndexOf("Last.dll"), true);
+            typeof(ModSafeListDialog).GetMethod("RemoveFiles", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(dialog, null);
+            Assert(list.Items.Count == 1 && (string)list.Items[0] == plugin, "Removing a multi-selection only removes the selected paths");
+            list.Items.Clear();
+        }
+        Assert(ModSafeList.Read(game).SetEquals(new[] { plugin }), "Uncommitted editor changes never reach disk");
+        ModSafeList.Save(game, ModSafeList.Read(game), new string[0], stock);
+        Assert(ModSafeList.Read(game).Count == 0, "Removing the last entry persists across reads");
+        File.WriteAllText(settings, @"..\outside.dll");
+        Reject(delegate { MigrationPlan.FromCatalog(game, catalog, delegate { }); }, "Could not read " + ModSafeList.FileName);
+        File.WriteAllText(settings, "dinput8.dll");
+        Reject(delegate { MigrationPlan.FromCatalog(game, catalog, delegate { }); }, "remove this entry before installing");
+        File.WriteAllText(settings, @"magicFiles\stock\original.dll");
+        File.WriteAllText(Path.Combine(game, "magicFiles", "stock", "original.dll"), "modified stock dll");
+        Reject(delegate { MigrationPlan.FromCatalog(game, catalog, delegate { }); }, "Original game file is missing or modified");
+    }
+
+    private static void SafeListInstallation()
+    {
+        string game = Game("Safe list installer integration");
+        string directory = Path.Combine(game, "mods");
+        Directory.CreateDirectory(directory);
+        string keep = Path.Combine(directory, "keeper.asi");
+        string other = Path.Combine(directory, "other.dll");
+        File.WriteAllText(keep, "retained plugin");
+        File.WriteAllText(other, "other mod");
+        var stock = FixtureCatalog().Files.Keys;
+        string item = ModSafeList.SelectFile(game, keep, stock);
+        ModSafeList.Save(game, ModSafeList.Read(game), new[] { item }, stock);
+        string backup = Engine().Install(game, delegate { });
+        Assert(File.ReadAllText(keep) == "retained plugin" && !File.Exists(Path.Combine(backup, item)), "Installation leaves listed bytes alone and does not back them up");
+        Assert(!File.Exists(other) && File.ReadAllText(Path.Combine(backup, "mods", "other.dll")) == "other mod", "Installation still backs up and removes unlisted modules");
+        Assert(File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains("Mod safe list files left in place:\r\n" + item), "Install report identifies the protected file");
+        using (var held = new FileStream(InstallerPaths.Native(keep), FileMode.Open, FileAccess.Read, FileShare.None))
+            Engine().Install(game, delegate { });
+        Assert(File.ReadAllText(keep) == "retained plugin", "Reinstall does not open or replace the held plugin");
+        File.Delete(keep);
+        Engine().Install(game, delegate(string phase) {
+            if (phase == "Configuring launcher speech") File.WriteAllText(keep, "retained plugin");
+        });
+        Assert(File.ReadAllText(keep) == "retained plugin", "An absent protected file can return at the same path during setup");
+        var before = Snapshot(game);
+        Reject(delegate { Engine().Install(game, delegate(string phase) {
+            if (phase == "Configuring launcher speech")
+            {
+                Reject(delegate { ModSafeList.Save(game, ModSafeList.Read(game), new string[0], stock); }, "could not reserve this game folder");
+                throw new IOException("Safe list rollback fixture");
+            }
+        }); }, "Previous files were restored");
+        Unchanged(game, before);
+        ModSafeList.Save(game, ModSafeList.Read(game), new string[0], stock);
+        string purge = Engine().Install(game, delegate { });
+        Assert(!File.Exists(keep) && File.ReadAllText(Path.Combine(purge, item)) == "retained plugin", "A revoked entry is backed up and removed on the next setup");
+    }
+
     private static void AccessibleControls()
     {
         using (var window = new InstallerForm())
         {
             var all = new List<Control>(); Controls(window, all);
-            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup" })
+            foreach (string name in new[] { "Detected game installation", "Selected game folder", "Setup status", "Browse", "Install", "Cancel", "Check launch redirection", "Repair launch redirection", "Restore launch backup", "Mod safe list" })
             {
                 Control found = all.Find(delegate(Control c) { return c.AccessibleName == name; });
                 Assert(found != null && found.TabStop, "Missing keyboard-accessible named control: " + name);
@@ -402,6 +517,8 @@ internal static class InstallerTests
             Assert(!repair.Enabled, "Repair must require selected installation");
             Assert(Control.IsMnemonic('P', repair.Text) && !Control.IsMnemonic('R', repair.Text), "Alt+P selects Repair");
             Assert(Control.IsMnemonic('R', check.Text), "Alt+R selects Check");
+            Control safeList = all.Find(c => c.AccessibleName == "Mod safe list");
+            Assert(!safeList.Enabled && Control.IsMnemonic('L', safeList.Text), "Alt+L selects Mod safe list after choosing a game folder");
             Assert(all.Find(delegate(Control c) { return c.AccessibleName == "Restore launch backup"; }) is Button, "Restore uses standard accessible button");
             Assert(window.AcceptButton == install && window.CancelButton != null, "Enter/Escape keyboard controls");
             foreach (char key in "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -447,8 +564,9 @@ internal static class InstallerTests
             SteamAppManifestTests.Run(fixture, Assert);
             LaunchRedirectRepairTests.Run(fixture, Assert);
             LargeAddressIdentity();
+            SafeListPolicy();
             if (!publicChecks) {
-                Discovery(); LongPaths(); Installation(); Migration(); ProcessRefusal();
+                Discovery(); LongPaths(); Installation(); Migration(); SafeListInstallation(); ProcessRefusal();
             }
             AccessibleControls();
             RegistryConfirmation();

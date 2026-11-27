@@ -78,6 +78,11 @@ and any approved hand-merge has been completed and verified.
   migration coverage, and Windows UI Automation verified exact dialog text.
   [PR #6](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/6),
   [setup behavior and evidence](windows_installer_20261007.md#setup-keyboard-shortcuts-and-dialog-text).
+- **Mod safe list.** After PR #6 closed, the owner approved opt-in per-file
+  protection in setup. The default migration and conflict checks still apply.
+  Offline installer suites and embedded short- and long-path verification
+  cover protected, unlisted and revoked files. Deployment remains on hold.
+  [Setup controls and evidence](windows_installer_20261007.md#mod-safe-list).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

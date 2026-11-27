@@ -19,7 +19,7 @@ namespace FfxScreenReader.Setup
         private const string ConfigName = "FFX&X-2_LAUNCHER.exe.config";
         private const string AssemblyName = "FFXLauncherReader, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
         private const string ManagerType = "FfxLauncher.ReaderDomainManager";
-        private static readonly string[] LegacyNames = {
+        internal static readonly string[] LegacyNames = {
             "frida-gadget.dll", "frida-gadget.config", "frida-gadget.config.dll", "ffx_sr.js", "Tolk.dll"
         };
         private readonly Func<string, byte[]> readPayload;
@@ -104,6 +104,12 @@ namespace FfxScreenReader.Setup
             string game = InstallerPaths.Full(directory);
             if (!Directory.Exists(game)) throw new InvalidOperationException("Select the installed Steam game folder. No files were changed.");
             closedProcesses();
+            using (ModSafeList.LockChanges(game))
+                return InstallLocked(game, status);
+        }
+
+        private string InstallLocked(string game, Action<string> status)
+        {
             var prism = new PrismInstall(readPayload, closedProcesses, delegate { });
             prism.ValidatePackage();
             var payload = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);

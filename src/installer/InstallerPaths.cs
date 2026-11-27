@@ -34,6 +34,11 @@ namespace FfxScreenReader.Setup
             if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new IOException("Installation path escapes the game folder.");
             return path;
         }
+        public static void CheckUnlinkedDirectoryPath(string path) {
+            for (string check = Full(path); !String.IsNullOrEmpty(check); check = Path.GetDirectoryName(check))
+                if ((File.GetAttributes(check) & FileAttributes.ReparsePoint) != 0)
+                    throw new IOException("Linked installation paths are unsupported. No files were changed.");
+        }
         public static void CheckOrdinaryFile(string game, string name) {
             string path = InGame(game, name);
             if (Directory.Exists(path)) throw new IOException("Expected a file, but found a directory: " + path);

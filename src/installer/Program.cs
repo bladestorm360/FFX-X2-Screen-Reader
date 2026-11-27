@@ -70,6 +70,7 @@ namespace FfxScreenReader.Setup
         private readonly Button install = new Button();
         private readonly Button cancel = new Button();
         private readonly Button diagnose = new Button();
+        private readonly Button safeList = new Button();
         private readonly BackgroundWorker worker = new BackgroundWorker { WorkerReportsProgress = true };
         private readonly List<string> known = new List<string>();
 
@@ -94,7 +95,7 @@ namespace FfxScreenReader.Setup
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             var intro = new Label { AutoSize = true, MaximumSize = new Size(700, 0), Text =
                 "Install the screen reader and original launcher speech, including PRISM, SDL3 and their licenses. Tolk is backed up and removed. Close the game, launcher, and mod manager first. " +
-                "Settings and saves are preserved. Other added DLL/ASI mods and old Frida files are backed up and removed. Original game files are checked first. Select a detected installation or browse to a Steam folder, library, or game folder. Repair launch redirection is optional and changes the registry only after confirmation and backup." };
+                "Settings and saves are preserved. Use Mod safe list to keep selected DLL and ASI files. Unlisted added modules and legacy screen reader files are backed up and removed. Original game files are checked first. Repair launch redirection is optional and changes the registry only after confirmation and backup." };
             layout.Controls.Add(intro);
             layout.Controls.Add(new Label { Text = "Detected &game installation:", AutoSize = true });
             games.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -103,7 +104,7 @@ namespace FfxScreenReader.Setup
             games.TabIndex = 0;
             games.SelectedIndexChanged += delegate {
                 selected.Text = games.SelectedItem == null ? "" : games.SelectedItem.ToString();
-                install.Enabled = repair.Enabled = !worker.IsBusy && selected.Text.Length != 0;
+                install.Enabled = repair.Enabled = safeList.Enabled = !worker.IsBusy && selected.Text.Length != 0;
             };
             layout.Controls.Add(games);
             layout.Controls.Add(new Label { Text = "Selected game &folder:", AutoSize = true });
@@ -131,6 +132,13 @@ namespace FfxScreenReader.Setup
             browse.TabIndex = 0; install.TabIndex = 1; cancel.TabIndex = 2;
             browse.AccessibleName = "Browse"; install.AccessibleName = "Install"; cancel.AccessibleName = "Cancel";
             AddRegistryButtons(buttons);
+            safeList.Text = "Mod safe &list";
+            safeList.AccessibleName = "Mod safe list";
+            safeList.AutoSize = true;
+            safeList.TabIndex = 6;
+            safeList.Enabled = false;
+            safeList.Click += EditModSafeList;
+            buttons.Controls.Add(safeList);
             layout.Controls.Add(buttons);
             Controls.Add(layout);
             AcceptButton = install;
@@ -199,7 +207,8 @@ namespace FfxScreenReader.Setup
         private void StartInstall(object sender, EventArgs e)
         {
             if (worker.IsBusy || selected.Text.Length == 0) return;
-            browse.Enabled = games.Enabled = install.Enabled = cancel.Enabled = diagnose.Enabled = repair.Enabled = restore.Enabled = false;
+            browse.Enabled = games.Enabled = install.Enabled = cancel.Enabled = diagnose.Enabled = repair.Enabled =
+                restore.Enabled = safeList.Enabled = false;
             status.Text = "Checking installer files, original game files, and other DLL/ASI mods.";
             worker.RunWorkerAsync(selected.Text);
         }
@@ -207,6 +216,7 @@ namespace FfxScreenReader.Setup
         private void Finished(object sender, RunWorkerCompletedEventArgs e)
         {
             browse.Enabled = games.Enabled = install.Enabled = cancel.Enabled = diagnose.Enabled = repair.Enabled = restore.Enabled = true;
+            safeList.Enabled = selected.Text.Length != 0;
             if (e.Error != null)
             {
                 string message = e.Error.Message;
@@ -217,7 +227,7 @@ namespace FfxScreenReader.Setup
             }
             cancel.Text = "&Close";
             cancel.AccessibleName = "Close";
-            ShowMessage("Installation complete. Original game files verified; other added DLL/ASI mods removed. Start your screen reader, then launch normally through Steam. Previous files are backed up in: " + e.Result, false);
+            ShowMessage("Installation complete. Original game files verified. Safe-listed files were left in place and other added DLL/ASI mods were cleaned up. Start your screen reader, then launch normally through Steam. Backups and the install report are in: " + e.Result, false);
         }
 
         // Match the packed TASKDIALOGCONFIG in commctrl.h.
@@ -253,7 +263,7 @@ namespace FfxScreenReader.Setup
         [DllImport("comctl32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
         private static extern int TaskDialogIndirect(ref TaskDialogConfig config, IntPtr button, IntPtr radioButton, IntPtr verification);
 
-        private bool TryShowTaskDialog(string text, string title, bool error)
+        private static bool TryShowTaskDialog(IWin32Window owner, string text, string title, bool error)
         {
             const int allowDialogCancellation = 0x0008;
             const int okButton = 0x0001;
@@ -261,7 +271,7 @@ namespace FfxScreenReader.Setup
             const int informationIcon = 0xfffd;
             var config = new TaskDialogConfig {
                 Size = Marshal.SizeOf(typeof(TaskDialogConfig)),
-                Owner = Handle,
+                Owner = owner.Handle,
                 Flags = allowDialogCancellation,
                 CommonButtons = okButton,
                 Title = title,
@@ -274,13 +284,18 @@ namespace FfxScreenReader.Setup
             catch (EntryPointNotFoundException) { return false; }
         }
 
+        internal static void ShowSetupDialog(IWin32Window owner, string title, string text, bool error)
+        {
+            if (!TryShowTaskDialog(owner, text, title, error))
+                MessageBox.Show(owner, text, title, MessageBoxButtons.OK,
+                    error ? MessageBoxIcon.Error : MessageBoxIcon.Information);
+        }
+
         private void ShowMessage(string text, bool error)
         {
             status.Text = text;
             string title = error ? "Setup could not finish" : "Screen reader setup";
-            if (!TryShowTaskDialog(text, title, error))
-                MessageBox.Show(this, text, title, MessageBoxButtons.OK,
-                    error ? MessageBoxIcon.Error : MessageBoxIcon.Information);
+            ShowSetupDialog(this, title, text, error);
             status.Focus();
             status.SelectionStart = 0;
             status.SelectionLength = 0;

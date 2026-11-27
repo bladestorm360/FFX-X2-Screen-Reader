@@ -10,7 +10,15 @@ namespace FfxScreenReader.Setup
     {
         public readonly BaseGameCatalog Catalog;
         public readonly List<string> Remove;
-        private MigrationPlan(BaseGameCatalog catalog, List<string> remove) { Catalog = catalog; Remove = remove; }
+        private readonly HashSet<string> safeList;
+        private readonly List<string> preserved = new List<string>();
+
+        private MigrationPlan(string game, BaseGameCatalog catalog, HashSet<string> safeList)
+        {
+            Catalog = catalog;
+            this.safeList = safeList;
+            Remove = AddedModules(game, preserved);
+        }
         public static MigrationPlan Build(string game, Action<string> status) {
             LaunchRedirects.RequireNone(game);
             var catalogs = BaseGameCatalog.Load();
@@ -32,7 +40,7 @@ namespace FfxScreenReader.Setup
         // Tests supply small synthetic catalogs; the production entry point always uses pinned inventories.
         public static MigrationPlan FromCatalog(string game, BaseGameCatalog catalog, Action<string> status) {
             ValidateStock(game, catalog, status);
-            return new MigrationPlan(catalog, AddedModules(game, catalog));
+            return new MigrationPlan(game, catalog, ModSafeList.ForInstallation(game, catalog.Files.Keys));
         }
         private static void ValidateStock(string game, BaseGameCatalog catalog, Action<string> status) {
             int checkedFiles = 0;
@@ -42,7 +50,7 @@ namespace FfxScreenReader.Setup
                     ". In Steam, open game Properties, Installed Files, Verify integrity of game files. Then run setup again. No original game files were replaced by setup.");
             }
         }
-        private static List<string> AddedModules(string game, BaseGameCatalog catalog) {
+        private List<string> AddedModules(string game, List<string> kept) {
             var result = new List<string>();
             var ours = new HashSet<string>(InstallerEngine.PayloadNames, StringComparer.OrdinalIgnoreCase);
             // Tolk removal is explicitly requested for the PRISM migration.
@@ -55,18 +63,14 @@ namespace FfxScreenReader.Setup
             while (folders.Count != 0) {
                 foreach (string path in Directory.GetFileSystemEntries(folders.Dequeue())) {
                     string name = InstallerPaths.Relative(path.Substring(root.Length));
-                    if (name.Equals("FFX_SR_Install_Backups", StringComparison.OrdinalIgnoreCase) ||
-                        name.Equals("FFX_SR_LAA_Backups", StringComparison.OrdinalIgnoreCase) ||
-                        name.Equals("PrismRuntime", StringComparison.OrdinalIgnoreCase) ||
-                        name.StartsWith(".PrismRuntime.backup.", StringComparison.OrdinalIgnoreCase) ||
-                        name.StartsWith(".PrismRuntime.stage.", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (ModSafeList.IsSetupTree(name)) continue;
                     if (++entries > 200000) throw new IOException("Too many files to inspect safely. No files were changed.");
                     FileAttributes attributes = File.GetAttributes(path);
                     if ((attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("Setup cannot inspect a linked file or subfolder: " + name + ". No files were changed.");
                     if ((attributes & FileAttributes.Directory) != 0) { folders.Enqueue(path); continue; }
-                    string extension = Path.GetExtension(name);
-                    if ((extension.Equals(".dll", StringComparison.OrdinalIgnoreCase) || extension.Equals(".asi", StringComparison.OrdinalIgnoreCase)) &&
-                        !ours.Contains(name) && !catalog.Files.ContainsKey(name)) result.Add(name);
+                    if (!ModSafeList.IsModule(name) || ours.Contains(name) || Catalog.Files.ContainsKey(name)) continue;
+                    if (!safeList.Contains(name)) result.Add(name);
+                    else if (kept != null) kept.Add(name);
                 }
             }
             result.Sort(StringComparer.OrdinalIgnoreCase);
@@ -74,12 +78,18 @@ namespace FfxScreenReader.Setup
         }
         public void Verify(string game, Action<string> status) {
             ValidateStock(game, Catalog, status);
-            var remaining = AddedModules(game, Catalog);
+            var remaining = AddedModules(game, null);
             if (remaining.Count != 0) throw new IOException("Another added DLL or ASI appeared during setup: " + remaining[0] + ". Close the mod manager and try again.");
         }
         public void WriteReport(string game, string backup) {
             var lines = new List<string> { "Steam depot: 359871", "Verified manifest: " + Catalog.Manifest, "Added DLL/ASI files removed (backups preserve their relative paths):" };
             foreach (string name in Remove) lines.Add(name + "  SHA256 " + InstallerEngine.Hash(File.ReadAllBytes(InstallerPaths.InGame(game, name))));
+            if (preserved.Count > 0)
+            {
+                preserved.Sort(StringComparer.OrdinalIgnoreCase);
+                lines.Add("Mod safe list files left in place:");
+                lines.AddRange(preserved);
+            }
             File.WriteAllLines(Path.Combine(backup, "INSTALL_REPORT.txt"), lines.ToArray());
         }
     }

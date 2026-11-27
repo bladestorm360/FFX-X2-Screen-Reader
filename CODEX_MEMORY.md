@@ -16,6 +16,9 @@ with the same INI format. The owner deferred the remaining proposals.
 [PR #6](Docs/plan.md#november24-pull-request-review-hold) integrates only the
 setup keyboard shortcut and dialog text fixes. The owner retained the existing
 [installer cleanup policy](Docs/windows_installer_20261007.md#current-migration-behavior).
+The subsequent [mod safe list](Docs/windows_installer_20261007.md#mod-safe-list)
+lets players keep selected DLL and ASI paths across setup runs. Cleanup still
+applies by default.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)

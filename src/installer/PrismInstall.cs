@@ -55,13 +55,6 @@ namespace FfxScreenReader.Setup
             }
         }
 
-        private static void CheckAncestors(string game)
-        {
-            for (string check = game; !String.IsNullOrEmpty(check); check = Path.GetDirectoryName(check))
-                if ((File.GetAttributes(check) & FileAttributes.ReparsePoint) != 0)
-                    throw new IOException("Linked installation paths are unsupported. No files were changed.");
-        }
-
         private string Receipt(string game)
         {
             var data = new Dictionary<string, object> {
@@ -80,7 +73,7 @@ namespace FfxScreenReader.Setup
             string game = InstallerPaths.Full(directory).TrimEnd(Path.DirectorySeparatorChar);
             closedProcesses();
             if (!Directory.Exists(game)) throw new DirectoryNotFoundException("Select an existing FFX game folder.");
-            CheckAncestors(game);
+            InstallerPaths.CheckUnlinkedDirectoryPath(game);
             validateGame(game);
             ValidatePackage();
             string destination = InstallerPaths.InGame(game, "PrismRuntime");
@@ -124,7 +117,7 @@ namespace FfxScreenReader.Setup
                         File.WriteAllBytes(InstallerPaths.InGame(game, stageName + "/prism-install.json"),
                             new UTF8Encoding(false).GetBytes(Receipt(game)));
                         closedProcesses();
-                        CheckAncestors(game);
+                        InstallerPaths.CheckUnlinkedDirectoryPath(game);
                         InstallerPaths.CheckOrdinaryFile(game, stageName + "/prism-install.json");
                         InstallerPaths.CheckOrdinaryFile(game, "PrismRuntime/prism-install.json");
                         // Both resolved paths are children of this exact game
