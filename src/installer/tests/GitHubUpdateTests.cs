@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Reflection;
 using System.Text;
 using System.Web.Script.Serialization;
 using FfxScreenReader.Setup;
@@ -38,10 +37,12 @@ internal static class GitHubUpdateTests
         reject(() => GitHubUpdates.ParseLatest(Latest("1.1", true, false, asset)), "published stable release");
         reject(() => GitHubUpdates.ParseLatest(Latest("1.1", false, true, asset)), "published stable release");
         reject(() => GitHubUpdates.ParseLatest(Latest("1.1-rc.1", false, false, asset)), "unsupported release tag");
-        reject(() => GitHubUpdates.ParseLatest(Latest("1.1", false, false)), "has no setup payload");
+        GitHubRelease withoutZip = GitHubUpdates.ParseLatest(Latest("1.1", false, false));
+        assert(withoutZip.Version == release.Version && withoutZip.Download == null, "A metadata-only check can see the latest version without a payload asset");
+        reject(() => GitHubUpdates.FetchPayload(withoutZip), "has no setup payload");
         var legacy = Asset("1.1", 1200, digest);
         legacy["name"] = "ffx-x2-screen-reader-1.1.zip";
-        reject(() => GitHubUpdates.ParseLatest(Latest("1.1", false, false, legacy)), "has no setup payload");
+        reject(() => GitHubUpdates.FetchPayload(GitHubUpdates.ParseLatest(Latest("1.1", false, false, legacy))), "has no setup payload");
         reject(() => GitHubUpdates.ParseLatest(Latest("1.1", false, false, asset, asset)), "ambiguous ZIP");
         reject(() => GitHubUpdates.ParseLatest(Latest("1.1", false, false, Asset("1.1", -1, digest))), "ambiguous ZIP");
         reject(() => GitHubUpdates.ParseLatest(Latest("1.1", false, false, Asset("1.1", 90 * 1024 * 1024, digest))),
@@ -79,9 +80,13 @@ internal static class GitHubUpdateTests
 
     private static Func<string, byte[]> FromArchive(string version, byte[] archive)
     {
+        return GitHubUpdates.OpenPayload(Release(version, archive), archive);
+    }
+
+    internal static GitHubRelease Release(string version, byte[] archive)
+    {
         string metadata = Latest(version, false, false, Asset(version, archive.Length, InstallerEngine.Hash(archive)));
-        GitHubRelease release = GitHubUpdates.ParseLatest(metadata);
-        return GitHubUpdates.OpenPayload(release, archive);
+        return GitHubUpdates.ParseLatest(metadata);
     }
 
     public static Func<string, byte[]> Packaged(byte[] archive, string version)
@@ -111,12 +116,10 @@ internal static class GitHubUpdateTests
 
     public static int Live(string fixture)
     {
-        GitHubRelease release;
-        try { release = GitHubUpdates.Check(); }
-        catch (InvalidDataException ex)
+        GitHubRelease release = GitHubUpdates.Check();
+        if (release.Download == null)
         {
-            if (!ex.Message.Contains("has no setup payload")) throw;
-            Console.WriteLine("PASS: read-only GitHub API check refused the published legacy release. " + ex.Message);
+            Console.WriteLine("PASS: read-only GitHub check identified " + release.Tag + " and found no online payload in the published legacy release.");
             return 0;
         }
         Func<string, byte[]> payload = GitHubUpdates.FetchPayload(release);
@@ -126,16 +129,16 @@ internal static class GitHubUpdateTests
             throw new Exception("Live release proxy checksum differs.");
         System.IO.Directory.CreateDirectory(fixture);
         System.IO.File.WriteAllBytes(Path.Combine(fixture, "dinput8.dll"), proxy);
-        var guard = typeof(InstallerEngine).GetMethod("RequireNoDowngrade", BindingFlags.Static | BindingFlags.NonPublic);
-        guard.Invoke(null, new object[] { fixture, release.Version });
+        if (InstalledRelease.RequiresDownload(fixture, release.Version))
+            throw new Exception("An installed release with matching proxy metadata should skip the download.");
         try
         {
-            guard.Invoke(null, new object[] { fixture, new Version(0, 0, 0, 0) });
+            InstalledRelease.RequiresDownload(fixture, new Version(0, 0, 0, 0));
             throw new Exception("Downgrade guard accepted a real newer screen reader proxy.");
         }
-        catch (TargetInvocationException ex)
+        catch (InvalidOperationException ex)
         {
-            if (!(ex.InnerException is InvalidOperationException) || !ex.InnerException.Message.Contains("already has screen reader version")) throw;
+            if (!ex.Message.Contains("already has screen reader version")) throw;
         }
         Console.WriteLine("PASS: read-only GitHub API and CDN download for " + release.Tag + ", exact ZIP and payload verification, expected-version and downgrade guard on a fixture.");
         return 0;

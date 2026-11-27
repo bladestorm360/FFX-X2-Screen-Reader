@@ -28,16 +28,16 @@ $work = Assert-WorkspacePath (Join-Path $repo ('install\windows-release-' + $sta
 $installer = Join-Path $work 'InstallFFXScreenReader.exe'
 $assetName = 'ffx-x2-screen-reader-' + $Version + '-payload.zip'
 $archive = Join-Path $work $assetName
-$native = Get-FfxNativeSources (Join-Path $repo 'install\native') (Join-Path $repo 'src\native\DEPENDENCIES.md')
-if ((Get-FfxFileSha256 $native['dinput8.dll']) -cne
+$sources = Get-FfxPayloadSources (Join-Path $repo 'install\native') (Join-Path $repo 'src\native\DEPENDENCIES.md') (Join-Path $repo 'README.md')
+if ((Get-FfxFileSha256 $sources['dinput8.dll']) -cne
     (Get-FfxFileSha256 (Join-Path $repo 'src\proxy\dinput8.dll'))) { throw 'Native/proxy stages differ. Run the canonical test build first.' }
 $number = [Version]$Version
 $expected = '{0}.{1}.{2}.{3}' -f $number.Major,$number.Minor,[Math]::Max(0,$number.Build),[Math]::Max(0,$number.Revision)
-if ([Diagnostics.FileVersionInfo]::GetVersionInfo($native['dinput8.dll']).FileVersion -cne $expected) {
+if ([Diagnostics.FileVersionInfo]::GetVersionInfo($sources['dinput8.dll']).FileVersion -cne $expected) {
     throw 'The staged proxy version does not match the release version.'
 }
 & (Join-Path $PSScriptRoot 'build_installer.ps1') -OutputPath $installer
-New-FfxPayloadArchive -Version $Version -NativeSources $native -RuntimeDirectory $RuntimeDirectory -PrismLockPath $lockPath -ArchivePath $archive
+New-FfxPayloadArchive -Version $Version -PayloadSources $sources -RuntimeDirectory $RuntimeDirectory -PrismLockPath $lockPath -ArchivePath $archive
 & (Join-Path $PSScriptRoot 'verify_distribution_security.ps1') -InstallerPath $installer -ArchivePath $archive -Version $Version -EvidenceDirectory (Join-Path $work 'security')
 $release = Assert-WorkspacePath (Join-Path $repo ('releases\' + $Version))
 $releaseInstaller = Assert-WorkspacePath (Join-Path $release 'InstallFFXScreenReader.exe')

@@ -10,7 +10,7 @@ function Get-FfxFileSha256([string]$Path) {
     } finally { $stream.Dispose() }
 }
 
-function Get-FfxNativeSources([string]$NativeDirectory, [string]$DependencyNotice) {
+function Get-FfxPayloadSources([string]$NativeDirectory, [string]$DependencyNotice, [string]$ReadmePath) {
     [ordered]@{
         'dinput8.dll' = Join-Path $NativeDirectory 'dinput8.dll'
         'MinHook.x86.dll' = Join-Path $NativeDirectory 'MinHook.x86.dll'
@@ -19,13 +19,14 @@ function Get-FfxNativeSources([string]$NativeDirectory, [string]$DependencyNotic
         'FFXLauncherNative.dll' = Join-Path $NativeDirectory 'FFXLauncherNative.dll'
         'FFX_SR_SDL3_LICENSE.txt' = Join-Path $NativeDirectory 'SDL3_LICENSE.txt'
         'FFX_SR_Native_Dependencies.md' = $DependencyNotice
+        'FFX_SR_README.txt' = $ReadmePath
     }
 }
 
 function New-FfxPayloadArchive {
     param(
         [Parameter(Mandatory=$true)][string]$Version,
-        [Parameter(Mandatory=$true)]$NativeSources,
+        [Parameter(Mandatory=$true)]$PayloadSources,
         [Parameter(Mandatory=$true)][string]$RuntimeDirectory,
         [Parameter(Mandatory=$true)][string]$PrismLockPath,
         [Parameter(Mandatory=$true)][string]$ArchivePath
@@ -37,10 +38,10 @@ function New-FfxPayloadArchive {
     if ($runtimeFiles.Count -ne 15) { throw 'Expected the locked 15-file PRISM runtime/license inventory.' }
     $archiveFiles = [ordered]@{'prism.lock.json' = $PrismLockPath}
     $checksums = @()
-    foreach ($binary in $NativeSources.GetEnumerator()) {
-        $entry = 'install/' + $binary.Key
-        $checksums += (Get-FfxFileSha256 $binary.Value) + '  ' + $entry
-        $archiveFiles[$entry] = $binary.Value
+    foreach ($item in $PayloadSources.GetEnumerator()) {
+        $entry = 'install/' + $item.Key
+        $checksums += (Get-FfxFileSha256 $item.Value) + '  ' + $entry
+        $archiveFiles[$entry] = $item.Value
     }
     foreach ($item in $runtimeFiles) {
         $name = $item.Name
@@ -84,4 +85,4 @@ function Read-FfxVerifiedPayload([string]$InstallerPath, [string]$ArchivePath, [
     $verify.Invoke($null, @([IO.File]::ReadAllBytes($ArchivePath), ('v' + $Version)))
 }
 
-Export-ModuleMember -Function Get-FfxFileSha256,Get-FfxNativeSources,New-FfxPayloadArchive,Read-FfxVerifiedPayload
+Export-ModuleMember -Function Get-FfxFileSha256,Get-FfxPayloadSources,New-FfxPayloadArchive,Read-FfxVerifiedPayload

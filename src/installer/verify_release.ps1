@@ -22,9 +22,9 @@ $installer = Join-Path $folder 'InstallFFXScreenReader.exe'
 $archiveHash = Get-FfxFileSha256 $archive
 $installerHash = Get-FfxFileSha256 $installer
 $payload = Read-FfxVerifiedPayload $installer $archive $Version
-$native = Get-FfxNativeSources (Join-Path $repo 'install\native') (Join-Path $repo 'src\native\DEPENDENCIES.md')
+$sources = Get-FfxPayloadSources (Join-Path $repo 'install\native') (Join-Path $repo 'src\native\DEPENDENCIES.md') (Join-Path $repo 'README.md')
 $verified = [ordered]@{}
-foreach ($entry in $native.GetEnumerator()) {
+foreach ($entry in $sources.GetEnumerator()) {
     $hash = Hash-Bytes ($payload.Invoke($entry.Key))
     if ($hash -cne (Get-FfxFileSha256 $entry.Value)) {
         throw "Release payload differs from the verified stage: $($entry.Key)"
@@ -44,7 +44,7 @@ foreach ($entry in $lock.files.PSObject.Properties) {
 }
 $number = [Version]$Version
 $expectedVersion = '{0}.{1}.{2}.{3}' -f $number.Major,$number.Minor,[Math]::Max(0,$number.Build),[Math]::Max(0,$number.Revision)
-$proxyVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($native['dinput8.dll']).FileVersion
+$proxyVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($sources['dinput8.dll']).FileVersion
 if ($proxyVersion -cne $expectedVersion) { throw 'Proxy file version differs from release.' }
 if ($archiveHash -cne (Get-FfxFileSha256 $archive) -or
     $installerHash -cne (Get-FfxFileSha256 $installer)) { throw 'Release files changed during verification.' }

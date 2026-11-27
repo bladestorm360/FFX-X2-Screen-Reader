@@ -155,19 +155,32 @@ existing stock validation, launch redirection, safe-list, backup and rollback
 path. The install report records the release tag and ZIP digest.
 [GitHub latest release API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release).
 
+On a new game installation, setup installs the latest release, its locked
+PRISM runtime and the README as `FFX_SR_README.txt`. After a successful
+install or upgrade, setup writes `FFX_SR_InstalledRelease.txt` with the release
+version and proxy checksum. Setup recognizes existing installations from the
+screen reader proxy's Windows version metadata or that checksum-backed
+receipt. It compares the installed version with GitHub's latest stable tag
+before fetching anything else. A matching version reports that it is up to
+date after the metadata request, even if the README was removed. The README
+and completion receipt are included in the install transaction and backups.
+Publish a higher version to deliver changed files to existing installations.
+
 One setup handles releases that use its payload and launcher contracts,
 supported Steam manifests and compatible PRISM policy. The first GitHub-only
 release needs both the standalone EXE and a payload ZIP. Routine releases can
 publish a new ZIP and link to that EXE.
 
-The public installer suite passed 199 assertions and the full suite passed
-928. The hosted dependency suite passed 130 assertions and the scanner gate
-passed 20 acceptance and refusal checks. The packaged fixtures verify that
-setup contains zero mod resources, refuses malformed archives and upgrades
-between two ZIP versions on short and long paths while preserving the safe
-list, settings and PRISM. A read-only GitHub check reported the missing
-payload on the published legacy release. A live install requires the first
-online release.
+Packaged fixtures verify that setup carries zero mod resources and rejects
+malformed archives. On short and long paths they cover a fresh installation
+with no mod or PRISM present, an upgrade between two releases, exact README
+bytes and preservation of the safe list, settings and PRISM. A current
+installation checks release information once, makes zero ZIP requests and
+creates no extra backup. The public suite passed 200 assertions, the full
+suite 952, and dependency checks 134. The published 1.0.2 proxy fixture
+recognized its own version without a completion receipt. A read-only
+request identified GitHub's published legacy release. A live install
+requires the first online release.
 
 ## Missing executable investigation
 

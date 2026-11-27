@@ -4,9 +4,9 @@ The FFX Screen Reader makes Final Fantasy X HD Remaster on Steam accessible with
 
 FFX-2 and Last Mission support are not included.
 
-The Windows setup downloads the mod, required x86 PRISM runtime and notices from GitHub. Updates preserve accessibility settings and the mod safe list.
+The Windows setup gets the mod, README, required x86 PRISM runtime and notices from GitHub. Updates preserve accessibility settings and the mod safe list.
 
-See the [player guide](Docs/controls.md) for controls and features, and the [changelog](CHANGELOG.md) for release history.
+See the [player guide](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/master/Docs/controls.md) for controls and features, and the [changelog](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/master/CHANGELOG.md) for release history.
 
 ## Getting started
 
@@ -33,12 +33,13 @@ Four independent preparation options assist Calm Lands Chocobo training, the Rem
 1. Download the standalone **InstallFFXScreenReader.exe** from [GitHub Releases](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases) when the online setup is published. Keep that file for future updates.
 2. Close the game and launcher, run setup, and check the selected game folder. Use **Browse** if needed.
 3. If setup detects an old launch redirect, choose **Repair launch redirection**, review and confirm its listed changes, and save the backup.
-4. Choose **Install** to download and install the latest stable GitHub release. An internet connection is required.
+4. Choose **Install** to check the latest stable GitHub release. Setup downloads the payload for a fresh install or when a newer version is available. A current installation only checks release information. An internet connection is required.
 5. Wait for **Installation complete**, close setup, start your screen reader and launch through Steam.
 
 The installer checks supported original game files and preserves settings, saves and unrelated launcher XML. It backs up and removes unlisted DLL and ASI mods and known legacy screen reader files.
 
 File backups are stored in `FFX_SR_Install_Backups`.
+The installed guide is `FFX_SR_README.txt` in the game folder.
 
 Select the game folder and press **Alt+L** before choosing Install to open **Mod safe list**. Choose **Add files** and select each DLL or ASI file the mod uses, including its loader and plugins. Choose **Save**. Setup remembers these paths for that game folder across GitHub updates. To stop protecting a file, select it in the list, choose **Remove selected**, and save.
 
@@ -99,7 +100,7 @@ checks. From Command Prompt, run
 In PowerShell, run `.\src\installer\tests\run_tests.ps1 -Public`.
 Full local suites omit the public flags and require the
 external game-derived fixtures or locked PRISM runtime. See the
-[developer build and release procedure](Docs/release.md#developer-build-and-ci).
+[developer build and release procedure](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/master/Docs/release.md#developer-build-and-ci).
 
 ## Credits
 
@@ -112,7 +113,7 @@ external game-derived fixtures or locked PRISM runtime. See the
 - Settings design draws on the user's FF12 mod.
 - Paul Lemm (Sephiroth101), for the Blitzball worker-discovery and foreground-context fixes in [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1).
 
-See [dependency notices](src/native/DEPENDENCIES.md).
+See [dependency notices](https://github.com/bladestorm360/FFX-X2-Screen-Reader/blob/master/src/native/DEPENDENCIES.md).
 
 Source: [GitHub](https://github.com/bladestorm360/FFX-X2-Screen-Reader).
 

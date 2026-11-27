@@ -21,7 +21,9 @@ lets players keep selected DLL and ASI paths across setup runs. Cleanup still
 applies by default.
 [GitHub-only setup](Docs/windows_installer_20261007.md#github-updates) uses
 the stable release payload ZIP and the selected folder's safe list. The
-reusable setup EXE carries stock inventories only. Synthetic upgrades passed.
+reusable setup EXE carries stock inventories only. Fresh installs fetch the
+full payload and README. An installed version that matches GitHub checks
+metadata only. Synthetic install, upgrade and repeat checks passed.
 The first online setup and payload have yet to be published.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 

@@ -68,14 +68,29 @@ namespace FfxScreenReader.Setup
 
         internal static SetupResult InstallSelected(string game, Action<string> status)
         {
-            GitHubRelease release;
-            InstallerEngine engine;
+            return InstallSelected(game, status, GitHubUpdates.Check, release => CreateEngine(GitHubUpdates.FetchPayload(release)));
+        }
+
+        internal static SetupResult InstallSelected(string directory, Action<string> status,
+            Func<GitHubRelease> check, Func<GitHubRelease, InstallerEngine> download)
+        {
+            string game = InstallerPaths.Full(directory);
+            InstallerPaths.CheckUnlinkedDirectoryPath(game);
+            status("Checking GitHub for the latest stable release.");
+            GitHubRelease release = ReadGitHub(check);
+            if (!InstalledRelease.RequiresDownload(game, release.Version)) return new SetupResult(null, release.Version);
+            InstallerEngine.RequireClosedProcesses();
+            status("Downloading and verifying GitHub release " + release.Tag + ".");
+            InstallerEngine engine = ReadGitHub(() => download(release));
+            status("Installing screen reader " + release.Tag + ".");
+            return new SetupResult(engine.InstallRelease(game, status, release), release.Version);
+        }
+
+        private static T ReadGitHub<T>(Func<T> action)
+        {
             try
             {
-                status("Checking GitHub for the latest stable release.");
-                release = GitHubUpdates.Check();
-                status("Downloading and verifying GitHub release " + release.Tag + ".");
-                engine = CreateEngine(GitHubUpdates.FetchPayload(release));
+                return action();
             }
             catch (System.Net.WebException ex)
             {
@@ -87,9 +102,6 @@ namespace FfxScreenReader.Setup
             {
                 throw new InvalidOperationException("The GitHub release could not be verified. No game files were changed. " + ex.Message, ex);
             }
-            status("Installing screen reader " + release.Tag + ".");
-            string source = "GitHub release " + release.Tag + ", ZIP SHA-256 " + release.Digest;
-            return new SetupResult(engine.InstallVersion(game, status, release.Version, source), release.Version);
         }
     }
 
@@ -271,7 +283,14 @@ namespace FfxScreenReader.Setup
             cancel.Text = "&Close";
             cancel.AccessibleName = "Close";
             var result = (SetupResult)e.Result;
-            ShowMessage("Installation complete for screen reader version " + result.Version + ". Original game files verified. Safe-listed files were left in place and other added DLL/ASI mods were cleaned up. Start your screen reader, then launch normally through Steam. Backups and the install report are in: " + result.Backup, false);
+            if (result.Backup == null)
+            {
+                ShowMessage("Screen reader version " + result.Version + " is already up to date.", false);
+                return;
+            }
+            ShowMessage("Installation complete for screen reader version " + result.Version +
+                ". The game folder contains " + InstallerEngine.ReadmeName +
+                ". Start your screen reader, then launch normally through Steam. Backups and the install report are in: " + result.Backup, false);
         }
 
         // Match the packed TASKDIALOGCONFIG in commctrl.h.

@@ -61,8 +61,9 @@ if ($Public) {
 Import-Module (Join-Path $source 'release_payload.psm1') -Force
 $nativeDirectory = Join-Path $fixture 'synthetic-native'
 [void][IO.Directory]::CreateDirectory($nativeDirectory)
-$native = Get-FfxNativeSources $nativeDirectory (Join-Path $nativeDirectory 'DEPENDENCIES.md')
-foreach ($entry in $native.GetEnumerator()) {
+$fixtureReadme = Join-Path $nativeDirectory 'README.md'
+$sources = Get-FfxPayloadSources $nativeDirectory (Join-Path $nativeDirectory 'DEPENDENCIES.md') $fixtureReadme
+foreach ($entry in $sources.GetEnumerator()) {
     if ($entry.Key.EndsWith('.dll')) {
         $bytes = New-Object byte[] 256
         $bytes[0] = 0x4d; $bytes[1] = 0x5a; $bytes[60] = 64
@@ -72,19 +73,20 @@ foreach ($entry in $native.GetEnumerator()) {
 }
 $version = '9.8.7.0'
 $archive = Join-Path $fixture "ffx-x2-screen-reader-$version-payload.zip"
-New-FfxPayloadArchive -Version $version -NativeSources $native -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE -PrismLockPath $env:FFX_PRISM_TEST_LOCK -ArchivePath $archive
+New-FfxPayloadArchive -Version $version -PayloadSources $sources -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE -PrismLockPath $env:FFX_PRISM_TEST_LOCK -ArchivePath $archive
 $payload = Read-FfxVerifiedPayload $setup $archive $version
-foreach ($entry in $native.GetEnumerator()) {
+foreach ($entry in $sources.GetEnumerator()) {
     if ([Convert]::ToBase64String($payload.Invoke($entry.Key)) -cne [Convert]::ToBase64String([IO.File]::ReadAllBytes($entry.Value))) {
         throw "Hosted payload differs from fixture source: $($entry.Key)"
     }
 }
-$proxy = [IO.File]::ReadAllBytes($native['dinput8.dll'])
+$proxy = [IO.File]::ReadAllBytes($sources['dinput8.dll'])
 $proxy[100] = 1
-[IO.File]::WriteAllBytes($native['dinput8.dll'], $proxy)
+[IO.File]::WriteAllBytes($sources['dinput8.dll'], $proxy)
+[IO.File]::WriteAllText($fixtureReadme, 'README for the newer release.')
 $nextVersion = '9.8.8.0'
 $nextArchive = Join-Path $fixture "ffx-x2-screen-reader-$nextVersion-payload.zip"
-New-FfxPayloadArchive -Version $nextVersion -NativeSources $native -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE -PrismLockPath $env:FFX_PRISM_TEST_LOCK -ArchivePath $nextArchive
+New-FfxPayloadArchive -Version $nextVersion -PayloadSources $sources -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE -PrismLockPath $env:FFX_PRISM_TEST_LOCK -ArchivePath $nextArchive
 foreach ($game in (Join-Path $fixture 'online-short'), (Join-Path $fixture ('online-long\' + ('a' * 72) + '\' + ('b' * 72) + '\' + ('c' * 72)))) {
     & $test --online-package $setup $archive $version $nextArchive $nextVersion $game
     if ($LASTEXITCODE -ne 0) { throw 'Hosted payload engine verification failed.' }

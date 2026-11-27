@@ -74,8 +74,9 @@ Players with updater-enabled setup can reuse it for compatible releases.
    `src/installer/package_release.ps1 -Version '<version>'`. Pass
    `-RuntimeDirectory` when the locked PRISM source is outside its standard
    location. The setup EXE carries two stock inventories. The separate ZIP
-   carries seven native payload files, 15 PRISM files, the source lock, native
-   checksums and the release tag marker. Existing matching PRISM is read-only.
+   carries seven native payload files, the repository README as
+   `FFX_SR_README.txt`, 15 PRISM files, the source lock, file checksums and
+   the release tag marker. Existing matching PRISM is read-only.
    Use the [exact-artifact Defender gate](features/distribution/security_20261024.md)
    for the setup EXE, payload ZIP and every DLL in the ZIP. Scanner errors or
    unavailability block packaging. Sign with the established trusted identity
@@ -83,8 +84,10 @@ Players with updater-enabled setup can reuse it for compatible releases.
 6. Verify the final installer and ZIP with `src/installer/verify_release.ps1`
    and the short- and long-path fixture installs and upgrades. The verifier
    checks the exact layout, release tag, staged bytes and PRISM hashes. Verify
-   the safe list and settings survive the upgrade. Registry fixtures use the
-   in-memory backend. The packager preserves prior local online assets.
+   the safe list and settings survive the upgrade, the README matches the
+   published source, and a current installation makes a metadata-only check.
+   Registry fixtures use the in-memory backend. The packager preserves prior
+   local online assets.
 7. Review the intended source/document diff and content audit. Commit/push the
    current branch to the existing user-owned remote. Build output, local receipts,
    packages, logs and commercial-game evidence remain uncommitted. Create/push an

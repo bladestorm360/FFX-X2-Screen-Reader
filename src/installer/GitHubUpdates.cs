@@ -71,8 +71,7 @@ namespace FfxScreenReader.Setup
                     throw new InvalidDataException("The GitHub release has invalid or ambiguous ZIP download information.");
                 result = new GitHubRelease(tag, number, download, size, digest.Substring(7).ToLowerInvariant());
             }
-            if (result == null) throw new InvalidDataException("The latest stable GitHub release has no setup payload. Expected " + name + ".");
-            return result;
+            return result ?? new GitHubRelease(tag, number, null, 0, null);
         }
 
         private static bool IsFalse(Dictionary<string, object> fields, string key)
@@ -146,6 +145,9 @@ namespace FfxScreenReader.Setup
 
         public static Func<string, byte[]> FetchPayload(GitHubRelease release)
         {
+            if (release.Download == null)
+                throw new InvalidDataException("The latest stable GitHub release has no setup payload. Expected ffx-x2-screen-reader-" +
+                    release.Tag.Substring(1) + "-payload.zip.");
             return OpenPayload(release, Download(release.Download, release.Size, true));
         }
 

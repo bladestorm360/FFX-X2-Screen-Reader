@@ -85,7 +85,8 @@ and any approved hand-merge has been completed and verified.
   [Setup controls and evidence](windows_installer_20261007.md#mod-safe-list).
 - **GitHub-only setup.** The owner directed a reusable installer with GitHub
   hosting the release payload and no offline bundle. The same setup installed
-  and upgraded synthetic releases while preserving the safe list. Publication
+  and upgraded synthetic releases while preserving the safe list. It installs
+  the README and skips payload downloads when the version matches. Publication
   and deployment are outside this checkpoint.
   [Update controls and evidence](windows_installer_20261007.md#github-updates).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by

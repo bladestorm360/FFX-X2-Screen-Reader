@@ -73,6 +73,12 @@ internal static class PrismTestSupport
             { "owners", new[] { "FFX-native", "FFX-launcher" } }, { "files", fileHashes }
         };
         File.WriteAllText(InstallerPaths.InGame(runtime, "prism-install.json"), serializer.Serialize(receipt));
+        CaptureExisting(game);
+    }
+
+    internal static void CaptureExisting(string game)
+    {
+        string runtime = InstallerPaths.InGame(game, "PrismRuntime");
         var snapshot = new RuntimeSnapshot();
         foreach (string path in Directory.GetFiles(runtime))
         {

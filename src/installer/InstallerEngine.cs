@@ -11,10 +11,11 @@ namespace FfxScreenReader.Setup
 {
     internal sealed class InstallerEngine
     {
+        internal const string ReadmeName = "FFX_SR_README.txt";
         public static readonly string[] PayloadNames = {
             "dinput8.dll", "MinHook.x86.dll", "SDL3.dll", "FFXLauncherReader.dll",
             "FFXLauncherNative.dll", "FFX_SR_SDL3_LICENSE.txt",
-            "FFX_SR_Native_Dependencies.md"
+            "FFX_SR_Native_Dependencies.md", ReadmeName
         };
         private const string ConfigName = "FFX&X-2_LAUNCHER.exe.config";
         private const string AssemblyName = "FFXLauncherReader, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null";
@@ -47,8 +48,13 @@ namespace FfxScreenReader.Setup
 
         public static string Hash(byte[] bytes)
         {
+            using (var stream = new MemoryStream(bytes, false)) return Hash(stream);
+        }
+
+        internal static string Hash(Stream stream)
+        {
             using (SHA256 sha = SHA256.Create())
-                return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+                return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
         }
 
         internal static bool IsX86Image(byte[] bytes)
@@ -121,7 +127,7 @@ namespace FfxScreenReader.Setup
                 if (!hashes.TryGetValue(name, out expected)) throw new InvalidOperationException("Incomplete installer checksum list: " + name);
                 byte[] bytes = readPayload(name);
                 if (bytes == null || !String.Equals(Hash(bytes), expected, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Installer checksum failed: " + name + ". Download a fresh installer.");
+                    throw new InvalidOperationException("Installer checksum failed: " + name + ". Check for a new release and try again.");
                 payload.Add(name, bytes);
             }
             return payload;
@@ -129,36 +135,22 @@ namespace FfxScreenReader.Setup
 
         public string Install(string directory, Action<string> status)
         {
-            return InstallVersion(directory, status, null, null);
+            return InstallRelease(directory, status, null);
         }
 
-        public string InstallVersion(string directory, Action<string> status, Version version, string source)
+        internal string InstallRelease(string directory, Action<string> status, GitHubRelease release)
         {
             string game = InstallerPaths.Full(directory);
             if (!Directory.Exists(game)) throw new InvalidOperationException("Select the installed Steam game folder. No files were changed.");
             closedProcesses();
             using (ModSafeList.LockChanges(game))
             {
-                if (version != null) RequireNoDowngrade(game, version);
-                return InstallLocked(game, status, source);
+                if (release != null && !InstalledRelease.RequiresDownload(game, release.Version)) return null;
+                return InstallLocked(game, status, release);
             }
         }
 
-        private static void RequireNoDowngrade(string game, Version version)
-        {
-            InstallerPaths.CheckOrdinaryFile(game, "dinput8.dll");
-            string proxy = InstallerPaths.InGame(game, "dinput8.dll");
-            if (!File.Exists(proxy)) return;
-            FileVersionInfo details = FileVersionInfo.GetVersionInfo(InstallerPaths.Native(proxy));
-            if (details.CompanyName != "bladestorm360" || details.InternalName != "FFXScreenReader" ||
-                details.ProductName != "FFX / FFX-2 Screen Reader") return;
-            var installed = new Version(details.FileMajorPart, details.FileMinorPart, details.FileBuildPart, details.FilePrivatePart);
-            if (installed > version)
-                throw new InvalidOperationException("This folder already has screen reader version " + installed +
-                    ". Choose an installer that can provide that version or newer. No game files were changed.");
-        }
-
-        private string InstallLocked(string game, Action<string> status, string source)
+        private string InstallLocked(string game, Action<string> status, GitHubRelease release)
         {
             var prism = new PrismInstall(readPayload, closedProcesses, delegate { });
             prism.ValidatePackage();
@@ -168,6 +160,7 @@ namespace FfxScreenReader.Setup
             removed.UnionWith(LegacyNames);
             var affected = new List<string>(PayloadNames);
             affected.AddRange(new[] { ConfigName, ConfigName + ".ffx_sr_original", ConfigName + ".ffx_sr_pending" });
+            if (release != null) affected.AddRange(new[] { InstalledRelease.FileName, InstalledRelease.PendingName });
             affected.AddRange(removed);
             affected = new List<string>(new HashSet<string>(affected, StringComparer.OrdinalIgnoreCase));
             foreach (string name in affected) InstallerPaths.CheckOrdinaryFile(game, name);
@@ -192,6 +185,7 @@ namespace FfxScreenReader.Setup
                     File.Copy(target, old);
                 }
             }
+            string source = release == null ? null : "GitHub release " + release.Tag + ", ZIP SHA-256 " + release.Digest;
             plan.WriteReport(game, backup, source);
             closedProcesses();
             try
@@ -223,6 +217,7 @@ namespace FfxScreenReader.Setup
                     if (!String.Equals(Hash(File.ReadAllBytes(Path.Combine(game, name))), hashes[name], StringComparison.OrdinalIgnoreCase))
                         throw new IOException("Installed file checksum failed: " + name);
                 plan.Verify(game, status);
+                if (release != null) InstalledRelease.Write(game, release.Version, hashes["dinput8.dll"]);
             }
             catch (Exception failure)
             {
