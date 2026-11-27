@@ -1,9 +1,8 @@
 ## November24 pull request review hold
 
 **Documentation only until the user lifts the hold.** Keep existing PR states
-and production code as they stand. The earlier merge of PR #20 is recorded
-below. This phase does not authorize further merges, hand-merges, PR closures,
-builds or deployments.
+unless the owner explicitly directs a change. Merges, hand-merges, builds and
+deployments stay on hold. The earlier merge of PR #20 is recorded below.
 
 Review one PR at a time in conversation with the user. Explain the current mod
 behavior, the evidence for the reported gap, the proposed changes and their
@@ -13,6 +12,10 @@ and record the exact decision before moving to the next. The user directs the
 review order. A recorded decision defines the approved scope for later work
 after the hold is lifted.
 
+- **Blitzball fix already covered.** The owner directed closing PR #1 because
+  release 1.0.2 already ships the adapted fix. GitHub closed the PR without a
+  merge. [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1),
+  [implementation and verification](features/puzzles/minigame_completion_20261020.md#ownership-bounds-cancellation-and-recovery).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)
