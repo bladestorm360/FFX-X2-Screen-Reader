@@ -61,11 +61,15 @@ and any approved hand-merge has been completed and verified.
   their workers serialize publication and apply only changed keys to the latest
   existing file. The focused checks cover unchanged writes, first save,
   replacement refusal and retry, existing controller and unknown keys,
-  game/launcher-style writer contention, and ANSI and Unicode files.
+  game/launcher-style writer contention, and ANSI and Unicode files. The
+  pre-change fixture reproduces the unnecessary write. The settings and F8
+  accessibility fixtures and hosted Windows build and tests pass at `b6f3af8`.
   This is a partial integration. The owner directed keeping PR #5 open and
   deferred its remaining proposals.
   [PR #5](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/5),
-  [settings persistence](features/runtime/index.md#input-and-settings).
+  [settings persistence](features/runtime/index.md#input-and-settings),
+  [Windows CI run](https://github.com/bladestorm360/FFX-X2-Screen-Reader/actions/runs/45931170481),
+  [local verification](../../Analysis/FFX/SettingsWrite_20261126/verification.json).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

@@ -10,6 +10,9 @@ outside specific approvals.
 The approved [PR #4 hand-merge](Docs/plan.md#november24-pull-request-review-hold)
 uses native Items opening and cancellation events. Blank cells, popup focus
 and optional field indexing pass offline. PRs #1 through #4 are closed.
+[PR #5](Docs/plan.md#november24-pull-request-review-hold) remains open. Its
+settings-write protection is integrated and passes offline and Windows CI
+with the same INI format. The owner deferred the remaining proposals.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
