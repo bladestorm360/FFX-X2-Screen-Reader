@@ -93,9 +93,10 @@ focused launcher controls. Launcher runtime/dependency ownership is separate fro
 the FFX game-hook profile. The separate Will profile only provides its verified
 caption/audio path, not FFX-2 gameplay accessibility.
 
-`src/installer/build_installer.ps1` embeds the verified seven-file payload into
-the self-contained Windows InstallFFXScreenReader.exe. `package_release.ps1`
-stages that EXE, docs/checksums and ZIP while preserving the previous package.
+`src/installer/build_installer.ps1` builds the standalone GitHub setup EXE with
+two pinned stock inventories. `package_release.ps1` stages that EXE and a
+separate versioned ZIP of verified mod files and dependencies while preserving
+the previous package.
 The installer deploys or verifies the locked PrismRuntime/licenses, backs up and
 removes Tolk as the documented migration requires, and supports the verified
 long-path I/O route. Distributed batch/PowerShell setup helpers are retired;
@@ -104,6 +105,8 @@ internal build/deploy batches remain the developer workflow.
 The [mod safe list](../../windows_installer_20261007.md#mod-safe-list) preserves
 player-selected DLL and ASI paths across installer cleanup. Unlisted files
 follow the regular migration policy.
+The [GitHub update path](../../windows_installer_20261007.md#github-updates)
+passes verified release data to the same installer engine and safe list.
 
 Normal Install/Check launch redirection never writes registry values. Optional
 Repair launch redirection and Restore launch backup are separate explicitly

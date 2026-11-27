@@ -1,8 +1,8 @@
 # Release procedure — GitHub Releases
 
 A request to **prepare release X.X** authorizes the complete release: update the
-player documents/version, build and verify, guarded-deploy, package the single
-installer, commit/push the reviewed source, tag, verify an uploaded draft ZIP and
+player documents/version, build and verify, guarded-deploy, prepare the online
+assets, commit/push the reviewed source, tag, verify the draft assets and
 publish the GitHub release. This follows FFPR Core's release convention. GitHub
 Releases replaces Dropbox delivery. Sending messages to other people remains a
 separate action. Repository renames and history rewrites require their own
@@ -30,6 +30,15 @@ dependencies are missing. Record the checks and exact revision before release.
 The batch files use Windows line endings. Git preserves both hash-pinned
 installer inventories byte for byte even when automatic conversion is enabled.
 
+Reusable setup checks the [published stable GitHub release](windows_installer_20261007.md#github-updates)
+on Install. Publish the verified, incremented
+`ffx-x2-screen-reader-<version>-payload.zip` under its matching `v<version>` tag.
+The first online release also publishes the standalone `InstallFFXScreenReader.exe`.
+Link to that EXE from later release notes until the setup itself needs replacement.
+After publication, confirm that the latest-release API exposes the asset's
+SHA-256 and byte count and that they match the independently verified ZIP.
+Players with updater-enabled setup can reuse it for compatible releases.
+
 ## Standard procedure
 
 1. Read guidance/memory and inspect the existing branch, remote owner/visibility,
@@ -45,11 +54,9 @@ installer inventories byte for byte even when automatic conversion is enabled.
    credits and known issues. Use short paragraphs and semantic Markdown lists
    for separate issues/credits; single source newlines collapse on GitHub.
    Verify rendered HTML structure rather than relying on source wrapping.
-   Set the requested public version in
-   `src/native/build_version.hpp`, `src/installer/AssemblyInfo.cs` and the packaging
-   default. The native Windows resource reads the shared version header; the
-   startup log uses the public spelling. Preserve pinned runtime versions and the
-   launcher's independent stable AssemblyVersion/bootstrap identity.
+   Set the requested public version in `src/native/build_version.hpp` and pass
+   it to the packager. The native Windows resource and startup log use that
+   version. Setup and the launcher bootstrap have independent versions.
 3. Run applicable native/worker/startup/utility/profile checks. Reuse prior native
    fixture evidence only with matching source/input hashes and explicitly record
    metadata-only differences. Build with
@@ -64,36 +71,31 @@ installer inventories byte for byte even when automatic conversion is enabled.
    If deployment is blocked, report the blocker; do not compile/package an
    installer from an unverified payload. Never replace running modules.
 5. Run installer source tests, then package with
-   `src/installer/package_release.ps1 -Version '1.0' -SevenZip (Join-Path $env:ProgramFiles '7-Zip/7z.exe')`,
-   substituting the requested version. The single x86 installer embeds26
-   resources: seven mod/native files,15 locked PRISM runtime/provenance/license
-   files, the source lock, checksum anchor and two pinned stock-game inventories.
-   Matching existing PRISM is checked read-only; missing runtime installs with
-   licenses. No separate dependency installer is shipped.
-   Packaging now requires the exact-artifact Defender gate described in
-   [distribution security](features/distribution/security_20261024.md), including
-   the final EXE/ZIP and every executable resource. Scanner errors/unavailability
-   block packaging. Sign with the established trusted identity where available;
-   record unavailable signing and unresolved reports explicitly. A reported
-   security block needs resolution or an informed, explicit release decision.
-6. Test the actual final EXE's resource/dependency and short/long fixture
-   install/reinstall paths. Registry fixtures use the in-memory backend only.
-   Independently check ZIP CRCs, one named root, exactly five files (installer,
-   README, changelog, controls and SHA256SUMS), source/document/embedded-byte
-   equality, every checksum, versions and pinned runtime/license hashes.
-   Preserve existing local packages under release-backups before regeneration.
+   `src/installer/package_release.ps1 -Version '<version>'`. Pass
+   `-RuntimeDirectory` when the locked PRISM source is outside its standard
+   location. The setup EXE carries two stock inventories. The separate ZIP
+   carries seven native payload files, 15 PRISM files, the source lock, native
+   checksums and the release tag marker. Existing matching PRISM is read-only.
+   Use the [exact-artifact Defender gate](features/distribution/security_20261024.md)
+   for the setup EXE, payload ZIP and every DLL in the ZIP. Scanner errors or
+   unavailability block packaging. Sign with the established trusted identity
+   where available and record signature gaps and unresolved reports.
+6. Verify the final installer and ZIP with `src/installer/verify_release.ps1`
+   and the short- and long-path fixture installs and upgrades. The verifier
+   checks the exact layout, release tag, staged bytes and PRISM hashes. Verify
+   the safe list and settings survive the upgrade. Registry fixtures use the
+   in-memory backend. The packager preserves prior local online assets.
 7. Review the intended source/document diff and content audit. Commit/push the
    current branch to the existing user-owned remote. Build output, local receipts,
    packages, logs and commercial-game evidence remain uncommitted. Create/push an
    annotated `vX.X` tag at the verified source commit. Check local/remote tag and
    commit identity. A release asset is distributed through Releases, not Git blobs.
-8. Write concise release notes with installation, known issues, README link and
-   ZIP SHA256. Create a draft at the verified tag and upload the ZIP. Verify draft
-   title/tag/source/asset name/size; download the draft asset into ignored local
-   verification storage and compare its SHA256 with the local archive. Publish
-   only the verified draft, mark it Latest and verify the public URL, non-draft/
-   non-prerelease state, source/tag and asset digest/download. On failure preserve
-   the local artifact and report the exact unfinished operation.
+8. Write release notes with the setup download, known issues, README and ZIP
+   SHA-256. Upload the payload ZIP to a draft at the verified tag. Include the
+   standalone EXE when first publishing or replacing setup. Download draft
+   assets into ignored verification storage and compare their hashes with the
+   local assets. Publish the verified draft and mark it Latest. Verify the
+   public setup URL, stable release state, tag, ZIP digest and download.
 9. Record the final release URL, tag/source commit, hashes and evidence here and
    link them from concise memory. Commit/push the final publication record without
    altering tagged code or distributed bytes. Verify clean worktree and remote

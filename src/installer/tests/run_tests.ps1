@@ -43,70 +43,55 @@ $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
 $test = Join-Path $fixture 'InstallerTests.exe'
 $productionSources = @(Get-ChildItem -LiteralPath $source -Filter '*.cs' | ForEach-Object { $_.FullName })
 $testSources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs' | ForEach-Object { $_.FullName })
-& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:InstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/out:$test") @testSources @productionSources
+& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:InstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.IO.Compression.dll ("/out:$test") @testSources @productionSources
 if ($LASTEXITCODE -ne 0) { throw 'Installer test compilation failed.' }
 $testArgs = @($fixture)
 if ($Public) { $testArgs += '--public' }
 & $test @testArgs
 if ($LASTEXITCODE -ne 0) { throw 'Synthetic installer tests failed.' }
-# Compile the real window with placeholder resources, without showing UI or running installation.
-$ui = Join-Path $fixture 'InstallerUiCompileCheck.exe'
-& $compiler /nologo /target:winexe /platform:x86 /warnaserror+ ("/out:$ui") /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll @productionSources
-if ($LASTEXITCODE -ne 0) { throw 'Installer UI compilation failed.' }
-Write-Output 'PASS: real WinForms installer source compiled with warnings as errors.'
+# Compile the actual GitHub-only setup, including its pinned stock inventories.
+$setup = Join-Path $fixture 'InstallFFXScreenReader.exe'
+& (Join-Path $source 'build_installer.ps1') -OutputPath $setup
 if ($Public) {
-    Write-Output 'SKIP: locked PRISM preflight, installation, migration, rollback and packaged-installer checks require the full installer suite.'
+    Write-Output 'SKIP: locked PRISM installation, migration, rollback and release ZIP checks require the full installer suite.'
     return
 }
-# Build a self-contained EXE from fake x86 headers and inspect embedded resources.
-# These synthetic files are never loaded as native modules or executed as game files.
-$package = Join-Path $fixture 'synthetic-package'
-$payloadDirectory = Join-Path $package 'install'
-[void][IO.Directory]::CreateDirectory($payloadDirectory)
-$names = @('dinput8.dll', 'MinHook.x86.dll', 'SDL3.dll', 'FFXLauncherReader.dll',
-    'FFXLauncherNative.dll', 'FFX_SR_SDL3_LICENSE.txt', 'FFX_SR_Native_Dependencies.md')
-$sums = @()
-foreach ($name in $names) {
-    $file = Join-Path $payloadDirectory $name
-    if ($name.EndsWith('.dll')) {
+# Package fake x86 headers and the real locked PRISM fixture as a hosted ZIP.
+# None of the native files or synthetic executables are executed.
+Import-Module (Join-Path $source 'release_payload.psm1') -Force
+$nativeDirectory = Join-Path $fixture 'synthetic-native'
+[void][IO.Directory]::CreateDirectory($nativeDirectory)
+$native = Get-FfxNativeSources $nativeDirectory (Join-Path $nativeDirectory 'DEPENDENCIES.md')
+foreach ($entry in $native.GetEnumerator()) {
+    if ($entry.Key.EndsWith('.dll')) {
         $bytes = New-Object byte[] 256
         $bytes[0] = 0x4d; $bytes[1] = 0x5a; $bytes[60] = 64
         $bytes[64] = 0x50; $bytes[65] = 0x45; $bytes[68] = 0x4c; $bytes[69] = 1
-        [IO.File]::WriteAllBytes($file, $bytes)
-    } else { [IO.File]::WriteAllText($file, "Synthetic resource: $name") }
-    $sums += (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() + '  install/' + $name
+        [IO.File]::WriteAllBytes($entry.Value, $bytes)
+    } else { [IO.File]::WriteAllText($entry.Value, "Synthetic release file: $($entry.Key)") }
 }
-[IO.File]::WriteAllLines((Join-Path $package 'SHA256SUMS.txt'), $sums)
-$embedded = Join-Path $fixture 'SyntheticSelfContainedSetup.exe'
-& (Join-Path $source 'build_installer.ps1') -PackageDirectory $package -OutputPath $embedded -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE
-$assembly = [Reflection.Assembly]::LoadFile($embedded)
-$resources = @($assembly.GetManifestResourceNames())
-if ($resources.Count -ne 26) { throw 'Expected 7 native files, 15 PRISM/license files, checksum list, two base-game inventories, and Prism source lock.' }
-foreach ($name in $names) {
-    $stream = $assembly.GetManifestResourceStream('Payload.' + $name)
-    $memory = New-Object IO.MemoryStream
-    try {
-        $stream.CopyTo($memory)
-        $sha = [Security.Cryptography.SHA256]::Create()
-        try { $hash = [BitConverter]::ToString($sha.ComputeHash($memory.ToArray())).Replace('-', '') }
-        finally { $sha.Dispose() }
-        if ($hash -ne (Get-FileHash -LiteralPath (Join-Path $payloadDirectory $name)).Hash) { throw "Embedded resource mismatch: $name" }
-    } finally { $stream.Dispose(); $memory.Dispose() }
+$version = '9.8.7.0'
+$archive = Join-Path $fixture "ffx-x2-screen-reader-$version-payload.zip"
+New-FfxPayloadArchive -Version $version -NativeSources $native -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE -PrismLockPath $env:FFX_PRISM_TEST_LOCK -ArchivePath $archive
+$payload = Read-FfxVerifiedPayload $setup $archive $version
+foreach ($entry in $native.GetEnumerator()) {
+    if ([Convert]::ToBase64String($payload.Invoke($entry.Key)) -cne [Convert]::ToBase64String([IO.File]::ReadAllBytes($entry.Value))) {
+        throw "Hosted payload differs from fixture source: $($entry.Key)"
+    }
 }
-$lockStream = $assembly.GetManifestResourceStream('Payload.prism.lock.json')
-if ($null -eq $lockStream) { throw 'Embedded Prism source lock is missing.' }
-$lockMemory = New-Object IO.MemoryStream
-try {
-    $lockStream.CopyTo($lockMemory)
-    if ([Convert]::ToBase64String($lockMemory.ToArray()) -ne [Convert]::ToBase64String([IO.File]::ReadAllBytes($env:FFX_PRISM_TEST_LOCK))) { throw 'Embedded Prism source lock mismatch.' }
-} finally { $lockStream.Dispose(); $lockMemory.Dispose() }
-& $test --embedded $embedded (Join-Path $fixture 'embedded-engine-game')
-if ($LASTEXITCODE -ne 0) { throw 'Packaged engine verification failed.' }
-$longGame = Join-Path $fixture ('embedded-long-path\' + ('a' * 72) + '\' + ('b' * 72) + '\' + ('c' * 72))
-& $test --embedded $embedded $longGame
-if ($LASTEXITCODE -ne 0) { throw 'Packaged engine long-path verification failed.' }
-Write-Output 'PASS: self-contained resources, production preflight, payload transaction, and standard accessible controls.'
-# Corrupt a fixture copy of the catalog; standalone build must retain an existing output.
+$proxy = [IO.File]::ReadAllBytes($native['dinput8.dll'])
+$proxy[100] = 1
+[IO.File]::WriteAllBytes($native['dinput8.dll'], $proxy)
+$nextVersion = '9.8.8.0'
+$nextArchive = Join-Path $fixture "ffx-x2-screen-reader-$nextVersion-payload.zip"
+New-FfxPayloadArchive -Version $nextVersion -NativeSources $native -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE -PrismLockPath $env:FFX_PRISM_TEST_LOCK -ArchivePath $nextArchive
+foreach ($game in (Join-Path $fixture 'online-short'), (Join-Path $fixture ('online-long\' + ('a' * 72) + '\' + ('b' * 72) + '\' + ('c' * 72)))) {
+    & $test --online-package $setup $archive $version $nextArchive $nextVersion $game
+    if ($LASTEXITCODE -ne 0) { throw 'Hosted payload engine verification failed.' }
+}
+Write-Output "PASS: separate setup and release ZIP, exact fixture bytes, production preflight and short/long-path update transactions."
+
+# A corrupt copied baseline must not replace an existing setup.
 $badSource = Join-Path $fixture 'corrupt-inventory-source'
 [void][IO.Directory]::CreateDirectory((Join-Path $badSource 'baselines'))
 foreach ($file in $productionSources) { Copy-Item -LiteralPath $file -Destination $badSource }
@@ -116,7 +101,7 @@ foreach ($file in Get-ChildItem -LiteralPath (Join-Path $source 'baselines') -Fi
 $previousOutput = Join-Path $fixture 'previous-output.exe'
 [IO.File]::WriteAllText($previousOutput, 'previous output preserved')
 $refused = $false
-try { & (Join-Path $badSource 'build_installer.ps1') -PackageDirectory $package -OutputPath $previousOutput -PrismLockPath $env:FFX_PRISM_TEST_LOCK -RuntimeDirectory $env:FFX_PRISM_TEST_PACKAGE }
-catch { $refused = $true }
-if (-not $refused -or [IO.File]::ReadAllText($previousOutput) -ne 'previous output preserved') { throw 'Corrupt catalog replaced an existing build output.' }
-Write-Output 'PASS: standalone build refuses a corrupt pinned inventory and preserves existing output.'
+try { & (Join-Path $badSource 'build_installer.ps1') -OutputPath $previousOutput }
+catch { $refused = $_.Exception.ToString().Contains('base-game inventory is damaged') }
+if (-not $refused -or [IO.File]::ReadAllText($previousOutput) -ne 'previous output preserved') { throw 'Corrupt catalog was not refused safely.' }
+Write-Output 'PASS: setup build refuses a corrupt pinned inventory and preserves existing output.'

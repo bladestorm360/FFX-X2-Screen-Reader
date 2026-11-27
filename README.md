@@ -4,7 +4,7 @@ The FFX Screen Reader makes Final Fantasy X HD Remaster on Steam accessible with
 
 FFX-2 and Last Mission support are not included.
 
-The release ZIP contains one Windows installer, including the required x86 PRISM runtime and notices. Upgrades preserve accessibility settings.
+The Windows setup downloads the mod, required x86 PRISM runtime and notices from GitHub. Updates preserve accessibility settings and the mod safe list.
 
 See the [player guide](Docs/controls.md) for controls and features, and the [changelog](CHANGELOG.md) for release history.
 
@@ -30,18 +30,19 @@ Four independent preparation options assist Calm Lands Chocobo training, the Rem
 
 ## Installation
 
-1. Close the game and launcher. Extract the **1.0.2** release ZIP.
-2. Run **InstallFFXScreenReader.exe** and check the selected game folder. Use **Browse** if needed.
-3. If setup detects an old launch redirect, choose **Repair launch redirection**, review and confirm its listed changes, and save the backup. Then choose **Install**.
-4. Wait for **Installation complete**, close setup, start your screen reader and launch through Steam.
+1. Download the standalone **InstallFFXScreenReader.exe** from [GitHub Releases](https://github.com/bladestorm360/FFX-X2-Screen-Reader/releases) when the online setup is published. Keep that file for future updates.
+2. Close the game and launcher, run setup, and check the selected game folder. Use **Browse** if needed.
+3. If setup detects an old launch redirect, choose **Repair launch redirection**, review and confirm its listed changes, and save the backup.
+4. Choose **Install** to download and install the latest stable GitHub release. An internet connection is required.
+5. Wait for **Installation complete**, close setup, start your screen reader and launch through Steam.
 
 The installer checks supported original game files and preserves settings, saves and unrelated launcher XML. It backs up and removes unlisted DLL and ASI mods and known legacy screen reader files.
 
 File backups are stored in `FFX_SR_Install_Backups`.
 
-If setup offers **Mod safe list**, select the game folder and press **Alt+L** before choosing Install. Choose **Add files** and select each DLL or ASI file the mod uses, including its loader and plugins. Choose **Save**. Setup remembers these paths for that game folder. To stop protecting a file, select it in the list, choose **Remove selected**, and save.
+Select the game folder and press **Alt+L** before choosing Install to open **Mod safe list**. Choose **Add files** and select each DLL or ASI file the mod uses, including its loader and plugins. Choose **Save**. Setup remembers these paths for that game folder across GitHub updates. To stop protecting a file, select it in the list, choose **Remove selected**, and save.
 
-Original game files, required legacy cleanup files and the screen reader's own paths are reserved. A third-party loader that uses the root `dinput8.dll` needs a different supported loading method to coexist. Install or reinstall unlisted mods afterward. Older setups without the safe list back up and remove added DLL and ASI mods.
+Original game files, required legacy cleanup files and the screen reader's own paths are reserved. A third-party loader that uses the root `dinput8.dll` needs a different supported loading method to coexist. Install or reinstall unlisted mods afterward.
 
 Normal installation does not edit registry values. Optional launch repair requires confirmation and saves a verified XML backup.
 
@@ -54,7 +55,7 @@ If Steam reports a missing executable while no redirect is found, clear this gam
 
 No manual DLL copying is needed.
 
-If Windows Security blocks the download, stop and report the threat name and affected filename from Protection history when available. Do not add an antivirus exclusion or disable protection. The October 24 installer update adds safer Windows DLL loading and clearer publisher information. Its exact ZIP, installer and embedded DLLs are checked with Defender before packaging; that local scan does not guarantee acceptance on another computer.
+If Windows Security blocks the download, stop and report the threat name and affected filename from Protection history when available. Do not add an antivirus exclusion or disable protection. The release process checks the exact setup, payload ZIP and DLLs with Defender before publication.
 
 The launcher now speaks arrow-selected choices in all eight native launcher languages. Its labels follow the artwork and current native language; native settings controls keep their own accessibility. To change the game language itself, use its settings file under `Documents\SQUARE ENIX` and restart.
 
@@ -85,8 +86,9 @@ SDL3 downloads. Then run the build in Command Prompt from the repository root.
 src\proxy\build_dinput8.bat --release
 ```
 
-The bounded build stages files in `install\native`. The release installer still
-requires the locked PRISM runtime. To preview a developer deployment destination,
+The bounded build stages files in `install\native`. Building the standalone
+setup needs only the pinned stock inventories in this repository. Preparing a
+release payload requires the locked PRISM runtime. To preview a developer deployment destination,
 run `src\proxy\deploy.bat --dry-run`. Set `FFX_GAME_DIR` to select a specific
 installation. After the applicable verification, use the guarded deploy command
 or explicitly pass `--deploy` to build and then deploy.

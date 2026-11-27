@@ -31,7 +31,7 @@ internal static class InstallerSecurityTests
         return 0;
     }
 
-    internal static int CheckEmbedded(string executable)
+    internal static int CheckSetup(string executable)
     {
         // Use the shipped assembly's initializer, before the source-test host
         // initializes any policy, so a stale installer cannot inherit a pass.
@@ -40,23 +40,23 @@ internal static class InstallerSecurityTests
         return CheckLoader(true);
     }
 
-    internal static void RunEmbedded(string setup)
+    internal static void RunSetup(string setup)
     {
         // Keep this child-process fixture beside the owned test host. Game
         // fixtures can deliberately exceed MAX_PATH; ProcessStartInfo and this
         // loader-specific check must not impose that separate test dependency.
-        string folder = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "embedded-loader-policy-" + Guid.NewGuid().ToString("N"));
+        string folder = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "setup-loader-policy-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         string executable = Path.Combine(folder, "InstallerSearchTests.exe");
         File.Copy(Assembly.GetExecutingAssembly().Location, executable);
         File.Copy(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "version.dll"), Path.Combine(folder, FixtureName));
-        var start = new ProcessStartInfo(executable, "--loader-embedded \"" + Path.GetFullPath(setup) + "\"") {
+        var start = new ProcessStartInfo(executable, "--loader-setup \"" + Path.GetFullPath(setup) + "\"") {
             WorkingDirectory = folder, UseShellExecute = false, CreateNoWindow = true
         };
         start.EnvironmentVariables["PATH"] = folder + ";" + start.EnvironmentVariables["PATH"];
         using (var child = Process.Start(start))
         {
-            if (!child.WaitForExit(15000)) { child.Kill(); throw new Exception("Embedded installer loader fixture timed out."); }
+            if (!child.WaitForExit(15000)) { child.Kill(); throw new Exception("Installer loader fixture timed out."); }
             if (child.ExitCode != 0) throw new Exception("The packaged installer did not enforce its native DLL search restriction.");
         }
     }

@@ -9,22 +9,19 @@ using FfxScreenReader.Setup;
 using File = FfxScreenReader.Setup.InstallerFiles;
 using Directory = FfxScreenReader.Setup.InstallerDirectories;
 
-// Installs actual embedded resources only into synthetic workspace folders.
+// Installs verified release resources only into synthetic workspace folders.
 // Neither the PRISM DLL nor game placeholders are loaded or executed.
 internal static class DependencyInstallerTests
 {
     private static string root;
-    private static Assembly package;
+    private static Func<string, byte[]> readPayload;
     private static int checks;
     private static void Assert(bool condition, string message) {
         if (!condition) throw new Exception(message);
         checks++;
     }
     private static byte[] Resource(string name) {
-        using (Stream stream = package.GetManifestResourceStream("Payload." + name)) {
-            if (stream == null) throw new Exception("Missing resource: " + name);
-            using (var bytes = new MemoryStream()) { stream.CopyTo(bytes); return bytes.ToArray(); }
-        }
+        return readPayload(name);
     }
     private static StockFile Stock(string name) {
         byte[] bytes = Encoding.UTF8.GetBytes("Synthetic stock; never executed");
@@ -83,9 +80,11 @@ internal static class DependencyInstallerTests
             Assert(root.StartsWith(InstallerPaths.Full(args[2]) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase), "Test root outside explicit workspace");
             Assert(!Directory.Exists(root) && !File.Exists(root), "Use a fresh owned test root");
             Directory.CreateDirectory(root);
-            package = Assembly.LoadFile(Path.GetFullPath(args[1]));
-            Assert(package.GetManifestResourceNames().Length == 26, "Single EXE has 26 resources");
-            package.GetType("FfxScreenReader.Setup.Program", true).GetMethod("Engine", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+            Assembly setup = Assembly.LoadFile(Path.GetFullPath(args[1]));
+            Assert(setup.GetManifestResourceNames().Length == 2, "Setup contains only stock inventories");
+            var program = setup.GetType("FfxScreenReader.Setup.Program", true);
+            readPayload = (Func<string, byte[]>)program.GetMethod("VerifyReleaseArchive", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { File.ReadAllBytes(args[3]), "v" + args[4] });
             string game = Game("fresh");
             File.WriteAllText(InstallerPaths.InGame(game, "Tolk.dll"), "old Tolk");
             Directory.CreateDirectory(InstallerPaths.InGame(game, "mods"));
@@ -109,7 +108,7 @@ internal static class DependencyInstallerTests
             before = Snapshot(corrupt, true);
             Refused(delegate { Engine(corrupt, delegate(string name) {
                 return name == "PrismRuntime.prism.dll" ? new byte[1] : Resource(name);
-            }).Install(corrupt, delegate { }); }, "Embedded PRISM checksum failed");
+            }).Install(corrupt, delegate { }); }, "PRISM package checksum failed");
             Same(corrupt, before, true);
             Assert(Directory.GetDirectories(corrupt).Length == 0, "Corrupt embedded SDK creates no folders");
             string badStock = Game("bad-stock");
@@ -131,7 +130,7 @@ internal static class DependencyInstallerTests
             // If a real session is open, refuse it; otherwise stock identity refuses.
             string productionGame = Game("production-refusal");
             before = Snapshot(productionGame, true);
-            object production = package.GetType("FfxScreenReader.Setup.Program", true).GetMethod("Engine", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+            object production = program.GetMethod("CreateEngine", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { readPayload });
             bool denied = false;
             try { production.GetType().GetMethod("Install").Invoke(production, new object[] { productionGame, (Action<string>)delegate { } }); }
             catch (TargetInvocationException error) {
@@ -141,7 +140,7 @@ internal static class DependencyInstallerTests
             Assert(denied, "Production process/stock guard must refuse synthetic game");
             Same(productionGame, before, true);
             Assert(Directory.GetDirectories(productionGame).Length == 0, "Production refusal creates no dependency folders");
-            Console.WriteLine("PASS: " + checks + " unified-installer assertions; real embedded PRISM/licenses and SDL3, Tolk backups/removal, repeat zero SDK writes, corrupt/foreign/stock/process refusals and long paths. No native DLLs executed.");
+            Console.WriteLine("PASS: " + checks + " hosted-installer assertions; verified PRISM/licenses and SDL3, Tolk backups/removal, repeat zero SDK writes, corrupt/foreign/stock/process refusals and long paths. No native DLLs executed.");
             return 0;
         } catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }

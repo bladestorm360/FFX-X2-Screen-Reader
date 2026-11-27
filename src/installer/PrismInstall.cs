@@ -9,7 +9,7 @@ using Directory = FfxScreenReader.Setup.InstallerDirectories;
 
 namespace FfxScreenReader.Setup
 {
-    // Dependency component of the single mod installer. Existing PRISM
+    // Dependency component of setup. Existing PRISM
     // runtimes are verified without replacement or rollback.
     internal sealed class PrismInstall
     {
@@ -41,17 +41,9 @@ namespace FfxScreenReader.Setup
             {
                 byte[] bytes = resource("PrismRuntime." + item.Key);
                 if (InstallerEngine.Hash(bytes) != item.Value)
-                    throw new InvalidDataException("Embedded PRISM checksum failed: " + item.Key);
-                if (item.Key == "prism.dll")
-                {
-                    if (bytes.Length < 64 || bytes[0] != 0x4d || bytes[1] != 0x5a)
-                        throw new InvalidDataException("Embedded PRISM is not a PE image.");
-                    int offset = BitConverter.ToInt32(bytes, 60);
-                    if (offset < 0 || offset > bytes.Length - 6 ||
-                        BitConverter.ToUInt32(bytes, offset) != 0x4550 ||
-                        BitConverter.ToUInt16(bytes, offset + 4) != 0x14c)
-                        throw new InvalidDataException("Embedded PRISM must be x86.");
-                }
+                    throw new InvalidDataException("PRISM package checksum failed: " + item.Key);
+                if (item.Key == "prism.dll" && !InstallerEngine.IsX86Image(bytes))
+                    throw new InvalidDataException("The PRISM release DLL must be x86.");
             }
         }
 
@@ -109,7 +101,7 @@ namespace FfxScreenReader.Setup
                             string path = InstallerPaths.InGame(game, stageName + "/" + item.Key);
                             byte[] bytes = resource("PrismRuntime." + item.Key);
                             if (InstallerEngine.Hash(bytes) != item.Value)
-                                throw new InvalidDataException("Embedded PRISM checksum failed: " + item.Key);
+                                throw new InvalidDataException("PRISM package checksum failed: " + item.Key);
                             File.WriteAllBytes(path, bytes);
                             if (InstallerEngine.Hash(File.ReadAllBytes(path)) != item.Value)
                                 throw new IOException("Staged PRISM verification failed: " + item.Key);

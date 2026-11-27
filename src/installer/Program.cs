@@ -27,9 +27,6 @@ namespace FfxScreenReader.Setup
             Application.Run(new InstallerForm(preferred, action));
         }
 
-        internal static byte[] Resource(string name)
-        { return ReadResource("Payload." + name); }
-
         internal static byte[] ReadResource(string name)
         {
             using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
@@ -39,25 +36,71 @@ namespace FfxScreenReader.Setup
             }
         }
 
-        internal static InstallerEngine Engine()
+        // The release build and scanner use the production reader on locally
+        // staged bytes before any archive is published.
+        internal static Func<string, byte[]> VerifyReleaseArchive(byte[] bytes, string tag)
+        {
+            Func<string, byte[]> resources = GitHubUpdates.OpenPackage(bytes, tag);
+            CreateEngine(resources).ValidateNativePayload();
+            return resources;
+        }
+
+        internal static InstallerEngine CreateEngine(Func<string, byte[]> resources)
         {
             var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            string manifest = System.Text.Encoding.UTF8.GetString(Resource("SHA256SUMS.txt"));
+            string manifest = System.Text.Encoding.UTF8.GetString(resources("SHA256SUMS.txt"));
             foreach (string line in manifest.Split('\n'))
             {
                 if (String.IsNullOrWhiteSpace(line)) continue;
                 Match match = Regex.Match(line.Trim(), "^([a-fA-F0-9]{64})\\s+install/(.+)$");
                 if (!match.Success || Array.IndexOf(InstallerEngine.PayloadNames, match.Groups[2].Value) < 0 ||
                     hashes.ContainsKey(match.Groups[2].Value))
-                    throw new InvalidOperationException("Invalid embedded installer checksum list.");
+                    throw new InvalidOperationException("Invalid release payload checksum list.");
                 hashes.Add(match.Groups[2].Value, match.Groups[1].Value);
             }
             if (hashes.Count != InstallerEngine.PayloadNames.Length)
-                throw new InvalidOperationException("Incomplete embedded installer checksum list.");
+                throw new InvalidOperationException("Incomplete release payload checksum list.");
             BaseGameCatalog.Load();
-            var engine = new InstallerEngine(Resource, hashes);
+            var engine = new InstallerEngine(resources, hashes);
             engine.ValidateDependencies();
             return engine;
+        }
+
+        internal static SetupResult InstallSelected(string game, Action<string> status)
+        {
+            GitHubRelease release;
+            InstallerEngine engine;
+            try
+            {
+                status("Checking GitHub for the latest stable release.");
+                release = GitHubUpdates.Check();
+                status("Downloading and verifying GitHub release " + release.Tag + ".");
+                engine = CreateEngine(GitHubUpdates.FetchPayload(release));
+            }
+            catch (System.Net.WebException ex)
+            {
+                using (ex.Response)
+                    throw new IOException("Setup could not reach the release on GitHub (" + ex.Status +
+                        "). No game files were changed. Check your connection and try again.", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("The GitHub release could not be verified. No game files were changed. " + ex.Message, ex);
+            }
+            status("Installing screen reader " + release.Tag + ".");
+            string source = "GitHub release " + release.Tag + ", ZIP SHA-256 " + release.Digest;
+            return new SetupResult(engine.InstallVersion(game, status, release.Version, source), release.Version);
+        }
+    }
+
+    internal sealed class SetupResult
+    {
+        public readonly string Backup;
+        public readonly Version Version;
+        public SetupResult(string backup, Version version)
+        {
+            Backup = backup;
+            Version = version;
         }
     }
 
@@ -94,7 +137,7 @@ namespace FfxScreenReader.Setup
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             var intro = new Label { AutoSize = true, MaximumSize = new Size(700, 0), Text =
-                "Install the screen reader and original launcher speech, including PRISM, SDL3 and their licenses. Tolk is backed up and removed. Close the game, launcher, and mod manager first. " +
+                "Install downloads the latest stable screen reader release from GitHub. An internet connection is required. Close the game, launcher, and mod manager first. " +
                 "Settings and saves are preserved. Use Mod safe list to keep selected DLL and ASI files. Unlisted added modules and legacy screen reader files are backed up and removed. Original game files are checked first. Repair launch redirection is optional and changes the registry only after confirmation and backup." };
             layout.Controls.Add(intro);
             layout.Controls.Add(new Label { Text = "Detected &game installation:", AutoSize = true });
@@ -155,7 +198,7 @@ namespace FfxScreenReader.Setup
                 if (worker.IsBusy) { e.Cancel = true; ShowMessage("Please wait while installation finishes or restores previous files.", false); }
             };
             worker.DoWork += delegate(object sender, DoWorkEventArgs e) {
-                e.Result = Program.Engine().Install((string)e.Argument, delegate(string text) { worker.ReportProgress(0, text); });
+                e.Result = Program.InstallSelected((string)e.Argument, text => worker.ReportProgress(0, text));
             };
             worker.ProgressChanged += delegate(object sender, ProgressChangedEventArgs e) { status.Text = e.UserState.ToString(); };
             worker.RunWorkerCompleted += Finished;
@@ -209,7 +252,7 @@ namespace FfxScreenReader.Setup
             if (worker.IsBusy || selected.Text.Length == 0) return;
             browse.Enabled = games.Enabled = install.Enabled = cancel.Enabled = diagnose.Enabled = repair.Enabled =
                 restore.Enabled = safeList.Enabled = false;
-            status.Text = "Checking installer files, original game files, and other DLL/ASI mods.";
+            status.Text = "Preparing setup.";
             worker.RunWorkerAsync(selected.Text);
         }
 
@@ -227,7 +270,8 @@ namespace FfxScreenReader.Setup
             }
             cancel.Text = "&Close";
             cancel.AccessibleName = "Close";
-            ShowMessage("Installation complete. Original game files verified. Safe-listed files were left in place and other added DLL/ASI mods were cleaned up. Start your screen reader, then launch normally through Steam. Backups and the install report are in: " + e.Result, false);
+            var result = (SetupResult)e.Result;
+            ShowMessage("Installation complete for screen reader version " + result.Version + ". Original game files verified. Safe-listed files were left in place and other added DLL/ASI mods were cleaned up. Start your screen reader, then launch normally through Steam. Backups and the install report are in: " + result.Backup, false);
         }
 
         // Match the packed TASKDIALOGCONFIG in commctrl.h.

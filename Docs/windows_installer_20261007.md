@@ -1,6 +1,6 @@
 # Windows installer — 2026-10-07
 
-Self-contained x86 Windows Forms setup replaces distributed BAT/PowerShell setup.
+The x86 Windows Forms setup downloads verified release data from GitHub.
 Internal native build/deploy batches remain canonical. Setup never launches a game.
 
 ## Current migration behavior
@@ -138,6 +138,36 @@ and exercised protected and unlisted files on install, repeat install,
 rollback, and revocation. Embedded-installer tests verified protection on short
 and long paths. The safe-list controls were checked through WinForms
 accessibility objects. Live screen-reader and game use remain unverified.
+
+## GitHub updates
+
+Install always checks GitHub for the latest published stable release and
+requires an internet connection. The reusable setup EXE contains the two
+stock-game inventory resources. GitHub hosts the mod files and dependencies
+in a separate versioned payload ZIP. A failed connection or verification
+leaves the selected installation alone. Setup refuses to replace a recognized
+newer screen-reader proxy with an older version.
+
+Setup checks the official release asset name, ZIP size and SHA-256, then
+checks its exact archive layout, matching tag, native x86 headers, native
+checksums and PRISM lock and file hashes. It passes verified data to the
+existing stock validation, launch redirection, safe-list, backup and rollback
+path. The install report records the release tag and ZIP digest.
+[GitHub latest release API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release).
+
+One setup handles releases that use its payload and launcher contracts,
+supported Steam manifests and compatible PRISM policy. The first GitHub-only
+release needs both the standalone EXE and a payload ZIP. Routine releases can
+publish a new ZIP and link to that EXE.
+
+The public installer suite passed 199 assertions and the full suite passed
+928. The hosted dependency suite passed 130 assertions and the scanner gate
+passed 20 acceptance and refusal checks. The packaged fixtures verify that
+setup contains zero mod resources, refuses malformed archives and upgrades
+between two ZIP versions on short and long paths while preserving the safe
+list, settings and PRISM. A read-only GitHub check reported the missing
+payload on the published legacy release. A live install requires the first
+online release.
 
 ## Missing executable investigation
 

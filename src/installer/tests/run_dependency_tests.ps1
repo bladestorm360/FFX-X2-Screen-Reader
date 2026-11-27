@@ -1,9 +1,12 @@
-param([Parameter(Mandatory=$true)][string]$InstallerPath)
+param([Parameter(Mandatory=$true)][string]$InstallerPath,
+      [Parameter(Mandatory=$true)][string]$ArchivePath,
+      [Parameter(Mandatory=$true)][string]$Version)
 $ErrorActionPreference = 'Stop'
 $InstallerPath = [IO.Path]::GetFullPath($InstallerPath)
+$ArchivePath = [IO.Path]::GetFullPath($ArchivePath)
 if ([IntPtr]::Size -ne 4 -or $PSVersionTable.PSEdition -eq 'Core') {
     $dependencyTestHost = Join-Path $env:WINDIR 'SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
-    & $dependencyTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath -InstallerPath $InstallerPath
+    & $dependencyTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath -InstallerPath $InstallerPath -ArchivePath $ArchivePath -Version $Version
     if ($LASTEXITCODE -ne 0) { throw 'Dependency installer checks failed.' }
     return
 }
@@ -14,10 +17,10 @@ if (-not $work.StartsWith($repo + '\', [StringComparison]::OrdinalIgnoreCase)) {
 $test = Join-Path $work 'DependencyInstallerTests.exe'
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '..') -Filter '*.cs' -File | ForEach-Object { $_.FullName })
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe'
-& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:DependencyInstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/out:" + $test) (Join-Path $PSScriptRoot 'DependencyInstallerTests.cs') @sources
+& $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:DependencyInstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.IO.Compression.dll ("/out:" + $test) (Join-Path $PSScriptRoot 'DependencyInstallerTests.cs') @sources
 if ($LASTEXITCODE -ne 0) { throw 'Dependency test compilation failed.' }
 $games = Join-Path $work 'games'
-& $test $games $InstallerPath $repo
+& $test $games $InstallerPath $repo $ArchivePath $Version
 if ($LASTEXITCODE -ne 0) { throw 'Unified installer fixtures failed.' }
 # Align internal deploy verification with the new installer's Windows identity.
 # Only the fresh owned fixture is changed; the SDK source and live game are not used.
@@ -26,11 +29,9 @@ $locked = Get-PrismLock (Join-Path $repo 'prism.lock.json')
 $game = Join-Path $games 'fresh'
 $receipt = Get-PrismReceiptPath $game
 $parser = New-Object Web.Script.Serialization.JavaScriptSerializer
-$assembly = [Reflection.Assembly]::LoadFile($InstallerPath)
-$stream = $assembly.GetManifestResourceStream('Payload.prism.lock.json')
-$memory = New-Object IO.MemoryStream
-try { $stream.CopyTo($memory); $data = $parser.DeserializeObject([Text.Encoding]::UTF8.GetString($memory.ToArray())) }
-finally { $stream.Dispose(); $memory.Dispose() }
+Import-Module (Join-Path $repo 'src/installer/release_payload.psm1') -Force
+$payload = Read-FfxVerifiedPayload $InstallerPath $ArchivePath $Version
+$data = $parser.DeserializeObject([Text.Encoding]::UTF8.GetString($payload.Invoke('prism.lock.json')))
 $files = @{}; foreach ($name in $data.files.Keys) { $files[$name] = $data.files[$name].sha256 }
 $data = @{ schema=1; game_directory=$game.ToUpperInvariant(); platform='windows'; architecture='x86'; package_id=$data.package_id; version=$data.version; source_commit=$data.source_commit; owners=@('FFX-native','FFX-launcher'); files=$files }
 [IO.File]::WriteAllText($receipt, $parser.Serialize($data))

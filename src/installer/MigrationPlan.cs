@@ -81,8 +81,10 @@ namespace FfxScreenReader.Setup
             var remaining = AddedModules(game, null);
             if (remaining.Count != 0) throw new IOException("Another added DLL or ASI appeared during setup: " + remaining[0] + ". Close the mod manager and try again.");
         }
-        public void WriteReport(string game, string backup) {
-            var lines = new List<string> { "Steam depot: 359871", "Verified manifest: " + Catalog.Manifest, "Added DLL/ASI files removed (backups preserve their relative paths):" };
+        public void WriteReport(string game, string backup, string source) {
+            var lines = new List<string> { "Steam depot: 359871", "Verified manifest: " + Catalog.Manifest };
+            if (source != null) lines.Add("Install source: " + source);
+            lines.Add("Added DLL/ASI files removed (backups preserve their relative paths):");
             foreach (string name in Remove) lines.Add(name + "  SHA256 " + InstallerEngine.Hash(File.ReadAllBytes(InstallerPaths.InGame(game, name))));
             if (preserved.Count > 0)
             {

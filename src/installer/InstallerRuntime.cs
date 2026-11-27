@@ -10,7 +10,7 @@ namespace FfxScreenReader.Setup
 {
     internal static class InstallerRuntime
     {
-        // Setup copies its embedded mod/runtime DLLs as data; it never loads
+        // Setup copies verified mod/runtime DLLs as data; it never loads
         // them. Resolve its own native platform dependencies only from Windows,
         // excluding the download/application directory, current directory and
         // PATH. This is process-local and changes no Windows security policy.
@@ -28,6 +28,8 @@ namespace FfxScreenReader.Setup
             // Run before WinForms/discovery can cache the IO compatibility flags.
             AppContext.SetSwitch("Switch.System.IO.UseLegacyPathHandling", false);
             AppContext.SetSwitch("Switch.System.IO.BlockLongPaths", false);
+            AppContext.SetSwitch("Switch.System.Net.DontEnableSystemDefaultTlsVersions", false);
+            AppContext.SetSwitch("Switch.System.Net.DontEnableSchUseStrongCrypto", false);
         }
     }
 }

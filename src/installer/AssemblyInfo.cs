@@ -5,7 +5,7 @@ using System.Reflection;
 [assembly: AssemblyTitle("FFX Screen Reader Setup")]
 [assembly: AssemblyProduct("FFX / FFX-2 Screen Reader")]
 [assembly: AssemblyCompany("bladestorm360")]
-[assembly: AssemblyDescription("Community accessibility mod setup for Final Fantasy X HD Remaster. Installs screen reader and launcher accessibility with bundled speech runtime and licenses.")]
+[assembly: AssemblyDescription("Community accessibility mod setup for Final Fantasy X HD Remaster. Downloads the stable screen reader release from GitHub.")]
 [assembly: AssemblyInformationalVersion("1.0.2+installer.20261104")]
 [assembly: AssemblyVersion("1.0.2.0")]
 [assembly: AssemblyFileVersion("1.0.2.0")]

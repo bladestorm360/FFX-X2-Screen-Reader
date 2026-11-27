@@ -19,6 +19,10 @@ setup keyboard shortcut and dialog text fixes. The owner retained the existing
 The subsequent [mod safe list](Docs/windows_installer_20261007.md#mod-safe-list)
 lets players keep selected DLL and ASI paths across setup runs. Cleanup still
 applies by default.
+[GitHub-only setup](Docs/windows_installer_20261007.md#github-updates) uses
+the stable release payload ZIP and the selected folder's safe list. The
+reusable setup EXE carries stock inventories only. Synthetic upgrades passed.
+The first online setup and payload have yet to be published.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)

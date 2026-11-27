@@ -7,8 +7,9 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using FfxScreenReader.Setup;
 
-internal static class EmbeddedInstallerTests
+internal static class OnlineInstallerTests
 {
     private static object Plan(string game, Action<string> status, Assembly assembly) {
         Type stock = assembly.GetType("FfxScreenReader.Setup.StockFile", true);
@@ -22,11 +23,17 @@ internal static class EmbeddedInstallerTests
         object fixture = Activator.CreateInstance(catalog, new object[] { "synthetic", files });
         return assembly.GetType("FfxScreenReader.Setup.MigrationPlan", true).GetMethod("FromCatalog").Invoke(null, new object[] { game, fixture, status });
     }
-    public static int Run(string executable, string game) {
-        InstallerSecurityTests.RunEmbedded(executable);
+    public static int Run(string executable, string archive, string version, string nextArchive, string nextVersion, string game) {
+        InstallerSecurityTests.RunSetup(executable);
         Assembly assembly = Assembly.LoadFile(Path.GetFullPath(executable));
         Type program = assembly.GetType("FfxScreenReader.Setup.Program", true);
-        object production = program.GetMethod("Engine", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+        if (assembly.GetManifestResourceNames().Length != 2)
+            throw new Exception("The network installer must contain stock inventories only.");
+        byte[] archiveBytes = File.ReadAllBytes(archive);
+        var releaseVersion = Version.Parse(version);
+        Func<string, byte[]> reader = GitHubUpdateTests.Packaged(archiveBytes, version);
+        program.GetMethod("VerifyReleaseArchive", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { archiveBytes, "v" + version });
+        object production = program.GetMethod("CreateEngine", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { reader });
         Type engine = production.GetType();
         Directory.CreateDirectory(game);
         PrismTestSupport.Prepare(game);
@@ -41,31 +48,42 @@ internal static class EmbeddedInstallerTests
         Type factoryType = typeof(Func<,,>).MakeGenericType(typeof(string), typeof(Action<string>), plan);
         var pathParameter = Expression.Parameter(typeof(string), "game");
         var statusParameter = Expression.Parameter(typeof(Action<string>), "status");
-        var call = Expression.Call(typeof(EmbeddedInstallerTests).GetMethod("Plan", BindingFlags.Static | BindingFlags.NonPublic), pathParameter, statusParameter, Expression.Constant(assembly));
+        var call = Expression.Call(typeof(OnlineInstallerTests).GetMethod("Plan", BindingFlags.Static | BindingFlags.NonPublic), pathParameter, statusParameter, Expression.Constant(assembly));
         Delegate factory = Expression.Lambda(factoryType, Expression.Convert(call, plan), pathParameter, statusParameter).Compile();
-        object reader = engine.GetField("readPayload", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(production);
         object hashes = engine.GetField("hashes", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(production);
-        object fixtureEngine = engine.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null,
-            new[] { typeof(Func<string, byte[]>), typeof(IDictionary<string, string>), factoryType }, null).Invoke(new object[] { reader, hashes, factory });
+        var constructor = engine.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null,
+            new[] { typeof(Func<string, byte[]>), typeof(IDictionary<string, string>), factoryType }, null);
+        object fixtureEngine = constructor.Invoke(new object[] { reader, hashes, factory });
         Directory.CreateDirectory(Path.Combine(game, "mods"));
         File.WriteAllText(Path.Combine(game, "mods", "foreign.dll"), "foreign mod");
         File.WriteAllText(Path.Combine(game, "mods", "keeper.asi"), "protected plugin");
         File.WriteAllText(Path.Combine(game, "FFX_SR_ModSafeList.txt"), @"mods\keeper.asi");
         const string savedSettings = "; Keep existing choices, not new defaults\r\n[Accessibility]\r\noverdrive_assist=1\r\njecht_assist=0\r\nlightning_auto_dodge=1\r\n[Controller]\r\nrepeat=7\r\n";
         File.WriteAllText(Path.Combine(game, "FFXAccessibility.ini"), savedSettings);
-        string backup = (string)engine.GetMethod("Install").Invoke(fixtureEngine, new object[] { game, quiet });
-        engine.GetMethod("Install").Invoke(fixtureEngine, new object[] { game, quiet });
+        string source = "GitHub release v" + version;
+        string backup = (string)engine.GetMethod("InstallVersion").Invoke(fixtureEngine, new object[] { game, quiet, releaseVersion, source });
+        byte[] initialProxy = File.ReadAllBytes(Path.Combine(game, "dinput8.dll"));
+        Func<string, byte[]> nextReader = GitHubUpdateTests.Packaged(File.ReadAllBytes(nextArchive), nextVersion);
+        object nextEngine = program.GetMethod("CreateEngine", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { nextReader });
+        var nextHashes = (IDictionary<string, string>)engine.GetField("hashes", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(nextEngine);
+        object fixtureUpgrade = constructor.Invoke(new object[] { nextReader, nextHashes, factory });
+        string nextSource = "GitHub release v" + nextVersion;
+        string upgradeBackup = (string)engine.GetMethod("InstallVersion").Invoke(fixtureUpgrade, new object[] { game, quiet, Version.Parse(nextVersion), nextSource });
         PrismTestSupport.AssertPreserved(game);
-        var expected = (IDictionary<string, string>)hashes;
-        foreach (var entry in expected) {
+        foreach (var entry in nextHashes) {
             using (var sha = SHA256.Create())
                 if (BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(Path.Combine(game, entry.Key)))).Replace("-", "").ToLowerInvariant() != entry.Value.ToLowerInvariant()) throw new Exception("Actual packaged payload mismatch: " + entry.Key);
         }
         if (File.Exists(Path.Combine(game, "mods", "foreign.dll")) || File.ReadAllText(Path.Combine(backup, "mods", "foreign.dll")) != "foreign mod" ||
             File.ReadAllText(Path.Combine(game, "mods", "keeper.asi")) != "protected plugin" ||
             File.Exists(Path.Combine(backup, "mods", "keeper.asi")) ||
-            File.ReadAllText(Path.Combine(game, "FFXAccessibility.ini")) != savedSettings) throw new Exception("Packaged cleanup/preservation failed");
-        Console.WriteLine("PASS: actual packaged EXE validates both pinned inventories, refuses non-stock files, and installs 7 verified payloads twice. Safe-listed files and Prism runtime are preserved; unlisted modules are cleaned up.");
+            File.ReadAllText(Path.Combine(game, "FFXAccessibility.ini")) != savedSettings ||
+            !File.ReadAllText(Path.Combine(backup, "INSTALL_REPORT.txt")).Contains("Install source: " + source) ||
+            !File.ReadAllText(Path.Combine(upgradeBackup, "INSTALL_REPORT.txt")).Contains("Install source: " + nextSource) ||
+            InstallerEngine.Hash(initialProxy) == nextHashes["dinput8.dll"] ||
+            InstallerEngine.Hash(File.ReadAllBytes(Path.Combine(upgradeBackup, "dinput8.dll"))) != InstallerEngine.Hash(initialProxy))
+            throw new Exception("Packaged update cleanup or preservation failed");
+        Console.WriteLine("PASS: one standalone setup installs and upgrades between two verified ZIP releases. Settings, safe-listed files and PRISM are preserved.");
         return 0;
     }
 }

@@ -83,6 +83,11 @@ and any approved hand-merge has been completed and verified.
   Offline installer suites and embedded short- and long-path verification
   cover protected, unlisted and revoked files. Deployment remains on hold.
   [Setup controls and evidence](windows_installer_20261007.md#mod-safe-list).
+- **GitHub-only setup.** The owner directed a reusable installer with GitHub
+  hosting the release payload and no offline bundle. The same setup installed
+  and upgraded synthetic releases while preserving the safe list. Publication
+  and deployment are outside this checkpoint.
+  [Update controls and evidence](windows_installer_20261007.md#github-updates).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

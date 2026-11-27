@@ -51,6 +51,14 @@ namespace FfxScreenReader.Setup
                 return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
         }
 
+        internal static bool IsX86Image(byte[] bytes)
+        {
+            if (bytes.Length < 64 || bytes[0] != 0x4d || bytes[1] != 0x5a) return false;
+            int offset = BitConverter.ToInt32(bytes, 60);
+            return offset >= 0 && offset <= bytes.Length - 6 &&
+                BitConverter.ToUInt32(bytes, offset) == 0x4550 && BitConverter.ToUInt16(bytes, offset + 4) == 0x14c;
+        }
+
         public static void RequireClosedProcesses()
         {
             foreach (string name in new[] { "FFX", "FFX-2", "FFX-2_LM", "FFX&X-2_Will", "FFX&X-2_LAUNCHER" })
@@ -99,19 +107,13 @@ namespace FfxScreenReader.Setup
         public void ValidateDependencies()
         { new PrismInstall(readPayload, closedProcesses, delegate { }).ValidatePackage(); }
 
-        public string Install(string directory, Action<string> status)
+        internal void ValidateNativePayload()
         {
-            string game = InstallerPaths.Full(directory);
-            if (!Directory.Exists(game)) throw new InvalidOperationException("Select the installed Steam game folder. No files were changed.");
-            closedProcesses();
-            using (ModSafeList.LockChanges(game))
-                return InstallLocked(game, status);
+            ReadNativePayload();
         }
 
-        private string InstallLocked(string game, Action<string> status)
+        private Dictionary<string, byte[]> ReadNativePayload()
         {
-            var prism = new PrismInstall(readPayload, closedProcesses, delegate { });
-            prism.ValidatePackage();
             var payload = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             foreach (string name in PayloadNames)
             {
@@ -122,6 +124,45 @@ namespace FfxScreenReader.Setup
                     throw new InvalidOperationException("Installer checksum failed: " + name + ". Download a fresh installer.");
                 payload.Add(name, bytes);
             }
+            return payload;
+        }
+
+        public string Install(string directory, Action<string> status)
+        {
+            return InstallVersion(directory, status, null, null);
+        }
+
+        public string InstallVersion(string directory, Action<string> status, Version version, string source)
+        {
+            string game = InstallerPaths.Full(directory);
+            if (!Directory.Exists(game)) throw new InvalidOperationException("Select the installed Steam game folder. No files were changed.");
+            closedProcesses();
+            using (ModSafeList.LockChanges(game))
+            {
+                if (version != null) RequireNoDowngrade(game, version);
+                return InstallLocked(game, status, source);
+            }
+        }
+
+        private static void RequireNoDowngrade(string game, Version version)
+        {
+            InstallerPaths.CheckOrdinaryFile(game, "dinput8.dll");
+            string proxy = InstallerPaths.InGame(game, "dinput8.dll");
+            if (!File.Exists(proxy)) return;
+            FileVersionInfo details = FileVersionInfo.GetVersionInfo(InstallerPaths.Native(proxy));
+            if (details.CompanyName != "bladestorm360" || details.InternalName != "FFXScreenReader" ||
+                details.ProductName != "FFX / FFX-2 Screen Reader") return;
+            var installed = new Version(details.FileMajorPart, details.FileMinorPart, details.FileBuildPart, details.FilePrivatePart);
+            if (installed > version)
+                throw new InvalidOperationException("This folder already has screen reader version " + installed +
+                    ". Choose an installer that can provide that version or newer. No game files were changed.");
+        }
+
+        private string InstallLocked(string game, Action<string> status, string source)
+        {
+            var prism = new PrismInstall(readPayload, closedProcesses, delegate { });
+            prism.ValidatePackage();
+            var payload = ReadNativePayload();
             MigrationPlan plan = planFactory(game, status);
             var removed = new HashSet<string>(plan.Remove, StringComparer.OrdinalIgnoreCase);
             removed.UnionWith(LegacyNames);
@@ -151,7 +192,7 @@ namespace FfxScreenReader.Setup
                     File.Copy(target, old);
                 }
             }
-            plan.WriteReport(game, backup);
+            plan.WriteReport(game, backup, source);
             closedProcesses();
             try
             {

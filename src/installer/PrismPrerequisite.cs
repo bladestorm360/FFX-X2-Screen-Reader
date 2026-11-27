@@ -40,7 +40,7 @@ namespace FfxScreenReader.Setup
 
         private static void Verify(string game, byte[] sourceLock)
         {
-            if (sourceLock == null || sourceLock.Length == 0) throw new InvalidDataException("The embedded Prism source lock is empty.");
+            if (sourceLock == null || sourceLock.Length == 0) throw new InvalidDataException("The Prism source lock is empty.");
             Package expected = ReadPackage(Decode(sourceLock), "source lock");
             string root = InstallerPaths.Full(game);
             if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) throw new IOException("Linked game directory is unsupported.");

@@ -523,7 +523,7 @@ internal static class InstallerTests
             Assert(window.AcceptButton == install && window.CancelButton != null, "Enter/Escape keyboard controls");
             foreach (char key in "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
                 Assert(all.FindAll(delegate(Control c) {
-                    return (c is Button || c is Label) && Control.IsMnemonic(key, c.Text);
+                    return (c is ButtonBase || c is Label) && Control.IsMnemonic(key, c.Text);
                 }).Count <= 1, "Setup access keys must be unique: Alt+" + key);
         }
     }
@@ -547,13 +547,14 @@ internal static class InstallerTests
     private static int Main(string[] args)
     {
         if (args.Length != 0 && args[0] == "--loader-baseline") return InstallerSecurityTests.CheckLoader(false);
-        if (args.Length == 2 && args[0] == "--loader-embedded") return InstallerSecurityTests.CheckEmbedded(args[1]);
+        if (args.Length == 2 && args[0] == "--loader-setup") return InstallerSecurityTests.CheckSetup(args[1]);
         InstallerRuntime.Initialize();
         if (args.Length != 0 && args[0] == "--loader-hardened") return InstallerSecurityTests.CheckLoader(true);
         if (args.Length != 0 && args[0] == "--synthetic-process") { Thread.Sleep(2500); return 0; }
         try
         {
-            if (args[0] == "--embedded") return EmbeddedInstallerTests.Run(args[1], args[2]);
+            if (args[0] == "--online-package") return OnlineInstallerTests.Run(args[1], args[2], args[3], args[4], args[5], args[6]);
+            if (args[0] == "--github-update-probe") return GitHubUpdateTests.Live(Path.GetFullPath(args[1]));
             fixture = Path.GetFullPath(args[0]); Directory.CreateDirectory(fixture);
             InstallerSecurityTests.Run(fixture, Assert);
             foreach (string name in InstallerEngine.PayloadNames) {
@@ -565,6 +566,7 @@ internal static class InstallerTests
             LaunchRedirectRepairTests.Run(fixture, Assert);
             LargeAddressIdentity();
             SafeListPolicy();
+            GitHubUpdateTests.Run(Assert, Reject);
             if (!publicChecks) {
                 Discovery(); LongPaths(); Installation(); Migration(); SafeListInstallation(); ProcessRefusal();
             }
