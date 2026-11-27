@@ -19,6 +19,12 @@ after the hold is lifted.
 - **MIT license proposal stays closed.** The owner reviewed PR #2 and directed
   leaving it closed. No license change was approved.
   [PR #2](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/2)
+- **Clean-clone build and CI approved for hand-merge.** The owner approved the
+  revised PR #3 and requested the same practice in the shared accessibility
+  template. The implementation stages by default, retains guarded deployment
+  and resource limits, and distinguishes public checks from full local suites.
+  [PR #3](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/3),
+  [developer build and CI](release.md#developer-build-and-ci).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

@@ -70,6 +70,31 @@ Release 1.0.1 verifies each temple’s Baaj prerequisite flag after its destruct
 - Full mod UI localization and HRTF coverage remain incomplete.
 - FFX-2 and Last Mission support are not included.
 
+## Building from source
+
+Install Visual Studio 2022 or later with the C++ desktop workload, x86 tools,
+C++/CLI support and CMake. Python 3 must be on PATH. From a fresh clone, run
+`.\tools\fetch_deps.ps1` in PowerShell to verify and unpack the locked MinHook and
+SDL3 downloads. Then run the build in Command Prompt from the repository root.
+
+```bat
+src\proxy\build_dinput8.bat --release
+```
+
+The bounded build stages files in `install\native`. The release installer still
+requires the locked PRISM runtime. To preview a developer deployment destination,
+run `src\proxy\deploy.bat --dry-run`. Set `FFX_GAME_DIR` to select a specific
+installation. After the applicable verification, use the guarded deploy command
+or explicitly pass `--deploy` to build and then deploy.
+
+Windows CI builds the release profile and runs the public native and installer
+checks. From Command Prompt, run
+`python tools\run-build.py -- cmd.exe /d /c call src\native\tests\run_tests.bat --public`.
+In PowerShell, run `.\src\installer\tests\run_tests.ps1 -Public`.
+Full local suites omit the public flags and require the
+external game-derived fixtures or locked PRISM runtime. See the
+[developer build and release procedure](Docs/release.md#developer-build-and-ci).
+
 ## Credits
 
 - PRISM.

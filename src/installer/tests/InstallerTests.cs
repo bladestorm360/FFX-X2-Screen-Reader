@@ -435,8 +435,16 @@ internal static class InstallerTests
                 payload.Add(name, Encoding.UTF8.GetBytes("Synthetic payload " + name));
                 hashes.Add(name, InstallerEngine.Hash(payload[name]));
             }
-            SteamAppManifestTests.Run(fixture, Assert); LaunchRedirectRepairTests.Run(fixture, Assert); LargeAddressIdentity(); Discovery(); LongPaths(); Installation(); Migration(); ProcessRefusal(); AccessibleControls(); RegistryConfirmation();
-            Console.WriteLine("PASS: " + checks + " synthetic installer assertions; discovery/case dedup, 7 payload hashes, Prism preflight/runtime preservation, XML/settings/repeat, legacy backups, refusals and rollback.");
+            bool publicChecks = args.Length == 2 && args[1] == "--public";
+            SteamAppManifestTests.Run(fixture, Assert);
+            LaunchRedirectRepairTests.Run(fixture, Assert);
+            LargeAddressIdentity();
+            if (!publicChecks) {
+                Discovery(); LongPaths(); Installation(); Migration(); ProcessRefusal();
+            }
+            AccessibleControls();
+            RegistryConfirmation();
+            Console.WriteLine("PASS: " + checks + (publicChecks ? " public" : " full") + " synthetic installer assertions.");
             Console.WriteLine("Fixtures retained: " + fixture);
             return 0;
         }

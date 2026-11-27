@@ -1,19 +1,37 @@
+param([switch]$Public)
+
 $ErrorActionPreference = 'Stop'
 if ([IntPtr]::Size -ne 4 -or $PSVersionTable.PSEdition -eq 'Core') {
     $installerTestHost = Join-Path $env:WINDIR 'SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
-    & $installerTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    $mode = if ($Public) { @('-Public') } else { @() }
+    & $installerTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath @mode
     if ($LASTEXITCODE -ne 0) { throw 'x86 installer tests failed.' }
     return
 }
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $env:FFX_PRISM_TEST_LOCK = Join-Path $repo 'prism.lock.json'
-if (-not $env:FFX_PRISM_TEST_PACKAGE) {
+if (-not $Public -and -not $env:FFX_PRISM_TEST_PACKAGE) {
     $prismLock = Get-Content -LiteralPath $env:FFX_PRISM_TEST_LOCK -Raw | ConvertFrom-Json
-    $env:FFX_PRISM_TEST_PACKAGE = Join-Path $repo ('..\..\..\codex\prism\packages\' + $prismLock.package_id + '\runtime')
+    $packagePath = 'packages\' + $prismLock.package_id + '\runtime'
+    $prismRoots = @(
+        $env:PRISM_ROOT
+        (Join-Path $repo 'third_party\prism')
+        (Join-Path $repo '..\..\..\codex\prism')
+    )
+    foreach ($root in $prismRoots) {
+        if (-not $root) { continue }
+        $candidate = Join-Path $root $packagePath
+        if (Test-Path -LiteralPath $candidate -PathType Container) {
+            $env:FFX_PRISM_TEST_PACKAGE = $candidate
+            break
+        }
+    }
 }
-$env:FFX_PRISM_TEST_PACKAGE = [IO.Path]::GetFullPath($env:FFX_PRISM_TEST_PACKAGE)
-if (-not (Test-Path -LiteralPath $env:FFX_PRISM_TEST_PACKAGE -PathType Container)) {
-    throw 'The locked PRISM test runtime is missing. Set FFX_PRISM_TEST_PACKAGE to its runtime directory.'
+if (-not $Public) {
+    if (-not $env:FFX_PRISM_TEST_PACKAGE -or -not (Test-Path -LiteralPath $env:FFX_PRISM_TEST_PACKAGE -PathType Container)) {
+        throw 'The locked PRISM test runtime is missing. Set FFX_PRISM_TEST_PACKAGE to its runtime directory.'
+    }
+    $env:FFX_PRISM_TEST_PACKAGE = [IO.Path]::GetFullPath($env:FFX_PRISM_TEST_PACKAGE)
 }
 $source = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $fixture = Join-Path $repo ('install\windows-installer-tests-' + [guid]::NewGuid().ToString('N'))
@@ -24,13 +42,19 @@ $productionSources = @(Get-ChildItem -LiteralPath $source -Filter '*.cs' | ForEa
 $testSources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs' | ForEach-Object { $_.FullName })
 & $compiler /nologo /target:exe /platform:x86 /warnaserror+ /main:InstallerTests /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/out:$test") @testSources @productionSources
 if ($LASTEXITCODE -ne 0) { throw 'Installer test compilation failed.' }
-& $test $fixture
+$testArgs = @($fixture)
+if ($Public) { $testArgs += '--public' }
+& $test @testArgs
 if ($LASTEXITCODE -ne 0) { throw 'Synthetic installer tests failed.' }
 # Compile the real window with placeholder resources, without showing UI or running installation.
 $ui = Join-Path $fixture 'InstallerUiCompileCheck.exe'
 & $compiler /nologo /target:winexe /platform:x86 /warnaserror+ ("/out:$ui") /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll @productionSources
 if ($LASTEXITCODE -ne 0) { throw 'Installer UI compilation failed.' }
 Write-Output 'PASS: real WinForms installer source compiled with warnings as errors.'
+if ($Public) {
+    Write-Output 'SKIP: locked PRISM preflight, installation, migration, rollback and packaged-installer checks require the full installer suite.'
+    return
+}
 # Build a self-contained EXE from fake x86 headers and inspect embedded resources.
 # These synthetic files are never loaded as native modules or executed as game files.
 $package = Join-Path $fixture 'synthetic-package'

@@ -1,0 +1,35 @@
+name: Build and test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch locked build dependencies
+        shell: powershell
+        run: .\tools\fetch_deps.ps1
+
+      - name: Build x86 release payload
+        shell: cmd
+        run: call src\proxy\build_dinput8.bat --release
+
+      - name: Run public native tests
+        shell: cmd
+        run: python tools\run-build.py -- cmd.exe /d /c call src\native\tests\run_tests.bat --public
+
+      - name: Run public installer tests
+        shell: powershell
+        run: .\src\installer\tests\run_tests.ps1 -Public

@@ -10,6 +10,26 @@ explicit authorization; they are not routine release steps.
 
 Repository/downloads: https://github.com/bladestorm360/FFX-X2-Screen-Reader
 
+## Developer build and CI
+
+A clean Windows checkout uses the build steps in the [README](../README.md#building-from-source).
+The repository's dependency lock covers the public MinHook and SDL3 archives.
+The fetch command verifies SHA-256 before extraction. Explicit toolchain and
+dependency paths still work in the shared development environment. The bundled
+Windows build runner uses the same two shared slots and hard 2 GB aggregate
+limit per build tree as the workspace runner. An ordinary build stages the
+payload. Run the guarded deploy step after verification and outside the slot.
+`--no-deploy` still stages only.
+
+The Windows workflow builds the x86 release profile and runs the public native
+and synthetic installer suites. The public suites report the private-fixture
+and locked PRISM cases they skip. Full local checks require the external
+evidence and locked runtime. The installer runner accepts an explicit
+`FFX_PRISM_TEST_PACKAGE` runtime directory, and the full suite fails when its
+dependencies are missing. Record the checks and exact revision before release.
+The batch files use Windows line endings. Git preserves both hash-pinned
+installer inventories byte for byte even when automatic conversion is enabled.
+
 ## Standard procedure
 
 1. Read guidance/memory and inspect the existing branch, remote owner/visibility,
@@ -35,7 +55,9 @@ Repository/downloads: https://github.com/bladestorm360/FFX-X2-Screen-Reader
    metadata-only differences. Build with
    `src/proxy/build_dinput8.bat --release --no-deploy`. Check warnings, x86 PE and
    numeric/string file/product version. Release excludes the developer console.
-   Build/verification never launch or control a game.
+   Verify the clean-checkout build and public Windows workflow for the release
+   source alongside the full applicable local checks. Build and verification
+   run without launching the game.
 4. Confirm closed game/launcher processes and use `src/proxy/deploy.bat`. Verify
    actual compiled executable profiles/dependencies, all seven installed/staged
    hashes, launcher XML and locked PRISM receipt. Keep settings/saves unchanged.
