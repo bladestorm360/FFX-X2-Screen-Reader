@@ -380,7 +380,7 @@ if not "%errorlevel%"=="0" goto failed
 :utilities
 if not defined FFX_PUBLIC_TESTS goto utilities_have
 echo SKIP: utilities needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\maps_v3.json"
-goto success
+goto settingsdefaults
 :utilities_have
 python "%TEST_SRC%prepare_utilities.py"
 if not "%errorlevel%"=="0" goto failed
@@ -392,6 +392,7 @@ cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:release_utility_fixture
 if not "%errorlevel%"=="0" goto failed
 .\release_utility_fixture.exe
 if not "%errorlevel%"=="0" goto failed
+if "%~1"=="" goto settingsdefaults
 goto success
 :sdlowner
 call "%~dp0run_sdl_owner_tests.bat"

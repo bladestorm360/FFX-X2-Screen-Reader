@@ -55,6 +55,17 @@ and any approved hand-merge has been completed and verified.
   [field menu behavior](features/menus/index.md#field-item-focus-and-system-popups),
   [Windows CI run](https://github.com/bladestorm360/FFX-X2-Screen-Reader/actions/runs/45924950918),
   [local verification](../../Analysis/FFX/MenuSpeech_20261126/verification.json).
+- **Settings-write protection only.** For PR #5 the owner approved skipping
+  unchanged settings saves and protecting Accessibility writes while keeping
+  the existing INI format. The game and launcher share the settings file, so
+  their workers serialize publication and apply only changed keys to the latest
+  existing file. The focused checks cover unchanged writes, first save,
+  replacement refusal and retry, existing controller and unknown keys,
+  game/launcher-style writer contention, and ANSI and Unicode files.
+  This is a partial integration. The owner directed keeping PR #5 open and
+  deferred its remaining proposals.
+  [PR #5](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/5),
+  [settings persistence](features/runtime/index.md#input-and-settings).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

@@ -11,9 +11,103 @@ void check(bool pass,const char* text) {if(!pass)throw std::runtime_error(text);
 std::string contents(const std::wstring& path) {
     std::ifstream in(path,std::ios::binary);return std::string(std::istreambuf_iterator<char>(in),{});
 }
+void replaceFixture(const std::wstring& path,const std::string& ini) {
+    {std::ofstream out(path,std::ios::binary|std::ios::trunc);out<<ini;check(out.good(),"write isolated persistence fixture");}
+    WritePrivateProfileStringW(nullptr,nullptr,nullptr,path.c_str());
 }
-int main() {
+void checkNoStaging(const std::wstring& path) {
+    const auto pattern=path.substr(0,path.find_last_of(L"\\/")+1)+L"ffx*.tmp";
+    WIN32_FIND_DATAW data{};
+    const auto found=FindFirstFileW(pattern.c_str(),&data);
+    if(found!=INVALID_HANDLE_VALUE) FindClose(found);
+    check(found==INVALID_HANDLE_VALUE,"settings write leaves no owned temporary file");
+}
+bool runSettingsPeer(const wchar_t* argument) {
+    wchar_t exe[MAX_PATH]{};
+    const auto length=GetModuleFileNameW(nullptr,exe,MAX_PATH);
+    check(length && length<MAX_PATH,"settings fixture executable path");
+    auto command=std::wstring(L"\"")+exe+L"\" "+argument;
+    STARTUPINFOW startup{};
+    startup.cb=sizeof(startup);
+    PROCESS_INFORMATION process{};
+    check(CreateProcessW(exe,command.data(),nullptr,nullptr,FALSE,0,nullptr,nullptr,&startup,&process)!=0,"start isolated settings peer");
+    CloseHandle(process.hThread);
+    const auto waited=WaitForSingleObject(process.hProcess,10000);
+    DWORD exitCode=1;
+    const bool succeeded=waited==WAIT_OBJECT_0 && GetExitCodeProcess(process.hProcess,&exitCode) && exitCode==0;
+    CloseHandle(process.hProcess);
+    return succeeded;
+}
+void persistenceChecks(const std::wstring& path) {
+    using namespace ffx;
+    setSetting(Setting::AutoDetail,0);
+    drainSettingsForTest();
+    check(GetFileAttributesW(path.c_str())==INVALID_FILE_ATTRIBUTES,"an unchanged default does not create a file");
+    setSetting(Setting::AutoDetail,1);
+    drainSettingsForTest();
+    check(GetPrivateProfileIntW(L"Accessibility",L"auto_detail",99,path.c_str())==1 &&
+          GetPrivateProfileIntW(L"Accessibility",L"speech",99,path.c_str())==1,"first save keeps the existing INI keys and defaults");
+    checkNoStaging(path);
+
+    const std::string prior="; Keep local controls\r\n[Accessibility]\r\nspeech=1\r\nauto_detail=0\r\nunknown_option=42\r\n[Controller]\r\nlayout=2\r\ncommand_1=9\r\n";
+    replaceFixture(path,prior);
+    loadSettings();
+    setSetting(Setting::AutoDetail,0);
+    drainSettingsForTest();
+    check(contents(path)==prior,"unchanged settings leave the existing INI byte-for-byte intact");
+    const auto held=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,0,nullptr);
+    check(held!=INVALID_HANDLE_VALUE,"hold original INI open without rename sharing");
+    setSetting(Setting::AutoDetail,1);
+    drainSettingsForTest();
+    const auto intact=contents(path)==prior;
+    CloseHandle(held);
+    check(intact,"a refused replacement preserves the complete old INI");
+    checkNoStaging(path);
+    drainSettingsForTest();
+    check(GetPrivateProfileIntW(L"Accessibility",L"auto_detail",99,path.c_str())==1,"failed settings remain pending for retry");
+    check(contents(path).find("[Accessibility]")!=std::string::npos,"existing ANSI INI retains its encoding");
+    check(GetPrivateProfileIntW(L"Controller",L"command_1",99,path.c_str())==9 &&
+          GetPrivateProfileIntW(L"Accessibility",L"unknown_option",99,path.c_str())==42,"saving preserves controller bindings and unknown keys");
+
+    // This process retains its original Speech value while a second process
+    // publishes a new one. Saving a different option must carry that edit over.
+    const auto mutex=OpenMutexW(SYNCHRONIZE|MUTEX_MODIFY_STATE,FALSE,L"Global\\FFXScreenReader.Settings");
+    check(mutex && WaitForSingleObject(mutex,0)==WAIT_OBJECT_0,"hold the shared writer lock");
+    const bool respectedLock=runSettingsPeer(L"--settings-peer-blocked");
+    ReleaseMutex(mutex);
+    CloseHandle(mutex);
+    check(respectedLock,"peer leaves the INI unchanged while another process owns the writer lock");
+    check(runSettingsPeer(L"--settings-peer"),"settings peer persisted its own option");
+    check(setting(Setting::Speech)==1,"peer setting change did not replace this process's in-memory snapshot");
+    setSetting(Setting::AutoDetail,0);
+    drainSettingsForTest();
+    check(GetPrivateProfileIntW(L"Accessibility",L"speech",99,path.c_str())==0 &&
+          GetPrivateProfileIntW(L"Accessibility",L"auto_detail",99,path.c_str())==0,"independent processes preserve each other's saved values");
+
+    const std::wstring unicode=L"[Accessibility]\r\nauto_detail=0\r\n[Custom]\r\nlabel=R\u00e9tro\r\n";
+    std::string wideBytes("\xff\xfe",2);
+    wideBytes.append(reinterpret_cast<const char*>(unicode.data()),unicode.size()*sizeof(wchar_t));
+    replaceFixture(path,wideBytes);
+    setSetting(Setting::AutoDetail,1);
+    drainSettingsForTest();
+    wchar_t label[20]{};
+    GetPrivateProfileStringW(L"Custom",L"label",L"",label,_countof(label),path.c_str());
+    check(contents(path).compare(0,2,wideBytes,0,2)==0 && std::wstring(label)==L"R\u00e9tro","existing Unicode INI keeps its encoding and custom text");
+    checkNoStaging(path);
+    check(DeleteFileW(path.c_str())!=0,"remove persistence fixture");
+    loadSettings();
+}
+}
+int main(int argc,char** argv) {
     using namespace ffx;const auto path=settingsPath();
+    const std::string mode=argc==2?argv[1]:"";
+    if(mode=="--settings-peer" || mode=="--settings-peer-blocked") {
+        loadSettings();
+        setSetting(Setting::Speech,0);
+        drainSettingsForTest();
+        const auto expected=mode=="--settings-peer"?0u:1u;
+        return GetPrivateProfileIntW(L"Accessibility",L"speech",99,path.c_str())==expected?0:1;
+    }
     // The executable is built into its own fixture directory, never a game.
     if(path.empty() || GetFileAttributesW(path.c_str())!=INVALID_FILE_ATTRIBUTES)return 2;
     try {
@@ -27,6 +121,7 @@ int main() {
         for(const auto id:assists)check(settingInfo(id).initial==0 && setting(id)==0,"fresh auto-success must default Off");
         for(const auto id:cues)check(settingInfo(id).initial==1 && setting(id)==1,"fresh puzzle cues must default On");
         check(GetFileAttributesW(path.c_str())==INVALID_FILE_ATTRIBUTES,"loading fresh defaults must not create a settings file");
+        persistenceChecks(path);
         {
             const std::string ini="; Missing assistance keys inherit Off\r\n[Accessibility]\r\ngagazet_cues=1\r\n";
             {std::ofstream out(path,std::ios::binary);out<<ini;check(out.good(),"write missing-key fixture settings");}
@@ -69,7 +164,7 @@ int main() {
             check(settingRevision(id)==before+2,"Off/On round trips have distinct cancellation revisions");
         }
         check(DeleteFileW(path.c_str())!=0,"remove only the isolated fixture INI");
-        puts("PASS: fresh and missing-key Overdrive/Jecht/Gagazet/Lightning/Sin/Chocobo/Remiem/Butterfly/Blitz assistance Off and Gagazet cues On; all1024 saved On/Off combinations override defaults; load preserves exact INI bytes and unrelated controls.");return 0;
+        puts("PASS: fresh and missing-key defaults; all1024 saved On/Off combinations; unchanged saves, first save, refused replacement and retry, controller keys, independent processes and Unicode INI.");return 0;
     } catch(const std::exception& e) {
         DeleteFileW(path.c_str());fprintf(stderr,"FAIL: %s\n",e.what());return 1;
     }

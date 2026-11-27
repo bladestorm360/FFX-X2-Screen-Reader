@@ -21,7 +21,6 @@ void setSetting(Setting, int);
 void adjustSetting(Setting, int);
 std::wstring settingValue(Setting);
 void loadSettings();
-void saveSettings();
 bool startSettingsWriter(HMODULE module);
 using SettingsExtensionWriter=bool(*)(const std::wstring&);
 bool registerSettingsWriterExtension(unsigned slot,SettingsExtensionWriter);

@@ -131,8 +131,15 @@ the single scope/status/evidence record is the
 trial, Gagazet and optional airship choices. Defaults include Autodetail Off,
 menu indexing Off, Auto walk Off, hidden destinations Off and automatic
 assistance Off. Manual puzzle/timing cues have independent On defaults.
-Settings use atomic values and deferred persistence to `FFXAccessibility.ini`;
-do not perform file I/O in a native callback. Extend the enum, options, menu,
+Settings use atomic values and deferred persistence to `FFXAccessibility.ini`.
+Reapplying a current value leaves the file unchanged. On the settings worker,
+an Accessibility save takes a shared game/launcher mutex, copies the current
+INI beside the original, applies changed keys, flushes the copy and replaces the
+live file. The first save still writes the full defaults and selected values.
+The existing INI encoding, sections and setting keys are retained. Failed
+publication keeps the changes pending and cleans up the temporary copy.
+Controller bindings retain their existing writer and share its serialization.
+Keep file I/O off native callbacks. Extend the enum, options, menu,
 capture/value presentation, docs and fixtures together. Details and controls are
 context-owned: N reads entered text on the naming/password keyboard and native
 help elsewhere. Speech options contains default-Off Speak punctuation names.

@@ -50,42 +50,96 @@ static_assert(_countof(options)==static_cast<unsigned>(Setting::Count));
 std::atomic<int> values[_countof(options)];
 std::atomic<unsigned> revisions[_countof(options)];
 const bool defaults=[] { for(unsigned i=0;i<_countof(options);++i) values[i]=options[i].initial; return true; }();
-std::atomic<unsigned long> dirtyRevision{0};
+static_assert(_countof(options)<64);
+constexpr uint64_t allSettings=(uint64_t{1}<<_countof(options))-1;
+std::atomic<uint64_t> dirtySettings{0};
 std::atomic<HANDLE> settingsWake{nullptr};
 ProcessStorage<std::wstring> workerPathStorage;
 std::wstring& workerPath() noexcept {return workerPathStorage.get();}
 std::atomic<int> writerState{0};
 std::atomic<HWND> inputDialog{nullptr};
-unsigned completedRevision=0; // persistence owner only
+HANDLE settingsMutex=nullptr; // Settings worker only; shared by game and launcher processes.
 std::atomic<SettingsExtensionWriter> extensions[4];
 #ifdef FFX_READER_TEST
 SettingsWriteSinkForTest testSink=nullptr;
 #endif
-bool writeOwned(const int* snapshot) {
+struct TemporarySettingsFile {
+    wchar_t path[MAX_PATH]{};
+    bool created=false;
+    ~TemporarySettingsFile() {
+        if(!created || DeleteFileW(path)) return;
+        // CopyFile can preserve a read-only attribute on our temporary copy.
+        const auto attributes=GetFileAttributesW(path);
+        if(attributes!=INVALID_FILE_ATTRIBUTES && (attributes&FILE_ATTRIBUTE_READONLY)) {
+            const auto writable=attributes&~FILE_ATTRIBUTE_READONLY;
+            if(SetFileAttributesW(path,writable?writable:FILE_ATTRIBUTE_NORMAL)) DeleteFileW(path);
+        }
+    }
+};
+
+bool writeOwned(const int* snapshot,uint64_t dirty) {
 #ifdef FFX_READER_TEST
     if(testSink) return testSink(workerPath(),snapshot,_countof(options));
 #endif
-    bool success=true;
+    const auto& path=workerPath();
+    const auto directory=path.substr(0,path.find_last_of(L"\\/")+1);
+    TemporarySettingsFile staged;
+    if(!GetTempFileNameW(directory.c_str(),L"ffx",0,staged.path)) {
+        recordLog("settings staging failed error=%lu",GetLastError());return false;
+    }
+    staged.created=true;
+    // Copy the latest INI under the shared mutex. Write through the same
+    // profile API to preserve the encoding, other sections and unknown keys.
+    const bool existed=CopyFileW(path.c_str(),staged.path,FALSE)!=0;
+    if(!existed) {
+        const auto error=GetLastError();
+        if(error!=ERROR_FILE_NOT_FOUND) {recordLog("settings copy failed error=%lu",error);return false;}
+        dirty=allSettings; // Keep the existing full defaults on first save.
+    }
     for(unsigned i=0;i<_countof(options);++i) {
+        if(!(dirty&(uint64_t{1}<<i))) continue;
         const auto value=std::to_wstring(snapshot[i]);
-        if(!WritePrivateProfileStringW(L"Accessibility",options[i].key,value.c_str(),workerPath().c_str())) {
-            success=false;recordLog("settings write failed error=%lu",GetLastError());
+        if(!WritePrivateProfileStringW(L"Accessibility",options[i].key,value.c_str(),staged.path)) {
+            recordLog("settings staged write failed error=%lu",GetLastError());return false;
         }
     }
-    return success;
+    // Flush profile data and the staged file before moving it into place.
+    // A flush-only profile call does not report success via its return value.
+    WritePrivateProfileStringW(nullptr,nullptr,nullptr,staged.path);
+    const auto file=CreateFileW(staged.path,GENERIC_WRITE,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr);
+    if(file==INVALID_HANDLE_VALUE) {recordLog("settings flush open failed error=%lu",GetLastError());return false;}
+    const bool flushed=FlushFileBuffers(file)!=0;
+    const auto error=flushed?ERROR_SUCCESS:GetLastError();
+    CloseHandle(file);
+    if(!flushed) {recordLog("settings flush failed error=%lu",error);return false;}
+    const DWORD moveFlags=MOVEFILE_WRITE_THROUGH|(existed?MOVEFILE_REPLACE_EXISTING:0);
+    if(!MoveFileExW(staged.path,path.c_str(),moveFlags)) {
+        recordLog("settings replace failed error=%lu",GetLastError());return false;
+    }
+    staged.created=false;
+    return true;
 }
 bool drainOwned() {
-    const auto captured=dirtyRevision.load();
+    // Game and launcher can have independent settings workers. Keep the
+    // read-copy-replace and existing Controller extension serialized across both.
+    if(!settingsMutex) settingsMutex=CreateMutexW(nullptr,FALSE,L"Global\\FFXScreenReader.Settings");
+    if(!settingsMutex) return false;
+    const auto acquired=WaitForSingleObject(settingsMutex,0);
+    if(acquired!=WAIT_OBJECT_0 && acquired!=WAIT_ABANDONED) return false;
+    struct ReleaseSettingsMutex {~ReleaseSettingsMutex() {ReleaseMutex(settingsMutex);}} release;
+
+    const auto dirty=dirtySettings.exchange(0);
     bool completed=true;
-    if(captured && captured!=completedRevision) {
+    if(dirty) {
         std::array<int,_countof(options)> snapshot{};
         for(unsigned i=0;i<snapshot.size();++i) snapshot[i]=values[i].load();
-        if(writeOwned(snapshot.data())) completedRevision=captured;
-        else completed=false;
+        try {completed=writeOwned(snapshot.data(),dirty);}
+        catch(...) {completed=false;recordLog("settings save failed before publication");}
+        if(!completed) dirtySettings.fetch_or(dirty);
     }
     for(auto& extension:extensions) if(const auto write=extension.load(std::memory_order_acquire))
         if(!write(workerPath())) completed=false;
-    return completed && dirtyRevision.load()==completedRevision;
+    return completed && !dirtySettings.load();
 }
 DWORD WINAPI settingsWorker(void*) {
     DWORD timeout=INFINITE;
@@ -113,10 +167,6 @@ void loadSettings() {
         values[i]=value>=option.minimum && value<=option.maximum?value:option.initial;
     }
 }
-void saveSettings() {
-    ++dirtyRevision;
-    wakeSettingsWriter();
-}
 void wakeSettingsWriter() noexcept {if(const auto wake=settingsWake.load(std::memory_order_acquire)) SetEvent(wake);}
 bool registerSettingsWriterExtension(unsigned slot,SettingsExtensionWriter write) {
     if(slot>=_countof(extensions) || !write) return false;
@@ -141,15 +191,18 @@ bool startSettingsWriter(HMODULE module) {
     if(!thread) {writerState=3;return false;}
     writerState=2;
     CloseHandle(thread);
-    if(dirtyRevision.load()) SetEvent(wake);
+    if(dirtySettings.load()) SetEvent(wake);
     return true;
 }
 unsigned settingRevision(Setting id) {return revisions[static_cast<unsigned>(id)].load(std::memory_order_acquire);}
 void setSetting(Setting id,int value) {
     const auto& option=settingInfo(id);
     const auto next=std::clamp(value,option.minimum,option.maximum);
-    if(values[static_cast<unsigned>(id)].exchange(next)!=next) revisions[static_cast<unsigned>(id)].fetch_add(1,std::memory_order_release);
-    saveSettings();
+    const auto index=static_cast<unsigned>(id);
+    if(values[index].exchange(next)==next) return;
+    revisions[index].fetch_add(1,std::memory_order_release);
+    dirtySettings.fetch_or(uint64_t{1}<<index);
+    wakeSettingsWriter();
 }
 void adjustSetting(Setting id,int delta) {
     const auto& option=settingInfo(id);
