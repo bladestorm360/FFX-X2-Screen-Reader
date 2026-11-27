@@ -15,6 +15,13 @@ after the hold is lifted.
 The owner confirmed that FFX is uninstalled and put local deployment on hold
 for this review session. Close a PR when the owner's review decision is final
 and any approved hand-merge has been completed and verified.
+Follow the [repository guidance](../AGENTS.md) for the adoption label and
+landing-commit comment. Record the result for each review, including any
+outstanding proposals kept open by the owner.
+
+GitHub shows **Hand-merged** on PRs #1, #3, #4, #7, #9, #10 and #11, and
+**Partially adopted** on #5, #6 and #8. Each has a verified comment linking
+the landing commits. PR #5 remains open for the deferred proposals.
 
 - **Blitzball fix already covered.** The owner directed closing PR #1 because
   release 1.0.2 already ships the adapted fix. GitHub closed the PR without a

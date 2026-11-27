@@ -38,6 +38,13 @@ native event or state transition. If no such event can establish the boundary,
 use the shortest practical, bounded wait measured in native updates or frames.
 Preserve existing stale-input and failure safety bounds unless the task changes them.
 
+For each hand-merged pull request, verify that the integration commits are on
+the target branch. Use **Hand-merged** for completed integrations and
+**Partially adopted** when only selected proposals landed. Add a public PR
+comment linking the landing commits and identifying
+the adopted scope. Follow the owner's closure decision separately.
+See [the review record](Docs/plan.md#november24-pull-request-review-hold).
+
 ## Restricted tester evidence
 
 `../Tester Logs` is outside active source and contains logs submitted by testers.
