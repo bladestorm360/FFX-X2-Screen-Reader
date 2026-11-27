@@ -109,6 +109,10 @@ SDL owner establishes audio readiness. Native actor/movement callbacks do not
 open devices or wait for computation/audio. Generation/context and independent
 preview, warning, arrival, timing and position cancellation retire stale sounds.
 Settings, focus, pause and route loss gate each relevant sound.
+Wall tones use the copied field geometry even when the player has no selected
+destination. A discrete camera cut during a live route speaks only the current
+leg. Incremental camera movement and camera changes while the native field
+control is unavailable do not trigger speech.
 
 The current implementation uses stereo left/right, distinct rear pitch and
 proximity/rate. Beacon and wall volume/range are separate; Arrival requires an
@@ -133,6 +137,32 @@ path is a separate default-Off setting. Ordinary movement cancels immediately;
 menus, dialogue, focus loss, combat, stale context, route loss and stall cancel.
 Arrival does not automatically interact. Native input handback must survive
 worker/SDK failure without waiting for a mod result.
+
+The native control-disable event owns immediate handback for scripted
+transitions. On ordinary arrivals, the worker can extend the approach by up to
+one step, using a single clear segment inside the validated interaction zone.
+The native update releases assisted input at the endpoint and faces the target
+once on the next update. The final check still requires the controlled actor
+and valid interaction geometry. Pedestals keep their native push position.
+The first complete observation that lacks the destination invalidates the
+current synthetic input. The next complete observation either supplies the
+target again or retires the route. Incomplete or blocked observations do not
+count as missing destinations.
+
+Destination browsing keeps native row identity while selected. An explicit
+rescan sorts by current distance. With Menu indexing enabled, agreement
+between complete observations and completion of the current filter check
+permit position speech. Trial controls, chests, save spheres and the active
+guide target stay listed. Reachability results can be reused for the same
+exact pose, geometry and target facts. Room script binding changes retire
+prior verdicts.
+
+Offline coverage exercises the existing native input adapters, copied route
+and reachability workers, a collision-gated final approach, and real SDL
+dummy-stream mixing. Retest ordinary Confirm after arrival in Djose, the
+destination list during a Besaid choice and after a trial state change, and
+camera guidance around real view cuts in Macalania and Zanarkand when the
+game is available.
 
 `pedestal_input.cpp`, `pedestal_keys.cpp`, `pedestal_state.cpp` and
 `pedestal_rules.cpp` track the native held-pedestal mode/interaction geometry.

@@ -5,7 +5,8 @@
 #include <cstring>
 namespace ffx::nav {
 struct GeometryFacts {unsigned epoch=0,revision=0,count=0,vertexCount=0;uintptr_t root=0,triangles=0,vertices=0;float scale=0;};
-struct NativeGeometryContext {uintptr_t actor=0;GeometryFacts geometry;CollisionSnapshot collision;Point player;int floor=-1;unsigned waterBake=0,waterCrossings=0;bool swimming=false;RouteEvents events;};
+// roomState is set only by the owned scene capture (trial script values); native captures leave 0.
+struct NativeGeometryContext {uintptr_t actor=0;GeometryFacts geometry;CollisionSnapshot collision;Point player;int floor=-1;unsigned waterBake=0,waterCrossings=0;bool swimming=false;RouteEvents events;unsigned roomState=0;};
 inline bool validNativePoint(Point p){return std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite(p.z);}
 inline bool nativeRegion(uintptr_t p,unsigned bytes){return p>=0x10000&&p!=0xcccccccc&&p!=0xcdcdcdcd&&p<=UINTPTR_MAX-bytes;}
 // Same original ChMap/controlled-actor facts used by reachability. The native

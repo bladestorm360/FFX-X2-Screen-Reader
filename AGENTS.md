@@ -33,6 +33,11 @@ large/busy, cold/warm and rapid-action cases; keep native capture nonblocking,
 preserve affinity/reveal/correctness and use compatible offline caches/live deltas.
 Final gameplay timing remains user-side. See the audit's latency acceptance record.
 
+For every pull request that uses a timer to fix behavior, use the verified
+native event or state transition. If no such event can establish the boundary,
+use the shortest practical, bounded wait measured in native updates or frames.
+Preserve existing stale-input and failure safety bounds unless the task changes them.
+
 ## Restricted tester evidence
 
 `../Tester Logs` is outside active source and contains logs submitted by testers.

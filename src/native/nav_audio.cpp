@@ -115,6 +115,7 @@ void callback(void*,SDL_AudioStream* output,int additional,int) {
     // Wall calculations have their own copied-data owner. A stalled geometry
     // worker cannot hold the game or the SDL mixer; canceled/stale facts yield0.
     const unsigned ownedWalls=copiedWallCues();
+    const bool wallContext=focused && !scene && !modMenuActive();
     const bool arrivalEnabled=active && copy.arrivalSerial==arrivalCancel.load() && setting(Setting::Beacon) && setting(Setting::Arrival);
     if(copy.arrival!=mixer.arrival) {
         mixer.arrival=copy.arrival;
@@ -191,9 +192,10 @@ void callback(void*,SDL_AudioStream* output,int additional,int) {
             constexpr float frequencies[]={294,196,247,165}; // ahead, left, right, behind
             for(unsigned direction=0;direction<4;++direction) {
                 const bool previewWall=preview && mixer.previewWalls && direction==static_cast<unsigned>((96000-mixer.previewFrames)/24000);
-                const bool wanted=previewWall || (routeActive && setting(Setting::Walls) && ((copy.state.walls|ownedWalls)&(1u<<direction)));
+                const bool wanted=previewWall || (field && wallContext && setting(Setting::Walls) && (((active?copy.state.walls:0)|ownedWalls)&(1u<<direction)));
                 mixer.gains[direction]+=std::clamp((wanted?1.f:0.f)-mixer.gains[direction],-1.f/480,1.f/480);
                 if(!field && !previewWall) mixer.gains[direction]=0; // No field fade tail in search UI.
+                if(!wallContext && !previewWall) mixer.gains[direction]=0;
                 const float value=mixer.gains[direction]>0?wave(mixer.phases[direction],frequencies[direction])*mixer.gains[direction]*.18f*setting(Setting::WallVolume)/100.f:0;
                 left+=value*(direction==2?.25f:1.f); right+=value*(direction==1?.25f:1.f);
             }
@@ -262,7 +264,10 @@ void publishNavAudio(const NavAudioState& state) {
 }
 void pauseNavAudio() { if(nativeGameThread()) navAudioContextRevision.fetch_add(1,std::memory_order_acq_rel);cancelWallCues();arrivalCancel.fetch_add(1);paused=true; cuePaused=true; hazardPaused=true; navAudioCancelLightningWarning(); }
 void setFieldAudioAllowed(bool allowed) {
-    if(!nativeGameThread() || allowed==fieldAudioAllowed.load(std::memory_order_acquire)) return;
+    if(!nativeGameThread()) return;
+    // Copy battle permission on the native owner; the mixer never reads game memory.
+    allowed=allowed && !inBattle();
+    if(allowed==fieldAudioAllowed.load(std::memory_order_acquire)) return;
     if(!allowed) fieldAudioAllowed.store(false,std::memory_order_release);
     pauseNavAudio();
     cueSerial.fetch_add(1,std::memory_order_acq_rel);hazardSerial.fetch_add(1,std::memory_order_acq_rel);

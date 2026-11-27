@@ -14,6 +14,7 @@
 #include "owned_mesh_decoder.hpp"
 #include "process_storage.hpp"
 #include "puzzle_guide_bindings.hpp"
+#include "navigation_order.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -103,7 +104,9 @@ bool captureNavigationScene(Scene& s,unsigned revision,bool needGeometry) {
         }
     }
     s.controlled=player==read<uintptr_t>(address(0xf00740));
-    s.allowed=!scene && !inBattle() && !airshipNavigationUiActive() && gameFocused() && !modMenuActive() && !utilityConsoleActive();s.control=(read<uint8_t>(s.controller)&2)!=0;
+    using MessageMode=int(__cdecl*)();s.message=reinterpret_cast<MessageMode>(address(0x46c840))()!=0;s.window=scene.load(std::memory_order_acquire);
+    s.battle=inBattle();
+    s.allowed=!s.window && !s.battle && !airshipNavigationUiActive() && gameFocused() && !modMenuActive() && !utilityConsoleActive();s.control=(read<uint8_t>(s.controller)&2)!=0;
     s.playerIndex=static_cast<int>((player-actors)/0x880);s.actorCount=actorCount;s.count=count;
     s.swimming=read<uint8_t>(player+0x186)==2;s.dive=read<uint8_t>(address(swimming_rva::DiveEnabled))!=0;
     s.cameraValid=cameraBasis(s.forward,s.right);s.extraTalkRange=read<float>(s.controller+0x1f0);prepareCopiedControlSnapshot(s.controls);
@@ -142,6 +145,7 @@ bool captureNavigationScene(Scene& s,unsigned revision,bool needGeometry) {
         s.geometryValid=(!g.count || copyReadyRegion(g.triangles,s.triangles.data(),g.count*16,g.count*16)) &&
             (!g.vertexCount || copyReadyRegion(g.vertices,s.vertices.data(),g.vertexCount*8,g.vertexCount*8));
     }
+    s.geometry.roomState=roomStateToken(s.parts,s.partCount);
     return s.epoch==generation();
 }
 void captureNavigationAreaNames(Scene& s,const AreaNameDemand& demand) {

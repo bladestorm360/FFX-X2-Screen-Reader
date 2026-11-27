@@ -64,6 +64,7 @@ std::wstring pedestalInstruction(const Entity&);
 bool inInteractionZone(const InteractionZone&,Point);
 bool inInteractionZone(const NativeInteractionZone&,Point);
 std::vector<Point> interactionRoute(const Mesh&,Point,const InteractionZone&,bool horizontalApproach=false);
+void extendInteractionApproach(const Mesh&,const Entity&,std::vector<Point>&);
 void refreshNavigation();
 bool requestNavigationAssistRoute();
 void requestNavigationAssistInstruction();

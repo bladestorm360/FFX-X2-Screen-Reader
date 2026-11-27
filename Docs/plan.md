@@ -89,6 +89,24 @@ and any approved hand-merge has been completed and verified.
   the README and skips payload downloads when the version matches. Publication
   and deployment are outside this checkpoint.
   [Update controls and evidence](windows_installer_20261007.md#github-updates).
+- **Auto walk feedback and destination browsing.** The owner approved adapting
+  PR #7 using native events and the shortest practical frame-based boundary
+  where needed. The retained Ghidra bodies at VAs 871980 and 871A50, the
+  Common 005E and 005D Atel entries, and message mode at VA 86C840 establish
+  the native control and dialogue boundaries. Normal control takeovers release
+  movement immediately and leave speech to the game. Ordinary arrivals use
+  the collision-checked interaction route and face once on the next native
+  update. One missing complete field observation pauses steering, and the next
+  complete observation decides whether the route resumes or retires. List
+  indexing uses agreement between complete observations. The filter preserves
+  interaction rows and guide targets, and cached verdicts require the same
+  route facts and player pose. Co-located objects with different native owners
+  remain separate. Offline x86 coverage includes gate and pedestal approach,
+  route loss and recovery, camera cuts, route speech, reachability, and SDL wall
+  tones. Gameplay confirmation remains pending for the reported trial rooms and
+  responses to real camera transitions. Local deployment remains on hold.
+  [PR #7](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/7),
+  [navigation behavior and test scope](features/navigation/index.md#movement).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

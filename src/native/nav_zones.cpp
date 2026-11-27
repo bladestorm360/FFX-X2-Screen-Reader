@@ -217,6 +217,22 @@ template<class Zone> static bool interactionEndpoint(const Zone& zone,Point p,bo
 }
 bool inInteractionZone(const InteractionZone& zone,Point p) { return interactionEndpoint(zone,p,false); }
 bool inInteractionZone(const NativeInteractionZone& zone,Point p) { return zone.competing.count<=zone.competing.rows.size() && interactionEndpoint(zone,p,false); }
+void extendInteractionApproach(const Mesh& mesh,const Entity& target,std::vector<Point>& points) {
+    const auto& zone=target.zone;
+    if(points.size()<2 || !zone.valid || zone.crossing || zone.contactRadius>0 || target.pushControl ||
+        target.inactive || target.butterfly || target.swimDepth || mesh.fixedHeight || mesh.crossWater) return;
+    const Point start=points.back();
+    const double distance=distanceXZ(start,zone.center);
+    if(distance<=2.0) return;
+    const double fraction=std::min(11.13,distance-2.0)/distance;
+    const Point goal{start.x+(zone.center.x-start.x)*fraction,start.y,start.z+(zone.center.z-start.z)*fraction};
+    if(!inInteractionZone(zone,goal)) return;
+    // The optional approach is part of the owned route. Only accept one
+    // straight, collision-checked segment into the same interaction zone.
+    const auto approach=avoidingRoute(mesh,start,goal,zone);
+    if(approach.size()==2 && distanceXZ(start,approach.back())<=11.13+.00001 &&
+        inInteractionZone(zone,approach.back())) points.push_back(approach.back());
+}
 std::vector<Point> interactionRoute(const Mesh& mesh,Point player,const InteractionZone& zone,bool horizontalApproach) {
     if(!zone.valid || !mesh.events.ready) return {};
     if(mesh.crossWater) return crossWaterRoute(mesh,player,zone,horizontalApproach);

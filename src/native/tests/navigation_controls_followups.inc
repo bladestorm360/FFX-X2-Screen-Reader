@@ -34,6 +34,10 @@ void mapControlsFixtures() {
     set<uint16_t>(0x2314000,36*4); set<uint16_t>(0xd2ca90,17);
     set<uint8_t>(0xd2ca90+0xc,1); set<uint8_t>(0xd2a8e0,0);
     mapFixtureName="Guadosalam - Shop";
+    // A real room change starts with the map request hook (reader.cpp teardown),
+    // which resets navigation and the earlier room's selection. Without it the
+    // earlier Villager selection is reported lost when this room's actors replace it.
+    resetNavigation();
     Event arrival; arrival.args[0]=17;
     set<uint8_t>(0x2316000,2); set<uint16_t>(0x2316000+0xc,1);
     set<uintptr_t>(0x1fc44e4,address(0x2318000)); set<unsigned>(0x1fc44e0,1);

@@ -1,3 +1,4 @@
+#include <cwchar>
 #include "input_device.hpp"
 // Port of the user's FFXII navigation/auto_walk.cpp: camera-relative input,
 // same-poll manual priority, 250 ms stale mask, 600 ms interrupted field gap,
@@ -28,6 +29,7 @@ std::atomic<bool> engaged{false},cancel{false};
 std::atomic<unsigned> manualRevision{1};
 std::atomic<unsigned> mask{0},maskEpoch{0};
 std::atomic<unsigned> maskCollisionSerial{0};
+std::atomic<unsigned> maskObservationRevision{0};
 std::atomic<uint64_t> stamp{0};
 unsigned epoch=0;
 uint64_t previous=0,octantSince=0,improved=0,movingSince=0,unstickUntil=0,collisionPendingSince=0;
@@ -47,29 +49,44 @@ uint64_t nowMs() {
     return GetTickCount64();
 #endif
 }
-bool safe() {
+const wchar_t* unsafeReason() {
     // Archived 86C840 reports active dialogue, as used by trial utilities.
-    using Mode=int(__cdecl*)();
     // Common 005E -> 871980 clears controller bit 2 and controlled actor;
     // Common 005D -> 871A50 restores them. This includes silent cutscenes.
-    const auto fieldController=read<uintptr_t>(address(0xf26ae8));
-    return setting(Setting::AutoWalk) && gameFocused() && !scene && !inBattle() && !modMenuActive() && !utilityConsoleActive() &&
-        fieldController && (read<uint8_t>(fieldController)&2) && read<uintptr_t>(address(0xf00740)) &&
-        reinterpret_cast<Mode>(address(0x46c840))()==0;
+    if(!setting(Setting::AutoWalk)) return L"setting disabled";
+    if(!gameFocused()) return L"focus lost";
+    if(scene || inBattle()) return L"field unavailable";
+    if(modMenuActive() || utilityConsoleActive()) return L"menu opened";
+    return nativeFieldControlReason();
 }
-void stop(const char* reason,bool speak=false) {
-    const bool was=engaged.exchange(false); mask=0; cancel=false; stamp=0;messageGuard={};
-    if(was) { recordLog("auto walk stopped: %s",reason); if(speak) output(L"Auto walk stopped",false,"auto-walk"); }
+bool safe() {return !unsafeReason();}
+// Release movement at the validated endpoint. Face on the next native update
+// so the last movement poll cannot immediately overwrite the turn.
+bool arrivalReleased=false;
+void announceStop(const wchar_t* spokenReason) {
+    TextPlan announcement;prepareTextPlan(announcement,"auto-walk",false);
+    announcement.headline=planConcat(announcement,planLiteral(announcement,L"Auto walk stopped: "),planLiteral(announcement,spokenReason));
+    commitTextPlan(announcement);
 }
+void stop(const char* reason,const wchar_t* spokenReason=nullptr,bool routeFailure=false) {
+    const bool was=engaged.exchange(false); mask=0; cancel=false; stamp=0;messageGuard={};arrivalReleased=false;
+    if(was) {
+        recordLog("auto walk stopped: %s",reason);
+        if(spokenReason && epoch==generation() && (!routeFailure || claimNavRouteStopSpeech())) announceStop(spokenReason);
+    }
+}
+const wchar_t* const ControlDisabled=L"player control disabled";
 bool messageAllowsAssist() {
     if(!messageGuard.candidate) return true;
     const auto state=classifyFieldControls(messageGuard);
     if(state==FieldControlsClassification::Pending) return false;
-    if(state==FieldControlsClassification::Blocking) {stop("dialogue");return false;}
+    if(state==FieldControlsClassification::Blocking) {stop("dialogue",L"dialogue");return false;}
     messageGuard={};return true;
 }
 unsigned command() {
-    if(!messageAllowsAssist() || !engaged || cancel || maskEpoch!=generation() || maskCollisionSerial!=navCollisionSerial() || !safe() || nowMs()-stamp.load()>250) return 0;
+    if(!messageAllowsAssist() || !engaged || cancel || navRouteObservationPending.load(std::memory_order_acquire) ||
+        maskEpoch!=generation() || maskCollisionSerial!=navCollisionSerial() ||
+        maskObservationRevision!=navRouteObservationRevision.load(std::memory_order_acquire) || !safe() || nowMs()-stamp.load()>250) return 0;
     return mask.load();
 }
 void textOpened(Event& e) {
@@ -82,9 +99,11 @@ void textOpened(Event& e) {
         messageGuard=fieldControlsForSource(slot,read<uintptr_t>(window+0x94));
         if(messageGuard.candidate) {messageAllowsAssist();return;}
     }
-    stop("dialogue");
+    stop("dialogue",scene || inBattle()?nullptr:L"dialogue");
 }
-void controlDisabled(Event&) { stop("player control disabled"); }
+// Common 005E is also used by normal exits and authored events. Its owner
+// cancels immediately and leaves the native transition/message to announce.
+void controlDisabled(Event&) { stop("native player control disabled"); }
 }
 void setNavigationInputAssist(NavigationKeyboardAssist keyAssist,NavigationControllerAssist padAssist) { keyboardAssist=keyAssist;controllerAssist=padAssist; }
 void stopAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("cancelled");else {engaged=false;cancel=true;mask=0;stamp=0;}}
@@ -93,7 +112,8 @@ bool autoWalkActive() { return engaged && !cancel; }
 void startAutoWalk() {
     stop("new route");
     NavLeg leg;
-    if(!safe() || !navLeg(leg) || leg.pendingCollision || leg.arrived || leg.target.inactive) return;
+    if(!safe() || navRouteObservationPending.load(std::memory_order_acquire) || !navLeg(leg) ||
+        leg.pendingObservation || leg.pendingCollision || leg.arrived || leg.target.inactive) return;
     // Ordinary octant/hysteresis steering can leave a narrow butterfly detour.
     // This timed activity retains manual movement and the verified route cues.
     if(leg.target.butterfly) { output(L"Follow the butterfly route manually",false,"auto-walk"); return; }
@@ -116,50 +136,73 @@ void startAutoWalk() {
     updateAutoWalk();
 }
 void updateAutoWalk() {
+    // The map announcement owns transition speech, including stale dialogue guards.
+    if(engaged && epoch!=generation()) {stop("map changed");return;}
     if(!messageAllowsAssist()) {mask=0;return;}
     if(!engaged) return;
     const auto now=nowMs();
-    if(cancel || epoch!=generation() || !safe() || (previous && now-previous>600)) { stop("context or player input"); return; }
+    if(cancel) {stop("player input");return;}
+    if(const auto reason=unsafeReason()) {
+        if(std::wcscmp(reason,ControlDisabled)==0) {stop("native player control disabled");return;}
+        const bool explicitStop=scene || inBattle() || !setting(Setting::AutoWalk) || modMenuActive() || utilityConsoleActive();
+        stop("context",explicitStop?nullptr:reason);return;
+    }
+    if(previous && now-previous>600) {stop("field update interrupted",L"game paused");return;}
     previous=now;
+    const auto observationRevision=navRouteObservationRevision.load(std::memory_order_acquire);
+    if(navRouteObservationPending.load(std::memory_order_acquire)) {mask=0;arrivalReleased=false;return;}
     NavLeg leg;
-    if(!navLeg(leg)) { stop("route lost",true); return; }
+    if(!navLeg(leg)) { stop("route lost",L"route lost",true); return; }
+    if(leg.pendingObservation) {mask=0;arrivalReleased=false;return;}
     // Withhold only synthetic input while the worker rebuilds a changed gate.
     // No wait occurs on this owner. An unavailable result stops immediately;
     // a pending result has the existing600ms field-recovery bound.
     if(leg.pendingCollision) {
         mask=0;
         if(!collisionPendingSince) collisionPendingSince=now;
-        else if(now-collisionPendingSince>600) stop("collision route update unavailable",true);
+        else if(now-collisionPendingSince>600) stop("collision route update unavailable",L"route blocked",true);
         return;
     }
     if(collisionPendingSince) {collisionPendingSince=0;octant=-1;unstickUntil=0;movingSince=improved=now;best=-1;}
     maskCollisionSerial=leg.collisionSerial;
-    if(leg.target.inactive) { stop("destination inactive",true); return; }
+    if(leg.target.inactive) { stop("destination inactive",L"destination inactive",true); return; }
     if(!leg.arrived && leg.epoch!=epoch) { stop("map changed"); return; }
     const auto player=playerPosition();
-    if(!std::isfinite(player.x) || !std::isfinite(player.y) || !std::isfinite(player.z)) { stop("unreadable player"); return; }
+    if(!std::isfinite(player.x) || !std::isfinite(player.y) || !std::isfinite(player.z)) { stop("unreadable player",L"player position unavailable"); return; }
     const double delta=distanceXZ(player,last);
-    if(delta>55.65) { stop("player relocated"); return; }
-    if(leg.arrived) { if(!leg.target.butterfly && !leg.target.swimDepth) faceNavigationTarget(leg.target); stop("arrived"); return; }
+    if(delta>55.65) { stop("player relocated",L"player relocated"); return; }
+    if(leg.arrived) {
+        const auto& target=leg.target;
+        if(target.butterfly || target.swimDepth || !target.zone.valid || target.zone.crossing) {
+            if(!target.butterfly && !target.swimDepth) faceNavigationTarget(target);
+            stop("arrived");return;
+        }
+        mask=0;
+        if(!arrivalReleased) {arrivalReleased=true;return;}
+        if(!faceNavigationTarget(target) && !target.pushControl) {stop("arrived outside the interaction zone",L"not in interaction range");return;}
+        stop("arrived");return;
+    }
+    arrivalReleased=false;
     if(leg.target.swimDepth) {
-        if(!swimmingGoalActive(leg.target) || player.y>250) { stop("swimming transition"); return; }
+        if(!swimmingGoalActive(leg.target) || player.y>250) { stop("swimming transition",L"swimming transition"); return; }
         const double depth=std::max(0.0,251-player.y)+distanceXZ(player,leg.final);
         if(best<0 || depth<best-1) { best=depth; improved=now; }
-        else if(now-improved>=15000) { stop("no diving progress",true); return; }
+        else if(now-improved>=15000) { stop("no diving progress",L"no diving progress"); return; }
         last=player;
-        if(distanceXZ(player,leg.goal)<=.1) {mask=16;stamp=now;return;}
+        if(distanceXZ(player,leg.goal)<=.1) {mask=16;stamp=now;maskObservationRevision=observationRevision;return;}
 
     }
     if(!leg.target.swimDepth) {
         if(delta>.1) { last=player; movingSince=now; }
         const double distance=distanceXZ(player,leg.final);
         if(best<0 || distance<best-1) { best=distance; improved=now; }
-        else if(now-improved>=15000) { stop("no progress",true); return; }
+        else if(now-improved>=15000) { stop("no progress",L"no progress"); return; }
     }
     if(!leg.target.swimDepth && now-movingSince>1800 && now>=unstickUntil) {
-        if(leg.target.butterfly) { stop("butterfly route stalled",true); return; }
+        if(leg.target.butterfly) { stop("butterfly route stalled",L"butterfly route stalled"); return; }
         refreshNavCollision();
-        if(!navLeg(leg) || leg.arrived) { stop("replan unavailable",true); return; }
+        if(!navLeg(leg) || leg.arrived) { stop("replan unavailable",L"route blocked",true); return; }
+        if(leg.pendingObservation || leg.pendingCollision) {mask=0;return;}
         unstickRight=!unstickRight; unstickUntil=now+700; movingSince=now;
         recordLog("auto walk bounded sidestep/replan at %.2f %.2f %.2f",player.x,player.y,player.z);
     }
@@ -174,7 +217,7 @@ void updateAutoWalk() {
         }
     }
     double pan=0,front=0;
-    if(!relativeBearing({steer.x-player.x,0,steer.z-player.z},pan,front)) { stop("camera unavailable"); return; }
+    if(!relativeBearing({steer.x-player.x,0,steer.z-player.z},pan,front)) { stop("camera unavailable",L"camera unavailable"); return; }
     const auto degrees=std::atan2(pan,front)*180/3.14159265358979323846;
     int desired=(static_cast<int>(std::round(degrees/45))+8)&7;
     if(octant>=0 && desired!=octant) {
@@ -185,6 +228,7 @@ void updateAutoWalk() {
     if(desired!=octant) { octant=desired; octantSince=now; }
     if(now<unstickUntil) desired=(desired+(unstickRight?2:6))&7;
     mask=octMasks[desired] | (leg.target.swimDepth?16u:0u); stamp=now;
+    maskObservationRevision=observationRevision;
 }
 void autoWalkPlayerInput(unsigned vk) {
     pedestalPlayerInput(vk);
@@ -230,6 +274,7 @@ void autoWalkController(pad::State& state) {
     if(messageGuard.candidate && classifyFieldControls(messageGuard)==FieldControlsClassification::Pending) return;
     if(maskCollisionSerial!=navCollisionSerial()) return;
     const auto bits=command();
+    if(!bits) return;
     if(bits&16) {
         if(diveButton<0) { cancel=true; mask=0; return; }
         if(diveButton==pad::LT) state.lt=255;
@@ -243,7 +288,7 @@ namespace {
 void movementModeBefore(Event& e) {
     e.before[0]=e.args[0]==read<uintptr_t>(address(0xf00740)) && read<uint8_t>(e.args[0]+0x185)!=e.args[1];
 }
-void movementModeAfter(Event& e) { if(e.before[0]) { stop("movement mode changed"); resetNavAudio(); } }
+void movementModeAfter(Event& e) { if(e.before[0]) { stop("movement mode changed",L"movement mode changed"); resetNavAudio(); } }
 }
 void installAutoWalk() {
     hook(0x42b260,movementModeBefore,movementModeAfter);

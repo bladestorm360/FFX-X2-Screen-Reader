@@ -51,7 +51,7 @@ void sinNativeFixtures() {
     set<uint8_t>(controller,2);set<uint16_t>(controller+0xc,48);const auto saved=address(0xd2ca90)+0x1ec;set<uintptr_t>(controller+0x2c,saved);
     static nav::Scene intent;intent.controller=address(controller);intent.primary=address(chunk);intent.epoch=generation();intent.partCount=1;
     check(nativeAtelSpan(address(chunk),intent.parts[0].span),"Sin intention owns a ready original resource");intent.saved.valid=1;std::memcpy(intent.saved.bytes.data(),reinterpret_cast<void*>(saved),intent.saved.bytes.size());
-    intent.geometry.events=captured;intent.player=playerPosition();Entity point;point.position={0,0,100};point.name=L"Fixture Sin goal";
+    intent.geometry.events=captured;intent.player=playerPosition();intent.controlled=true;Entity point;point.position={0,0,100};point.name=L"Fixture Sin goal";
     fixtureRoute=true;fixtureLeg={};fixtureLeg.target.worker=-1;fixtureLeg.final=point.position;nav::startNavigationIntents();
     const auto queue=[&] {intent.capturedAt=GetTickCount64();intent.collisionSerial=navCollisionSerial();testStatusOwner=false;const bool admitted=nav::submitNavigationIntent(intent,point,nav::Intent::Start,0,nav::navigationIntentRevision());testStatusOwner=true;check(admitted,"copied Sin movement intention admitted");};
     const auto starts=autoStarts;queue();nav::dispatchNavigationIntents();check(autoStarts==starts+1,"unchanged Sin callback facts permit guarded movement start");

@@ -20,6 +20,7 @@ bool swimmingHud=false,hudPending=false;
 bool depthActive=true,padOwned=false;
 bool nativeOwner=true;
 bool nativeGameThread() { return nativeOwner; }
+bool nativeReaderResourcesReady() noexcept { return true; }
 bool controllerOwned() { return padOwned; }
 bool swimmingGoalActive(const NativeRouteTarget&) { return depthActive; }
 int dialogue=0;
@@ -28,6 +29,7 @@ NavLeg leg;
 uintptr_t memory=0;
 std::map<unsigned,Handler> hooks;
 std::vector<std::wstring> speech;
+bool lastInterrupt=false;
 uint64_t autoWalkClock() { return clockValue; }
 int __cdecl mode() { return dialogue; }
 void __cdecl caption(unsigned id,char* out,unsigned size) {
@@ -64,17 +66,21 @@ void pedestalPlayerInput(unsigned) {}
 int setting(Setting s) { return s==Setting::AutoWalk && enabled; }
 unsigned generation() { return epoch; }
 Point playerPosition() { return player; }
+#ifndef FFX_NAV_CUES_INTEGRATION_TEST
 double distanceXZ(Point a,Point b) { return std::hypot(a.x-b.x,a.z-b.z); }
+#endif
 bool relativeBearing(Point delta,double& pan,double& front) {
     const auto length=std::hypot(delta.x,delta.z);
     pan=length?(delta.x*forward.z-delta.z*forward.x)/length:0;
     front=length?(delta.x*forward.x+delta.z*forward.z)/length:1;
     return camera;
 }
+#ifndef FFX_NAV_CUES_INTEGRATION_TEST
 bool navLeg(NavLeg& result) { result=leg;result.pendingCollision=result.collisionSerial!=navCollisionSerial(); return known; }
 void resetNavAudio() {}
 void refreshNavCollision() { ++replans; }
-bool output(const std::wstring& text,bool,const char*) { speech.push_back(text); return true; }
+#endif
+bool output(const std::wstring& text,bool interrupt,const char*) { lastInterrupt=interrupt;speech.push_back(text); return true; }
 // Semantic-only fixture adapter: it checks bounded Literal/Concat recipes and
 // emits synchronously through the fake output. It provides no queue, worker,
 // Native heap, thread, or production latency evidence.
@@ -121,13 +127,15 @@ bool commitTextPlan(const TextPlan& plan) {
     return output(rendered[plan.headline-1],plan.interrupt,plan.producer);
 }
 unsigned faceCalls=0;
-bool faceNavigationTarget(const NativeRouteTarget&) { ++faceCalls; return true; }
+bool faceResult=true;
+bool faceNavigationTarget(const NativeRouteTarget&) { ++faceCalls; return faceResult; }
 void log(const char*,...) {}
 }
 using namespace ffx;
 void check(bool value,const char* reason) { if(!value) { std::fprintf(stderr,"FAIL: %s\n",reason); std::exit(1); } }
 std::array<uint8_t,256> keyboard() { std::array<uint8_t,256> keys{}; autoWalkKeyboard(keys.data()); return keys; }
 void begin(Point destination={0,0,100}) {
+    navRouteStopReported=false;
     stopAutoWalk(); player={}; forward={0,0,1}; known=camera=focused=enabled=true;
     menu=console=battle=false; scene=dialogue=0; clockValue+=1000;
     *reinterpret_cast<uintptr_t*>(address(0xf26ae8))=address(0x1000000);
@@ -141,6 +149,17 @@ int main() {
     memory=reinterpret_cast<uintptr_t>(VirtualAlloc(nullptr,0x2100000,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE));
     check(memory!=0,"isolated native keyboard configuration");
     installAutoWalk();
+    begin();speech.clear();Event stopEvent;hooks.at(0x4b8980)(stopEvent);updateAutoWalk();
+    check(speech.size()==1 && speech.back()==L"Auto walk stopped: dialogue" && !lastInterrupt,"dialogue stop speaks its reason once without interrupting");
+    begin();speech.clear();player={100,0,0};updateAutoWalk();updateAutoWalk();
+    check(speech.size()==1 && speech.back()==L"Auto walk stopped: player relocated","relocation stop speaks once");
+    begin();speech.clear();++epoch;updateAutoWalk();updateAutoWalk();
+    check(speech.empty(),"map transition leaves speech to the map announcement");
+    begin();speech.clear();stopAutoWalk();updateAutoWalk();check(speech.empty(),"explicit toggle cancellation stays silent");
+    begin();speech.clear();autoWalkPlayerInput(VK_ESCAPE);updateAutoWalk();
+    check(speech.empty() && !autoWalkActive(),"manual player-input cancellation stays silent");
+    begin();speech.clear();known=false;updateAutoWalk();updateAutoWalk();
+    check(speech.size()==1 && speech.back()==L"Auto walk stopped: route lost" && !claimNavRouteStopSpeech(),"unavailable route speaks one specific stop and claims worker retirement feedback");
     stopAutoWalk(); check(!autoWalkActive(),"manual revision checks start with autowalk stopped");
     auto revision=autoWalkInputRevision(); std::array<uint8_t,256> manualKeys{}; manualKeys[0x11]=0x80;
     autoWalkKeyboard(manualKeys.data());
@@ -172,6 +191,23 @@ int main() {
     begin(); clockValue+=251; check(!keyboard()[0xc8],"stale input expires after 250 ms");
     clockValue+=400; updateAutoWalk(); check(!keyboard()[0xc8],"interrupted field event cancels instead of resuming");
     begin(); leg.arrived=true; updateAutoWalk(); check(!keyboard()[0xc8] && faceCalls==1,"central route arrival releases input and faces the interactible");
+    {
+        const auto talkTarget=[] {leg.target.zone.valid=true;leg.target.zone.talk=true;leg.target.zone.range=20;leg.target.zone.center={0,0,20};leg.arrived=true;};
+        begin();talkTarget();speech.clear();faceCalls=0;faceResult=true;updateAutoWalk();
+        check(autoWalkActive() && !keyboard()[0xc8] && !faceCalls,"arrival releases movement before facing");
+        updateAutoWalk();updateAutoWalk();
+        check(!autoWalkActive() && faceCalls==1 && speech.empty(),"the next native update faces once and retires the walk");
+        begin();talkTarget();leg.target.pushControl=1;speech.clear();faceCalls=0;
+        updateAutoWalk();check(!keyboard()[0xc8] && !faceCalls,"a pedestal receives no extra movement");
+        updateAutoWalk();check(!autoWalkActive() && faceCalls==1 && speech.empty(),"a pedestal arrival ends silently after facing");
+        begin();talkTarget();speech.clear();faceResult=false;updateAutoWalk();updateAutoWalk();
+        check(!autoWalkActive() && speech.size()==1 && speech.back()==L"Auto walk stopped: not in interaction range","the owner speaks when facing fails its interaction check");
+        faceResult=true;
+    }
+    begin();leg.pendingObservation=true;updateAutoWalk();
+    check(autoWalkActive() && !keyboard()[0xc8],"pending copied route observation withholds movement");
+    leg.pendingObservation=false;updateAutoWalk();
+    check(autoWalkActive() && keyboard()[0xc8],"the next complete route observation resumes movement");
     begin(); Event e; hooks.at(0x4b8980)(e); check(!keyboard()[0xc8],"native dialogue installation releases input immediately");
     begin(); swimmingHud=true; hooks.at(0x4b8980)(e);
     check(keyboard()[0xc8]==0x80,"nonblocking swimming HUD refresh retains keyboard auto walk");
@@ -183,13 +219,24 @@ int main() {
     swimmingHud=false; hooks.at(0x4b8980)(e);
     check(!keyboard()[0xc8],"real swimming dialogue still cancels the same route");
     begin(); hooks.at(0x471980)(e); check(!keyboard()[0xc8],"native silent cutscene control-disable event cancels immediately");
+    {
+        auto* control=reinterpret_cast<uint8_t*>(address(0x1000000));
+        begin();speech.clear();*control=0;hooks.at(0x471980)(e);
+        check(!autoWalkActive() && !keyboard()[0xc8] && speech.empty(),"the native takeover event cancels without competing with the game");
+        ++epoch;updateAutoWalk();check(speech.empty(),"the map change owns subsequent speech");
+        begin();speech.clear();*control=0;updateAutoWalk();
+        check(!autoWalkActive() && speech.empty(),"an already disabled controller also cancels silently on the native update");
+        *control=2;
+        updateAutoWalk();check(!keyboard()[0xc8] && speech.empty(),"restored control does not resume a retired walk");
+    }
     begin(); *reinterpret_cast<uint8_t*>(address(0x1000000))=0;
     check(!keyboard()[0xc8],"already disabled native field control cannot receive synthetic input");
     for(unsigned context=0;context<7;++context) {
-        begin();
+        begin();speech.clear();
         if(context==0) focused=false; if(context==1) battle=true; if(context==2) menu=true;
         if(context==3) console=true; if(context==4) scene=3; if(context==5) dialogue=1; if(context==6) enabled=false;
         check(!keyboard()[0xc8],"context blocks injection in the same device poll"); updateAutoWalk();
+        if(context==2 || context==3 || context==6) check(speech.empty(),"menu, console and disabled-setting cancellation stay silent");
         focused=enabled=true; menu=console=battle=false; scene=dialogue=0;
         check(!keyboard()[0xc8],"context cancellation requires a fresh destination command");
     }
@@ -209,7 +256,7 @@ int main() {
     for(unsigned i=0;i<19;++i) { clockValue+=100; updateAutoWalk(); }
     check(replans==before+1 && keyboard()[0xcd]==0x80,"blocked player replans and takes a bounded side step");
     for(unsigned i=0;i<133;++i) { clockValue+=100; updateAutoWalk(); }
-    keys=keyboard(); check(!keys[0xc8] && !keys[0xcd] && speech.back()==L"Auto walk stopped","15-second no-progress cap releases all movement");
+    keys=keyboard(); check(!keys[0xc8] && !keys[0xcd] && speech.back()==L"Auto walk stopped: no progress","15-second no-progress cap releases all movement and speaks the reason");
     // Both assigned bindings and the exact native scan table are used.
     std::array<unsigned,100> config; config.fill(128);
     *reinterpret_cast<uintptr_t*>(address(0x1efb504))=reinterpret_cast<uintptr_t>(config.data());
@@ -259,4 +306,5 @@ int main() {
     std::puts("PASS: swim depth Auto walk, configured keyboard/controller Dive, vertical progress, strict completion and manual cancellation.");
     VirtualFree(reinterpret_cast<void*>(memory),0,MEM_RELEASE);
     std::puts("PASS: auto walk steering, native remaps, manual priority, controller, arrival, context cancellation, stale input and bounded recovery.");
+    return 0;
 }

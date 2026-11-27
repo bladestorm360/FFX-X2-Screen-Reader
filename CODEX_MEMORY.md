@@ -25,6 +25,11 @@ reusable setup EXE carries stock inventories only. Fresh installs fetch the
 full payload and README. An installed version that matches GitHub checks
 metadata only. Synthetic install, upgrade and repeat checks passed.
 The first online setup and payload have yet to be published.
+[PR #7](Docs/plan.md#november24-pull-request-review-hold) hand-merges Auto walk
+feedback, destination browsing and field cues. Control and route updates use
+native events, a one-update facing handoff and complete observations. Future PR
+timing fixes follow the native-event requirement in AGENTS.md. Focused offline
+checks pass. Gameplay remains pending.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)

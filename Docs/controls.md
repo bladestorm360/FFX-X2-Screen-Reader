@@ -443,9 +443,15 @@ NPCs keep their browsing order. Selection follows the same native worker.
 **` (backtick)** — rescan nearby entities and announce the count.
 
 **]** — cycle to the next entity in the current category and announce it with
-distance and direction.
+distance and direction. With Menu indexing enabled, it includes a position
+such as “6 of 10” once consecutive complete field observations agree on the
+list and any current Hide unreachable check has finished.
 
 **[** — cycle to the previous entity.
+
+While an entity is selected, walking keeps the list order stable. New entities
+append after the existing entries; disappearing entities drop out. Backtick
+rescans and sorts by current distance again.
 
 **Shift + ]** — switch to the next category (All → Exit → Event →
 Save Sphere → Treasure Chest → Shop → NPC → Object).
@@ -459,15 +465,29 @@ including the reachable side of a counter. Routes use live native collision
 and retain short final movements. Once in range,
 Backslash says which way to face, such as **Face west**.
 North means ahead relative to the camera. With Auto walk off, turn and confirm
-manually. Inactive trial controls are identified as inactive.
+manually. Inactive trial controls are identified as inactive. Repeated inactive
+rows for the same native object are listed once.
+During an active route, a camera cut of more than 45 degrees re-announces the
+next leg using the new camera direction. Slow camera pans do not repeat guidance.
 
 **Auto walk** in **F8 → Navigation** defaults **Off**. Turn it **On**, select a
 destination, then press **Backslash** to walk its current collision route.
 The field controller route command (right trigger) also starts walking. Movement input or Escape cancels immediately. Dialogue, scripted
 scenes, menus, battle, lost focus and a map change stop it; press Backslash
-again to start a new walk. On arrival, Auto walk faces an interactible; confirm
-the interaction yourself.
+again to start a new walk. A route can include up to one additional step into
+an interaction zone when the floor connects and the approach is clear.
+Auto walk releases movement at arrival and faces the target on the next native
+update. Pedestals use their existing push position. Confirm the interaction
+yourself. If the final facing check fails for an ordinary target, Auto walk
+says **Auto walk stopped: not in interaction range**. Backslash reports an
+inactive destination and reads any available route for manual movement.
+Backslash with a message box open says **Auto walk unavailable while a message
+is open**; during a scene it says **Auto walk unavailable during a scene**; and
+while a scripted event still holds player control it says **Auto walk
+unavailable: the game is controlling the player**. No route is read first.
 Blocked routes get bounded recovery attempts and stop if progress stalls.
+Unexpected stops and lost routes announce a short reason once. Explicit stops
+and scripted control changes stay silent. Map transitions use the map announcement.
 The nonblocking swimming controls overlay leaves Auto walk active; actual
 dialogue and cutscenes still cancel it.
 
@@ -502,7 +522,9 @@ Off restores ordinary pickup. The option is hidden outside Sin. Offline
 verified; gameplay confirmation is pending.
 
 **Speak auto walk path**, also in Navigation, defaults **Off**. Off announces
-only “Auto walking to [destination]” when starting. On reads the route first.
+only “Auto walking to [destination]” when starting. On reads the route first;
+a route with more than three legs reads the first three and then “then N more
+turns”. With Auto walk Off, the full route is read.
 
 For a trial pedestal, Backslash gives the push direction and remaining distance,
 or says to push once for an animation. Selection and P announce your current
@@ -531,7 +553,8 @@ distances to whole numbers, with a minimum of **1**. Turn it **On** for
 The setting changes spoken distances; routes and audio keep their exact geometry.
 
 Beacon guidance follows the selected reachable route immediately when enabled.
-Wall tones also begin on the current map when enabled; no map reload is needed.
+Wall tones also begin on the current map when enabled, even without a selected
+route. They pause outside the focused field; no map reload is needed.
 
 **G** — read current gil.
 
@@ -543,7 +566,17 @@ The announcement queues behind existing speech.
 
 **U** — toggle the saved unreachable-destination filter. It hides destinations
 with no connected collision route or reachable interaction zone. Destinations
-with unknown collision data remain listed. This option is also in F8.
+with unknown collision data remain listed. Recesses, glyphs, pedestals, chests
+and save spheres are never hidden, and neither is the current puzzle guide
+step's target: when the check finds no route to one, it
+stays listed and its readout ends with **may be unreachable**. When a trial
+step changes the room, for example a wall or door opening, earlier results are
+dropped and every destination is checked again. This option is also in F8. While a
+scene, message or scripted movement such as a pedestal dropping or a lift ride
+holds the field, a selected destination that becomes unreachable stays selected
+and nothing is announced; the next navigation command reports it. During such a
+pause, including a choice prompt that freezes the player, the list keeps its
+last reachability results and is checked again once you can move.
 
 ### FFX Makalania butterfly hunt
 

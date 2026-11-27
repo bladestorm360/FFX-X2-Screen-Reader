@@ -2,6 +2,7 @@
 #include "reachability.hpp"
 #include "process_storage.hpp"
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <map>
 #include <tuple>
@@ -31,8 +32,12 @@ bool sameGeometry(const Geometry& a,const Geometry& b) {
     return a.epoch==b.epoch && a.revision==b.revision && a.count==b.count && a.vertexCount==b.vertexCount && a.root==b.root && a.triangles==b.triangles && a.vertices==b.vertices && a.scale==b.scale;
 }
 bool sameContext(const Context& a,const Context& b) {
-    return a.actor==b.actor && sameGeometry(a.geometry,b.geometry) && a.floor==b.floor && a.swimming==b.swimming && a.waterBake==b.waterBake && a.waterCrossings==b.waterCrossings && nav::sameRouteEvents(a.events,b.events) &&
-        a.player.x==b.player.x && a.player.y==b.player.y && a.player.z==b.player.z &&
+    const auto finite=[](Point p) {return std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);};
+    if(!finite(a.player) || !finite(b.player)) return false;
+    // Gates, interaction anchors and the first portal depend on actual pose.
+    const bool samePosition=a.player.x==b.player.x && a.player.y==b.player.y && a.player.z==b.player.z;
+    return a.actor==b.actor && a.roomState==b.roomState && sameGeometry(a.geometry,b.geometry) && a.floor==b.floor && a.swimming==b.swimming && a.waterBake==b.waterBake && a.waterCrossings==b.waterCrossings && nav::sameRouteEvents(a.events,b.events) &&
+        samePosition &&
         a.collision.actorFlags==b.collision.actorFlags && a.collision.actorIsControlled==b.collision.actorIsControlled && a.collision.remaps==b.collision.remaps;
 }
 namespace {

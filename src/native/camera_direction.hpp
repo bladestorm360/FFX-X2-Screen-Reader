@@ -4,6 +4,13 @@
 namespace ffx {
 namespace nav {
 struct CopiedCamera {Point forward,right;bool valid=false;};
+inline bool cameraCut(const CopiedCamera& before,const CopiedCamera& after) noexcept {
+    if(!before.valid || !after.valid) return false;
+    const auto a=std::hypot(before.forward.x,before.forward.z),b=std::hypot(after.forward.x,after.forward.z);
+    if(!std::isfinite(a) || !std::isfinite(b) || a<.001 || b<.001) return false;
+    const auto dot=(before.forward.x/a)*(after.forward.x/b)+(before.forward.z/a)*(after.forward.z/b);
+    return dot<.7071067811865475244-1e-12;
+}
 inline thread_local const CopiedCamera* ownedCamera=nullptr;
 class CameraScope final {
     CopiedCamera facts;const CopiedCamera* previous;

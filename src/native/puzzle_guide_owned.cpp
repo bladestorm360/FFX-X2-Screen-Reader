@@ -13,6 +13,7 @@
 #include "process_storage.hpp"
 #include "navigation_cancel.hpp"
 #include "camera_direction.hpp"
+#include "navigation_order.hpp"
 #include <atomic>
 #include <cmath>
 #include <set>
@@ -133,6 +134,18 @@ std::wstring puzzleTargetPathOwned(const nav::Scene& observation,const Mesh& mes
 void resetOwnedPuzzleGuide() {enabled=false;refreshPending=false;revision.fetch_add(1,std::memory_order_acq_rel);}
 bool ownedPuzzleGuideActive() {return enabled.load(std::memory_order_acquire);}
 unsigned ownedPuzzleGuideRevision() {return revision.load(std::memory_order_acquire);}
+bool ownedGuideStepTarget(const nav::Scene& observation,const Entity& e) {
+    if(!enabled.load(std::memory_order_acquire) || !storage.ready() || e.worker<0 || static_cast<unsigned>(e.worker)>=observation.count) return false;
+    const auto& state=storage.get();if(!state.route || state.epoch!=observation.epoch) return false;
+    const auto& fact=observation.workers[e.worker];if(!fact.valid) return false;
+    for(const unsigned index:{state.step,state.expected}) {
+        if(index<state.begin || index>=state.end || index>=state.route->steps.size()) continue;
+        const auto& step=state.route->steps[index];
+        const bool push=step.platform || (!std::strcmp(state.route->script,"dome0700") && step.worker>=44 && step.worker<=47);
+        if(nav::guideStepRow(fact.part,fact.local,e.pushControl!=0,state.part,step.worker,push)) return true;
+    }
+    return false;
+}
 bool claimOwnedGuideRefresh() {bool empty=false;return refreshPending.compare_exchange_strong(empty,true,std::memory_order_acq_rel);}
 void releaseOwnedGuideRefresh() {refreshPending=false;}
 std::wstring puzzleGuideOwned(OwnedGuideAction action,const nav::Scene& observation,const Mesh& mesh,const std::vector<Entity>& entities,const speechq::Header&,unsigned manual,unsigned intentRevision,unsigned local,uintptr_t chunk,unsigned serial) {

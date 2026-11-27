@@ -1,0 +1,44 @@
+#pragma once
+#include <string>
+// Spoken outcome of a navigation action whose native checks failed. Kept
+// separate from navigation_intents.cpp so the wording is testable alone.
+namespace ffx::nav {
+// Changed: the player, input, destination or route moved on since the request.
+// Message: a message box, dialogue or scripted scene holds the field.
+// Context: focus, a menu, the console or a battle; the player caused it.
+enum class IntentRejection : unsigned {Changed,Message,Context};
+inline const wchar_t* intentCancelText(IntentRejection reason) {
+    switch(reason) {
+    case IntentRejection::Message: return L"Navigation action skipped while a message or scene is open. Request the route again after it closes.";
+    case IntentRejection::Context: return nullptr;
+    default: return L"Navigation action canceled because the player, input or destination changed. Request the route again.";
+    }
+}
+// The field capture falls back to the first actor-table entry when the
+// controlled-actor pointer is not inside the table. The route can still be read
+// from that entry, but the native start requires the controlled actor, so an
+// action from such an observation could never run.
+inline const wchar_t* intentRefusalText(bool controlled);
+// Checked before a route is read, so a refused walk is not preceded by route speech.
+// fieldOpen: no window, scene, battle or menu; control: the field controller allows
+// player input; message: the game's message mode (46C840) reports an open message box.
+// Message boxes and scripted events clear field control without opening a scene, so
+// each refusal names what actually holds the field.
+inline const wchar_t* routeStartRefusal(bool autoWalk,bool fieldOpen,bool control,bool controlled,bool message) {
+    if(!autoWalk) return nullptr;
+    if(message) return L"Auto walk unavailable while a message is open.";
+    if(!fieldOpen) return L"Auto walk unavailable during a scene.";
+    if(!control) return L"Auto walk unavailable: the game is controlling the player. Try again when you can move.";
+    return intentRefusalText(controlled);
+}
+// Auto walk never starts toward an inactive destination: the walker and route cues retire such a
+// route at once. Say so instead of reading the route and then doing nothing.
+inline std::wstring inactiveRouteText(const std::wstring& name,const std::wstring& directions) {
+    std::wstring text=L"Auto walk unavailable: "+name+L" is currently inactive.";
+    if(!directions.empty()) text+=L" Route: "+directions;
+    return text;
+}
+inline const wchar_t* intentRefusalText(bool controlled) {
+    return controlled?nullptr:L"Auto walk unavailable: the game is not reporting the controlled character. Walk manually or try again after moving.";
+}
+}
