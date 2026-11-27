@@ -5,7 +5,9 @@
 After deployment resumes, browse a greyed-out item or ability in the field.
 Expect the unavailable label with the selected name. Try to use it with
 **F8 > Miscellaneous > Unavailable cue** Off, then On. Expect one short spoken
-cue after rejection with the option On. Repeat a rejected battle menu action.
+cue after rejection with the option On. In battle, browse an unaffordable
+spell or a greyed-out command. Expect “Unavailable” while browsing even
+with the cue Off. Turn the cue On and confirm a rejected command.
 If testing Tidus's Overdrive, a missed timing input should keep its own audio
 without the spoken menu cue. [Menu behavior](menus/index.md#field-availability-and-menu-rejection-cues).
 

@@ -7,6 +7,7 @@
 #include "ready_game_text.hpp"
 #include "game_visual_text.hpp"
 #include "battle_hud.hpp"
+#include "menu_list_text.hpp"
 #include "profile.hpp"
 #include <cmath>
 #include <algorithm>
@@ -21,7 +22,22 @@ void resetBattleAnnouncements();
 void announceBattleFormation(bool complete=false);
 void battleOpeningMessage(uintptr_t);
 namespace {
-int previousRow = -1, previousCommand = -1;
+enum class RowAvailability { Usable, Unavailable, Hidden };
+struct CommandFocus {
+    uintptr_t window=0;
+    unsigned epoch=0,type=0;
+    int row=0,id=0,actor=0;
+    bool operator==(const CommandFocus& other) const {
+        return window==other.window && epoch==other.epoch && type==other.type &&
+            row==other.row && id==other.id && actor==other.actor;
+    }
+};
+CommandFocus spokenCommand{},renderedCommand{};
+RowAvailability spokenAvailability=RowAvailability::Usable;
+uintptr_t commandDrawReturn=0,listDrawReturn=0,expectedDrawReturn=0;
+void resetCommandFocus() {
+    spokenCommand={};renderedCommand={};expectedDrawReturn=0;
+}
 unsigned previousPlayers = 0, previousMonsters = 0;
 unsigned previousSeymour=0;
 bool previewMp = false;
@@ -54,16 +70,22 @@ TextRef commandName(TextPlan& p,uintptr_t win,unsigned id,unsigned type) {
         planConcat(p,planInteger(p,quantity(id)),planLiteral(p,L")"))));
     return planPair(p,TextPlanOp::IfText,text,line);
 }
-void highlighted(uintptr_t win) {
-    if (!inBattle() || !win || read<uint8_t>(win + 1) != 4 || !read<unsigned>(win + 0x44)) return;
-    const int row = read<uint8_t>(win + 0x42);
+CommandFocus commandFocus(uintptr_t win) {
+    if(!win || read<uint8_t>(win+1)!=4 || !read<unsigned>(win+0x44)) return {};
+    const auto row=read<int16_t>(win+0x42,-1);
     const auto list=read<uintptr_t>(win+0x20);
     const auto count=read<unsigned>(win+0x24);
-    if(!list || count>0x1000 || static_cast<unsigned>(row)>=count) return;
-    const int id=read<uint16_t>(list+row*2);
-    if (row == previousRow && id == previousCommand) return;
-    previousRow = row; previousCommand = id;
-    const auto type=read<uint16_t>(win+6);
+    if(!list || count>0x1000 || static_cast<unsigned>(row)>=count) return {};
+    return {win,generation(),read<uint16_t>(win+6),row,read<uint16_t>(list+row*2,0xffff),read<int16_t>(win+8,-1)};
+}
+void speakCommand(const CommandFocus& focus,RowAvailability availability) {
+    if(focus==spokenCommand && availability==spokenAvailability) return;
+    if(availability==RowAvailability::Hidden) {
+        resetSelectionDetail();spokenCommand=focus;spokenAvailability=availability;return;
+    }
+    const auto win=focus.window;
+    const auto id=focus.id;
+    const auto type=focus.type;
     TextPlan p;prepareTextPlan(p,"battle-command");TextRef detail=0;
     if(type==7 || type==15) {
         using Gear=uintptr_t(__cdecl*)(unsigned,uintptr_t*);
@@ -76,9 +98,100 @@ void highlighted(uintptr_t win) {
     }
     const auto name=commandName(p,win,id,type);
     p.headline=type==10?planSuffix(p,name,detail,L", "):name;
+    if(availability==RowAvailability::Unavailable)
+        p.headline=planSuffix(p,p.headline,planLiteral(p,menuAvailabilityText(nativeMenuLanguage()).unavailable),L", ");
     planSelectionDetail(p,detail,type!=10 && (setting(Setting::CombatDetail)!=0 || setting(Setting::AutoDetail)!=0));
-    commitTextPlan(p);
-
+    if(commitTextPlan(p)) {spokenCommand=focus;spokenAvailability=availability;}
+}
+uintptr_t availabilityReturn(const CommandFocus& focus) {
+    // 8A0D70 installs these native wait renderers. Equipment, Change, pay
+    // and character rows use their established speech paths.
+    unsigned reference=0,installed=0;
+    switch(focus.type) {
+    case 0: reference=0x4a4950;installed=0x4a49b0;break;
+    case 1: case 2: case 3: case 4: case 6: case 0xe: case 0x11:
+        reference=0x4a74d0;installed=0x4a7520;break;
+    case 5:
+        if(focus.id!=0x30ff && focus.id!=0xff) return 0;
+        reference=0x4a75a0;installed=0x4a75f0;break;
+    case 0xc: reference=0x4a3620;installed=0x4a3680;break;
+    case 0xd: reference=0x4a6a10;installed=0x4a6a60;break;
+    case 0x14: reference=0x4a6810;installed=0x4a6870;break;
+    default: return 0;
+    }
+    const auto caller=focus.type==0?commandDrawReturn:listDrawReturn;
+    if(!caller || focus.actor<0 || focus.actor>=18) return 0;
+    const auto renderer=address(0)+(nativeProfile==NativeProfile::Installed?installed:reference);
+    return read<uintptr_t>(focus.window+0x90)==renderer?caller:0;
+}
+void highlighted(uintptr_t win) {
+    if(!inBattle()) return;
+    const auto focus=commandFocus(win);
+    if(!focus.window) return;
+    const auto caller=availabilityReturn(focus);
+    if(caller && win==currentWindow()) {
+        if(!(focus==renderedCommand)) {
+            renderedCommand=focus;
+            resetSelectionDetail();
+        }
+        expectedDrawReturn=caller;
+        if(focus.id==0xff) speakCommand(focus,RowAvailability::Hidden);
+    } else if(!caller) {
+        if(win==currentWindow()) {renderedCommand={};expectedDrawReturn=0;}
+        speakCommand(focus,RowAvailability::Usable);
+    }
+}
+void commandAvailability(Event& e) {
+    // At the two checked draw calls EBX is the window, ECX is the native
+    // row index, and the original C call takes actor and record as arguments.
+    // Compare copied values before touching game memory. Other rows, game
+    // logic calls, and identical results require no native reads here.
+    const auto& focus=renderedCommand;
+    if(!expectedDrawReturn || e.caller!=expectedDrawReturn || e.ebx!=focus.window ||
+        e.epoch!=focus.epoch || e.ecx!=static_cast<unsigned>(focus.row) ||
+        e.args[0]!=static_cast<unsigned>(focus.actor) || static_cast<int32_t>(e.args[1])!=static_cast<int16_t>(focus.id)) return;
+    const auto result=static_cast<int32_t>(e.result);
+    const auto availability=result==-4?RowAvailability::Hidden:result<0?RowAvailability::Unavailable:RowAvailability::Usable;
+    if(focus==spokenCommand && availability==spokenAvailability) return;
+    if(scene || !inBattle() || e.epoch!=generation() || focus.window!=currentWindow() || !(focus==commandFocus(focus.window))) return;
+    speakCommand(focus,availability);
+}
+uintptr_t relativeBattleCall(uintptr_t site) {
+    std::array<uint8_t,5> bytes{};
+    if(!copy(site,bytes.data(),bytes.size()) || bytes[0]!=0xe8) return 0;
+    int32_t displacement=0;
+    std::memcpy(&displacement,bytes.data()+1,sizeof(displacement));
+    return site+bytes.size()+static_cast<uintptr_t>(displacement);
+}
+uintptr_t drawAvailabilityReturn(uintptr_t call,uintptr_t predicate,bool main) {
+    // Match the indexed record load, actor from the same EBX window, and the
+    // renderer's hidden-row decision. Relative branch offsets can relocate.
+    if(read<uint32_t>(call-23)!=0x0f20438b || read<uint32_t>(call-19)!=0x664804b7 ||
+        read<uint16_t>(call-13)!=0x840f || read<uint16_t>(call-7)!=0x5098 ||
+        read<uint32_t>(call-5)!=0x0843bf0f || read<uint8_t>(call-1)!=0x50 ||
+        relativeBattleCall(call)!=predicate) return 0;
+    const auto ret=call+5;
+    if(read<uint32_t>(ret+(main?5:6))!=(main?0x0ffcfe83u:0x0ffcf883u)) return 0;
+    return ret;
+}
+void installCommandAvailability() {
+    const auto base=address(0);
+    const bool installed=nativeProfile==NativeProfile::Installed;
+    const auto predicate=base+(installed?0x49aca0:0x49ac10);
+    if(relativeBattleCall(address(0x49c870)+0x37e)!=predicate || read<uint8_t>(predicate)!=0x55 ||
+        read<uint16_t>(predicate+1)!=0xec8b) {
+        recordLog("battle row availability predicate address not verified");
+        return;
+    }
+    const auto main=base+(installed?0x4a49b0:0x4a4950);
+    const auto mix=base+(installed?0x4a6870:0x4a6810);
+    const auto list=relativeBattleCall(mix+0x2e);
+    commandDrawReturn=drawAvailabilityReturn(main+0x1d58,predicate,true);
+    if(list==base+(installed?0x49f370:0x49f300))
+        listDrawReturn=drawAvailabilityReturn(list+0xc08,predicate,false);
+    if(commandDrawReturn || listDrawReturn) hookAddress(predicate,0x49ac10,nullptr,commandAvailability);
+    if(!commandDrawReturn || !listDrawReturn) recordLog("battle row availability draw edge missing main=%u list=%u",
+        commandDrawReturn?1u:0u,listDrawReturn?1u:0u);
 }
 void cursor(Event& e) {
     if(previousTargetWindow) {resetTargetPreview();resetBattleSensor();}
@@ -111,16 +224,16 @@ void installBattleMenuRejection() {
     }
     recordLog("battle menu rejection cue address not verified");
 }
-void pop(Event&) {amountFocus={};resetTargetPreview();resetBattleSensor();previousRow=previousCommand=-1;highlighted(currentWindow());}
+void pop(Event&) {amountFocus={};resetTargetPreview();resetBattleSensor();resetCommandFocus();highlighted(currentWindow());}
 void opened(Event&) {
     amountFocus={};
     resetTargetPreview();
     resetBattleSensor();
+    resetCommandFocus();
     if (!inBattle()) return;
     announceBattleFormation();
     const auto win = currentWindow();
     if (!win) return;
-    previousRow = previousCommand = -1;
     if(read<uint16_t>(win+6)==0) {
         resetSelectionDetail();TextPlan p;prepareTextPlan(p,"battle-turn",false);
         p.headline=planBattleName(p,read<uint8_t>(win+8));commitTextPlan(p);
@@ -200,6 +313,7 @@ void targets(Event& e) {
     // The native handler can pop the window before its return. The retired
     // window's command and target masks no longer own a preview.
     if(!win || win!=currentWindow()) return;
+    if(renderedCommand.window) resetCommandFocus();
     const unsigned players = read<uint16_t>(win + 0xd8), monsters = read<uint16_t>(win + 0xda);
     if (!players && !monsters) {resetTargetPreview();resetBattleSensor();return;}
     const auto owner=read<uint8_t>(win+8);
@@ -380,7 +494,7 @@ void resetBattle() {
     amountFocus={};
     resetBattleHud();
     resetBattleGraphics();
-    previousRow=previousCommand=-1;
+    resetCommandFocus();
     resetTargetPreview();resetWakka();resetOverdrive();resetBattleSensor();resetBattleStatus();resetBattleResults();resetBattleAnnouncements();
 }
 void installBattle() {
@@ -392,6 +506,7 @@ void installBattle() {
     hook(0x49a5a0, nullptr, pop); hook(0x4a0d70, nullptr, opened);
     for (auto rva : {0x49c870,0x49cd50,0x49d580,0x4a2100,0x4a2290,0x4a2630}) hook(rva, nullptr, cursor);
     installBattleMenuRejection();
+    installCommandAvailability();
     hook(0x49d300, nullptr, targets);
     hook(0x4a3250,nullptr,amountDrawn);
     hotkey('T', whoseTurn); hotkey('H', activeStats);

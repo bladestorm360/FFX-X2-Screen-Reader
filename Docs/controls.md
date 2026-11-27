@@ -140,10 +140,11 @@ Overdrive lists that expose a native count. An empty cell beyond the final
 item says “Empty” without a position. Empty cells clear the previous item’s
 description on **I** and Autodetail.
 
-Greyed-out rows in field Items and Abilities include “Unavailable” as you
-browse. **F8 > Miscellaneous > Unavailable cue** defaults Off. Turn it On to
+Greyed-out rows in field Items and Abilities and supported battle command
+lists include “Unavailable” as you browse.
+**F8 > Miscellaneous > Unavailable cue** defaults Off. Turn it On to
 hear “Unavailable” when the Items or Abilities grid or a supported battle menu
-rejects an action. The field row label and the cue follow the game's UI language.
+rejects an action. The row labels and the cue follow the game's UI language.
 
 The post-game audio drama also reads its localized timed captions. Choose its
 output mode in FFX's F8 menu before opening the audio drama; the saved setting

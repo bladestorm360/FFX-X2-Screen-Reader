@@ -48,9 +48,20 @@ handler at VA `0089c870` and the contributor's installed-profile call site
 identify this edge. Tidus's Overdrive at `00892290` and field scripts use
 the shared sound routines for their own feedback.
 The cue leaves those uses to the existing game and mod audio.
-The row label, spoken cue and new F8 option text follow the eight native UI
-languages. The battle row proposal remains deferred until its native result
-can be observed without rebuilding battle lists.
+The row labels, spoken cue and F8 option text follow the eight native UI
+languages.
+
+The battle row reader observes the already-computed result at the two
+command draw calls. In the retained reference image the returns are at RVAs
+`49FF0D` and `4A66AD`. At each edge the window is in EBX and the row
+is in ECX. The game skips `-4` and greys out other negative results. The
+reader matches the active cursor, window, actor, command record and generation
+before using the result. Its check waits for the corresponding native draw.
+Weapon, Armour, Change, numeric pay prompts and Summon character IDs retain
+their established readers. The normal availability function runs once on
+the game's own path, including calls that rebuild its lists. The mod uses a
+copy of the returned value. The startup guards require the matching draw
+instructions for each profile before using that route.
 
 October21: [Formation membership and parameter confirmation speech](../battle/seymour_amount_prompts_20261021.md)
 use the actual front-party roster and copied native prompt/Yes/No values.

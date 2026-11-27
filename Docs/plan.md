@@ -154,8 +154,8 @@ and any approved hand-merge has been completed and verified.
   F8 > Miscellaneous. The native grid usability byte controls the row label.
   The spoken cue follows verified field and manual battle menu rejection
   handlers. The original battle sound wrapper is also used by Tidus's
-  Overdrive, which retains its separate cue. The battle row check remains
-  deferred because it can rebuild live battle lists. The previous Yes/No
+  Overdrive, which retains its separate cue. The initial hand-merge deferred
+  the proposed battle check because it can rebuild live battle lists. The previous Yes/No
   fix is covered by PR #4. The 804-check menu fixture, F8 accessibility
   and settings persistence checks passed. Both offline reader profiles
   exercised the menu sound call edge, localized cue and exclusions for
@@ -163,6 +163,17 @@ and any approved hand-merge has been completed and verified.
   deployment remain on hold.
   [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11),
   [native menu behavior and ownership](features/menus/index.md#field-availability-and-menu-rejection-cues).
+  The owner subsequently requested battle row labels too. The follow-up
+  observes the game's already-computed render result. It adds the localized
+  suffix for a greyed row and keeps hidden rows silent. The setting still
+  controls the separate rejected-action cue.
+  The retained reference machine code establishes both call edges and their
+  window, row and result registers. The real adapter fixture proves register
+  and result preservation. Its bounded 4,096-call synthetic run took
+  0.012 ms before and 3.501 ms with observation. Game and audible response
+  remain unmeasured. Both 176-hook offline reader profiles pass greyed and
+  hidden rows, same-row availability changes, repeated names on distinct
+  rows, stale window rejection and optional-cue regression checks.
 - **Enemy HP/MP display evidence unresolved.** The user recalls obtaining
   screenshots of an enemy HP bar. The retained Battle Mode screenshot shows
   party HP and MP and the turn order. Earlier notes document numeric party

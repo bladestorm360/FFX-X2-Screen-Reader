@@ -150,7 +150,7 @@ extern "C" void __cdecl enterBridge(uintptr_t* r) {
             const auto listener=h->listeners[i];
             auto& event=call.events[call.count++];
             event.rva = h->rva; event.ecx = r[6]; event.epoch = generation(); event.caller=r[10];
-            event.edi=r[0];event.nativeStack=stack;
+            event.edi=r[0];event.ebx=r[4];event.nativeStack=stack;
             event.parentRva=calls.empty()?0:static_cast<Hook*>(calls.back().hook)->rva;
             event.captureOnly=snapshot;
             // A function that entered during loading has no valid before

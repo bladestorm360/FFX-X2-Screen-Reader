@@ -42,8 +42,8 @@ developer warp flag to the native action. Checked reads and active-controller
 ownership protect unrelated bits. Offline checks pass. Gameplay remains pending.
 [PR #11](Docs/plan.md#november24-pull-request-review-hold) adds localized
 greyed-out field labels and a saved, default-Off Unavailable cue for verified
-menu rejections. Battle row announcements remain deferred. Enemy HP/MP
-rendering awaits individual review.
+menu rejections. The follow-up reads greyed-out battle rows from the existing
+native draw result. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
 are fixed in [PR #20](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/20).

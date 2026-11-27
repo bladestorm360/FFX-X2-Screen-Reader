@@ -13,7 +13,7 @@ struct Event {
     unsigned parentRva = 0;
     std::array<uintptr_t, 12> args{};
     uintptr_t ecx = 0, result = 0, caller = 0;
-    uintptr_t edi = 0, nativeStack = 0; // Ready registers/opaque stack identity for qualified resource receipts.
+    uintptr_t edi = 0, ebx = 0, nativeStack = 0; // Ready registers and opaque call identity.
     std::array<intptr_t, 32> before{};
     std::array<float,8> values{};
     std::array<unsigned,64> copied{}; // Bounded native configuration/party before-values.

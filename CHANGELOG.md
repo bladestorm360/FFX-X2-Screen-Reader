@@ -5,7 +5,7 @@
 - Shift+F11 updates Cloister guidance when you undo a verified sphere transfer. This covers Besaid's pedestal and supported source recesses, and the opening sphere sequences in Kilika and Djose.
 - Battle targeting follows the selected action for HP or MP readouts, including after browsing equipment, Change, or Summon, and when a new turn reuses the same target.
 - A failed developer warp clears its temporary forced-jump flag when the original controller is still active and the flag can be read.
-- Greyed-out field Items and Abilities say “Unavailable.” The optional **Unavailable cue** in **F8 > Miscellaneous** also speaks when a supported menu rejects an action. It defaults Off.
+- Greyed-out field Items and Abilities and supported battle commands say “Unavailable.” The optional **Unavailable cue** in **F8 > Miscellaneous** also speaks when a supported menu rejects an action. It defaults Off.
 
 ## 1.0.2 — 2026-11-04
 

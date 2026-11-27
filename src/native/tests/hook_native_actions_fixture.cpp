@@ -23,6 +23,7 @@ void check(bool ok,const char* why) {
 }
 unsigned prepared=0,invoked=0,completed=0,initialized=0,failures=0,retired=0;
 unsigned innerReturned=0,outerReturned=0,tailReturned=0;
+unsigned availabilityObserved=0;
 unsigned expectedOuter=0,expectedTail=0;
 bool queueAtInner=false,queueAtTail=false,enqueueFromInit=false,insideInvoke=false;
 bool throwNative=false,overrideResult=false;
@@ -36,6 +37,33 @@ __declspec(noinline) int __cdecl nativeInit(int value) {
 }
 __declspec(noinline) int __cdecl inputOwner(int value) { volatile int result=value; return result+2; }
 __declspec(noinline) int __cdecl inner(int value) { volatile int result=value; return result+3; }
+__declspec(noinline) int __cdecl nativeAvailability(int actor,int id) {
+    volatile int selected=id;
+    return actor==2 && selected==17?-4:0;
+}
+__declspec(naked) int __cdecl commandDraw() {
+    __asm {
+        push ebx
+        mov ebx, 0x12345678
+        mov ecx, 9
+        push 17
+        push 2
+        call nativeAvailability
+        add esp, 8
+        pop ebx
+        ret
+    }
+}
+constexpr unsigned availabilitySamples=4096;
+double measureAvailability() {
+    LARGE_INTEGER begin{},end{},frequency{};
+    QueryPerformanceFrequency(&frequency);QueryPerformanceCounter(&begin);
+    int total=0;
+    for(unsigned i=0;i<availabilitySamples;++i) total+=commandDraw();
+    QueryPerformanceCounter(&end);
+    check(total==-4*static_cast<int>(availabilitySamples),"original availability results survive repeated callbacks");
+    return (end.QuadPart-begin.QuadPart)*1000.0/frequency.QuadPart;
+}
 __declspec(noinline) int __cdecl outer(int value) {
     volatile int result=inner(value);
     check(invoked==0,"nested return must not drain before outer original completes");
@@ -81,6 +109,11 @@ void queueNested() {
     check(ffx::deferNativeAction(std::move(action)),"queue nested native action");
 }
 void innerLeave(ffx::Event&) { ++innerReturned; if(queueAtInner) queueNested(); }
+void availabilityLeave(ffx::Event& e) {
+    check(e.ebx==0x12345678 && e.ecx==9 && e.args[0]==2 && e.args[1]==17 &&
+        static_cast<int>(e.result)==-4,"real adapter preserves window, row, arguments and original result");
+    ++availabilityObserved;
+}
 void outerLeave(ffx::Event& e) {
     ++outerReturned;
     if(overrideResult) { e.overrideResult=true; e.result=123; }
@@ -107,6 +140,7 @@ void install() {
     check(ffx::hookAddress(reinterpret_cast<uintptr_t>(inputOwner),0x225930,observe,nullptr),"owner hook");
     check(ffx::hookAddress(reinterpret_cast<uintptr_t>(nativeInit),0x469040,nullptr,initLeave),"initialization hook");
     check(ffx::hookAddress(reinterpret_cast<uintptr_t>(inner),2,nullptr,innerLeave),"nested hook");
+    check(ffx::hookAddress(reinterpret_cast<uintptr_t>(nativeAvailability),0x49ac10,nullptr,availabilityLeave),"availability return hook");
     check(ffx::hookAddress(reinterpret_cast<uintptr_t>(outer),3,nullptr,outerLeave),"outer hook");
     check(ffx::hookAddress(reinterpret_cast<uintptr_t>(tailHead),11,nullptr,tailLeave),"tail head hook");
     check(ffx::hookAddress(reinterpret_cast<uintptr_t>(tailBody),12,nullptr,tailLeave),"tail body hook");
@@ -116,7 +150,13 @@ void install() {
 }
 int main() {
     SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);
+    const auto baselineAvailability=measureAvailability();
     install(); boundary();
+    check(commandDraw()==-4 && availabilityObserved==1,"observing availability leaves the native result unchanged");
+    const auto observedAvailability=measureAvailability();
+    check(availabilityObserved==availabilitySamples+1,"each original availability result has one observation");
+    std::printf("METRIC availability adapter %u calls: %.3f ms baseline, %.3f ms observed (synthetic original/callback).\n",
+        availabilitySamples,baselineAvailability,observedAvailability);
     check(ffx::nativeGameThread(),"owner known after PInput callback");
     std::thread wrongOwner([] {
         check(!ffx::nativeGameThread() && !ffx::observeGameThread(),"another thread cannot take owner");

@@ -143,9 +143,11 @@ std::map<unsigned, std::vector<Listener>> listeners;
 std::map<unsigned, void(*)(bool)> keys;
 std::vector<std::pair<std::wstring, bool>> said;
 bool hook(unsigned id, Handler enter, Handler leave) { listeners[id].push_back({enter,leave}); return true; }
-uintptr_t battleSoundTarget=0;
+uintptr_t battleSoundTarget=0,battleAvailabilityTarget=0;
 bool hookAddress(uintptr_t target,unsigned id,Handler enter,Handler leave) {
-    battleSoundTarget=target;return hook(id,enter,leave);
+    if(id==0x486b00) battleSoundTarget=target;
+    if(id==0x49ac10) battleAvailabilityTarget=target;
+    return hook(id,enter,leave);
 }
 void hotkey(unsigned vk, void(*cb)(bool)) { keys[vk] = cb; }
 std::map<unsigned,bool(*)()> contexts;
@@ -475,9 +477,31 @@ int main(int argc, char** argv) {
     check(write<uint8_t>(battleSound,0x55) && write<uint16_t>(battleSound+1,0xec8b) &&
         write<uint8_t>(buzzSite,0x6a) && write<uint8_t>(buzzSite+1,3) && write<uint8_t>(buzzSite+2,0xe8) &&
         write<int32_t>(buzzSite+3,static_cast<int32_t>(battleSound-(buzzSite+7))),"synthetic battle reject sound call");
+    const bool installedBattle=nativeProfile==NativeProfile::Installed;
+    const auto availabilityTarget=testBase+(installedBattle?0x49aca0:0x49ac10);
+    const auto mainDrawer=testBase+(installedBattle?0x4a49b0:0x4a4950);
+    const auto listDrawer=testBase+(installedBattle?0x49f370:0x49f300);
+    const auto listWindowDrawer=testBase+(installedBattle?0x4a7520:0x4a74d0);
+    const auto directCall=[](uintptr_t site,uintptr_t target) {
+        return write<uint8_t>(site,0xe8) && write<int32_t>(site+1,static_cast<int32_t>(target-(site+5)));
+    };
+    check(write<uint8_t>(availabilityTarget,0x55) && write<uint16_t>(availabilityTarget+1,0xec8b) &&
+        directCall(address(0x49c870)+0x37e,availabilityTarget) &&
+        directCall(testBase+(installedBattle?0x4a6870:0x4a6810)+0x2e,listDrawer),"synthetic availability call edges");
+    const auto drawProbe=[&](uintptr_t site,bool main) {
+        check(write<uint32_t>(site-23,0x0f20438b) && write<uint32_t>(site-19,0x664804b7) &&
+            write<uint16_t>(site-13,0x840f) && write<uint16_t>(site-7,0x5098) &&
+            write<uint32_t>(site-5,0x0843bf0f) && write<uint8_t>(site-1,0x50) &&
+            directCall(site,availabilityTarget) &&
+            write<uint32_t>(site+5+(main?5:6),main?0x0ffcfe83u:0x0ffcf883u),"synthetic draw availability contract");
+        return site+5;
+    };
+    const auto mainAvailabilityReturn=drawProbe(mainDrawer+0x1d58,true);
+    const auto listAvailabilityReturn=drawProbe(listDrawer+0xc08,false);
     setSetting(Setting::MenuIndex,1);
     installFieldMenus(); installMessages(); installSystemMenus(); installSphereGrid(); installBattle(); installNavigation();
     check(battleSoundTarget==battleSound,"validated battle buzzer resolves the active profile target");
+    check(battleAvailabilityTarget==availabilityTarget,"validated draw edges resolve the original availability predicate");
     setSetting(Setting::MenuIndex,0); // Indexed native lists have a separate synthetic fixture.
     maintenanceReaderFixtures();
     setSetting(Setting::MenuIndex,1);
@@ -757,6 +781,58 @@ int main(int argc, char** argv) {
     event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");
     check(said.back().second,"target movement interrupts after deliberate input, including held menu navigation");
     battleTargetPreviewFixtures();
+    {
+        const int previousBattleScene=scene;scene=0;
+        const auto priorLocale=fixtureLocale;fixtureLocale=1;
+        const auto window=address(0xf3c910);
+        const auto anchor=address(0x49c870)+0x383;
+        auto observe=[&](uintptr_t caller,unsigned row,unsigned id,int result,uintptr_t owner,unsigned actor=0) {
+            Event e;e.rva=0x49ac10;e.epoch=generation();e.caller=caller;e.ebx=owner;e.ecx=row;
+            e.args[0]=actor;e.args[1]=id;e.result=static_cast<uintptr_t>(result);
+            listeners.at(e.rva).front().leave(e);
+            drainSpeechDomainsForTest();
+            check(!e.overrideResult && static_cast<int>(e.result)==result,"native decision passes through unchanged");
+        };
+        const auto focusCommand=[&](unsigned row) {
+            set<uint8_t>(0x1fcc092,0);set<int16_t>(0xf3c952,static_cast<int16_t>(row));
+            event(0x49c870,window);
+        };
+        setSetting(Setting::UnavailableCue,0);
+        set<uint8_t>(0xf3c911,4);set<uint16_t>(0xf3c916,0);set<int16_t>(0xf3c918,0);
+        set<uintptr_t>(0xf3c930,address(0x2211400));set<unsigned>(0xf3c934,2);set<unsigned>(0xf3c954,1);
+        set<uint16_t>(0x2211400,0x2001);set<uint16_t>(0x2211402,0x2002);
+        set<uintptr_t>(0xf3c9a0,mainDrawer);
+        auto n=said.size();focusCommand(0);
+        observe(anchor,0,0x2001,-2,window);
+        observe(mainAvailabilityReturn,1,0x2001,-2,window);
+        observe(mainAvailabilityReturn,0,0x2001,-2,window+0xf0);
+        observe(mainAvailabilityReturn,0,0x2001,-2,window,1);
+        check(said.size()==n,"wrong caller, row, window and actor cannot label the current command");
+        observe(mainAvailabilityReturn,0,0x2001,-2,window);
+        expect(L"Potion (3), Unavailable","grey main command is labelled even with the rejection cue Off");
+        n=said.size();observe(mainAvailabilityReturn,0,0x2001,-1,window);
+        check(said.size()==n,"equivalent grey renderer result stays silent");
+        observe(mainAvailabilityReturn,0,0x2001,0,window);
+        expect(L"Potion (3)","same row becoming usable loses its unavailable label");
+        focusCommand(1);n=said.size();observe(mainAvailabilityReturn,1,0x2002,-4,window);
+        check(said.size()==n,"the renderer's hidden row produces no announcement");
+        focusCommand(0);observe(mainAvailabilityReturn,0,0x2001,0,window);
+        check(said.size()==n+1,"revisiting after a hidden row reads the visible entry");
+        set<uint16_t>(0x2211402,0xff);n=said.size();focusCommand(1);
+        check(said.size()==n,"the native blank-slot sentinel stays silent without a predicate call");
+        set<uint16_t>(0x2211402,0x2001);focusCommand(1);observe(mainAvailabilityReturn,1,0x2001,0,window);
+        check(said.size()==n+1,"two distinct rows with identical names still speak");
+        set<uint16_t>(0x2211402,0x2002);
+        set<uint16_t>(0xf3c916,6);set<uintptr_t>(0xf3c9a0,listWindowDrawer);focusCommand(1);
+        fixtureLocale=2;observe(listAvailabilityReturn,1,0x2002,-2,window);
+        expect(L"Ether (4), Indisponible","sublist renderer localizes the unavailable label");
+        n=said.size();set<uint8_t>(0x1fcc092,1);
+        observe(listAvailabilityReturn,1,0x2002,0,window);
+        check(said.size()==n,"closed window cannot announce a late result");
+        set<uint8_t>(0x1fcc092,0);set<uintptr_t>(0xf3c9a0,0);set<uint16_t>(0xf3c916,1);
+        fixtureLocale=priorLocale;scene=previousBattleScene;resetBattle();
+        std::puts("PASS: native battle row availability, localized grey speech, hidden rows, cursor ownership and unchanged rejection setting.");
+    }
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,8);}); expect(L"Tidus: poison","first application status");
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,0);}); expect(L"Tidus: poison cured","status cured");
     event(0x38f0b0,0,[]{set<uint8_t>(0x212060d,5);set<uint8_t>(0x2120613,5);}); expect(L"Tidus: reflect, haste","temporal statuses");
