@@ -130,7 +130,7 @@ int main() {
         check(!ffx::nav::rowCountSettled(true,true),"turning Hide unreachable on omits N of M while reachability is checked");
         check(ffx::nav::rowCountSettled(true,false) && ffx::nav::rowCountSettled(false,true) && ffx::nav::rowCountSettled(false,false),"a settled or unfiltered list keeps N of M");
         // Entering Macalania - Trials, ] said "2 of 11", "5 of 23", "4 of 13" while the room loaded.
-        // A total is spoken only after the destination count has held for ListSettleMs in this room.
+        // A total is spoken after complete observations agree on the native rows in this room.
         // Djose: while a pushed pedestal dropped and while the central lift rode, verdicts computed
         // mid-animation hid the selected row and the mod said "Pedestal is unreachable" and the next
         // row, unprompted. A loss is spoken only while the player holds the field; otherwise the

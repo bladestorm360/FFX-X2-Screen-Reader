@@ -64,7 +64,9 @@ void navigationIdentityRuntimeFixtures() {
     keys[VK_OEM_6](true); keys[VK_OEM_6](true);
     expect(L"Object, 10.8 steps unknown, 1 of 1","unknown interactive model is not guessed as a villager");
     resetNavigation(); set<uint16_t>(npc,0x2002); keys[VK_OEM_3](false);
-    expect(L"Villager, 10.8 steps unknown, 1 of 1","verified human actor returns to NPC identity");
+    expect(L"Villager, 10.8 steps unknown","verified human actor returns to NPC identity before list confirmation");
+    keys[VK_OEM_3](false);
+    expect(L"Villager, 10.8 steps unknown, 1 of 1","next complete observation permits the Villager index");
 }
 
 }

@@ -103,7 +103,9 @@ and any approved hand-merge has been completed and verified.
   route facts and player pose. Co-located objects with different native owners
   remain separate. Offline x86 coverage includes gate and pedestal approach,
   route loss and recovery, camera cuts, route speech, reachability, and SDL wall
-  tones. Gameplay confirmation remains pending for the reported trial rooms and
+  tones. Both 173-hook reader profiles pass, along with the retained Besaid
+  collision gate, Gagazet cross-water geometry and ATEL interaction checks.
+  Gameplay confirmation remains pending for the reported trial rooms and
   responses to real camera transitions. Local deployment remains on hold.
   [PR #7](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/7),
   [navigation behavior and test scope](features/navigation/index.md#movement).
