@@ -3,8 +3,11 @@ param([switch]$Public)
 $ErrorActionPreference = 'Stop'
 if ([IntPtr]::Size -ne 4 -or $PSVersionTable.PSEdition -eq 'Core') {
     $installerTestHost = Join-Path $env:WINDIR 'SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
-    $mode = if ($Public) { @('-Public') } else { @() }
-    & $installerTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath @mode
+    if ($Public) {
+        & $installerTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath -Public
+    } else {
+        & $installerTestHost -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    }
     if ($LASTEXITCODE -ne 0) { throw 'x86 installer tests failed.' }
     return
 }
