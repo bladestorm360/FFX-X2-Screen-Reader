@@ -13,6 +13,11 @@
 #include <cmath>
 #include <algorithm>
 namespace ffx {
+#ifdef FFX_READER_TEST
+uint64_t pedestalClock();
+#else
+static uint64_t pedestalClock() {return GetTickCount64();}
+#endif
 namespace {
 struct Session {
     NativeRouteTarget target;
@@ -223,7 +228,7 @@ void armPedestalOwned(const NativeRouteTarget& target,const UtilityScript& scrip
         active.pawn=read<uintptr_t>(address(0xf00740));
         if(!active.pawn || active.pawn!=playerActor() || !read<uint16_t>(active.pawn+2)) {stop("controlled actor unavailable");return;}
         if(!publishPedestalConsent(consent)) {stop("consent bindings unavailable");recordLog("pedestal consent bindings unavailable");return;}
-        active.last=target.position; active.lastPlayer=playerPosition(); active.progress=GetTickCount64(); armed=true;
+        active.last=target.position; active.lastPlayer=playerPosition(); armed=true;
     }catch(...) {stop("unavailable verified state");}
 }
 void armPedestal(const Entity& target) {
@@ -250,7 +255,8 @@ void updatePedestalInput() {
     const auto logical=pedestalLogicalInput(raw&~active.consent);
     if(logical&0x0fff) { stop("manual native action"); return; }
     if(active.epoch!=generation() || !context() || manual.exchange(false)) { stop("context or manual input"); return; }
-    const auto now=GetTickCount64();
+    const auto now=pedestalClock();
+    if(!wasHeld) active.progress=now;
     if(active.previous && now-active.previous>600) { stop("input interrupted"); return; }
     active.previous=now;
     try {

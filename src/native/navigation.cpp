@@ -179,7 +179,7 @@ void pathfind(const Pending& event,bool assist=false) {
         // A guide step that uses this pedestal without pushing it (a sphere
         // socket) replaces the push plan in the arrival text.
         if(target.pushControl) {const auto guided=ownedGuidePedestalStep(s.observation,target);
-            emit(event,label(target)+(guided.empty()?L": at the push position. "+instruction(target):L": "+guided),"navigation-facing");return;}
+            emit(event,label(target)+(guided.empty()?(target.pushControl==3?L": route destination reached. ":L": at the push position. ")+instruction(target):L": "+guided),"navigation-facing");return;}
         const auto facing=direction({target.zone.center.x-player.x,0,target.zone.center.z-player.z});
         if(facing==L"here" || facing==L"unknown") emit(event,label(target)+L": within interaction range. Facing direction is unavailable at this position","navigation-facing");
         else emit(event,label(target)+L": within interaction range. "+(target.inactive?L"Currently inactive. ":L"")+L"Face "+facing,"navigation-facing");return;

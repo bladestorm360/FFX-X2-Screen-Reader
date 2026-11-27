@@ -114,6 +114,10 @@ catalog now contains 2,442 targets across 397 scripts; audit:
 is 6; Djose's upper pedestal uses binding 0181F0, and Macalania's pedestal
 sphere uses 015A8F rather than its position state.
 
+At the lower Djose push stand, a second route request announces arrival
+immediately. Hold the configured push control when ready. The movement
+timeout starts when you hold the control.
+
 For the lower Djose pedestal, the sphere recess row uses the east or west
 face that can accept or supply the sphere. Auto walk releases movement at
 that face and corrects a slide into a corner before announcing arrival.

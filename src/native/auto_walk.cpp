@@ -176,7 +176,11 @@ void updateAutoWalk() {
     }
     Point steer=leg.goal;
     const auto x=leg.goal.x-leg.start.x,z=leg.goal.z-leg.start.z,length2=x*x+z*z;
-    if(length2>.001) {
+    const auto& zone=leg.target.zone;
+    const bool finalStand=leg.target.pushControl==3 && zone.valid && zone.shape==3 && !zone.talk &&
+        distanceXZ(leg.goal,leg.final)<.01 && distanceXZ(player,leg.final)<12;
+    if(finalStand) steer=zone.center;
+    else if(length2>.001) {
         const auto t=std::clamp(((player.x-leg.start.x)*x+(player.z-leg.start.z)*z)/length2,0.0,1.0);
         Point nearest{leg.start.x+t*x,player.y,leg.start.z+t*z};
         if(distanceXZ(nearest,player)>.35) {
@@ -188,7 +192,7 @@ void updateAutoWalk() {
     if(!relativeBearing({steer.x-player.x,0,steer.z-player.z},pan,front)) { stop("camera unavailable"); return; }
     const auto degrees=std::atan2(pan,front)*180/3.14159265358979323846;
     int desired=(static_cast<int>(std::round(degrees/45))+8)&7;
-    if(octant>=0 && desired!=octant) {
+    if(!finalStand && octant>=0 && desired!=octant) {
         auto difference=degrees-octant*45; while(difference>180) difference-=360; while(difference< -180) difference+=360;
         const int gap=std::abs(desired-octant);
         if(std::abs(difference)<=32.5 || ((gap==1 || gap==7) && now-octantSince<250)) desired=octant;
@@ -199,7 +203,6 @@ void updateAutoWalk() {
     // after the stop, past the small reach of a pedestal socket face. Near
     // such a face, tap the key in short pulses the way a player would.
     // Only on the last legs: pulsing round the ring stuck on its corner.
-    const auto& zone=leg.target.zone;
     const bool preciseStop=(zone.talk && (zone.obstacleRadius>0 || zone.preciseTalk)) || leg.target.pushControl==3;
     if(preciseStop && distanceXZ(leg.goal,leg.final)<2 && distanceXZ(player,leg.final)<12 && now%300>=60) { mask=0; stamp=now; return; }
     mask=octMasks[desired] | (leg.target.swimDepth?16u:0u); stamp=now;

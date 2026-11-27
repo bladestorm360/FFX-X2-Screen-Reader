@@ -195,6 +195,14 @@ int main() {
     clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"distant socket face keeps running");
     begin({0,0,5}); leg.target.zone.talk=true; leg.target.zone.obstacleRadius=6; leg.goal={0,0,2};
     clockValue+=300-clockValue%300+100; updateAutoWalk(); check(keyboard()[0xc8]==0x80,"socket face ring leg keeps running");
+    // A direct west approach can end on the edge of the W42 window.
+    // From its extended line, steer inward to the centre, away from the corner.
+    for(const double sign:{1.0,-1.0}) {
+        begin({sign*6,0,1});leg.target.pushControl=3;
+        auto& stand=leg.target.zone;stand.valid=true;stand.shape=3;stand.center={sign*7,0,2};
+        player={sign*6,0,1.8};clockValue+=300-clockValue%300+5;updateAutoWalk();
+        check(keyboard()[sign>0?0xcd:0xcb] && !keyboard()[0xd0],"final push approach steers inside the side window");
+    }
     begin({0,0,5}); leg.target.pushControl=3;
     clockValue+=300-clockValue%300+100; updateAutoWalk();
     check(autoWalkActive() && !keyboard()[0xc8],"Djose push stand rests on its final leg without held consent");

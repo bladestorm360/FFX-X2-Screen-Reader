@@ -32,6 +32,8 @@ void operator delete[](void* p,size_t) noexcept { ::operator delete[](p); }
 namespace ffx {
 void refreshSwimmingGoal(Entity& target) { target.inactive=true; }
 uintptr_t base=0;
+uint64_t pedestalTestClock=1000;
+uint64_t pedestalClock() {return pedestalTestClock;}
 unsigned epoch=1,starts=0,faces=0;
 unsigned fixtureConsent=0x40;
 bool padOwned=false;
@@ -311,6 +313,10 @@ int main() {
         check(!path.empty() && inInteractionZone(target.zone,path.back()) && path.back().x<0,
             "every approach ends in the west push rectangle");
     }
+    Mesh westFloor;westFloor.openPlane=true;westFloor.planeY=-18;
+    const auto westWalk=interactionRoute(westFloor,{-7.2*11.13,-18,24},target.zone);
+    check(westWalk.size()==2 && inInteractionZone(target.zone,westWalk.back()) &&
+        inInteractionZone(target.zone,{-.8*11.13,-18,24}),"direct 7.2-step approach reaches a usable west stand");
     check(inInteractionZone(target.zone,{-8,-18,26}) && inInteractionZone(target.zone,{-8,-18,22}),
         "west stand accepts both lateral edges inside the native push window");
     check(!inInteractionZone(target.zone,{-9.6,-18,24}) && !inInteractionZone(target.zone,{-8,-18,26.4}) &&
@@ -327,6 +333,16 @@ int main() {
     }
     check(!djosePushStand({},{1,0,0},0).valid && !djosePushStand({},{1,0,0},9.2).valid &&
         djosePushStand({},{1,0,0},9.0).valid, "missing body or empty staging band fails closed");
+    position(playerActor(),target.zone.center);ready(target);
+    const auto alreadyStarts=starts;
+    pedestalTestClock+=20000;
+    check(frame()==0x2000 && starts==alreadyStarts && !walking,
+        "first held push at an already-reached stand gets its full progress budget without a walk");
+    for(unsigned i=0;i<150;++i) {pedestalTestClock+=100;frame();}
+    check(capturePedestalNavigationState().armed,"held stand owns the exact 15-second boundary");
+    ++pedestalTestClock;frame();
+    check(!capturePedestalNavigationState().armed && !walking,"a genuinely motionless held push still times out");
+    frame(0);ready(target);
     position(playerActor(),target.zone.center); check(frame()==0x2000,"lower Djose uses configured Space consent with original scripted direction");
     disable(42,1,0xd17c); check(frame()==0x2000,"lower Djose retains owned direction without exposing sphere Confirm");
     check(frame(0)==0,"lower Djose stops input immediately when Space is released");
