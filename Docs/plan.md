@@ -12,6 +12,10 @@ and record the exact decision before moving to the next. The user directs the
 review order. A recorded decision defines the approved scope for later work
 after the hold is lifted.
 
+The owner confirmed that FFX is uninstalled and put local deployment on hold
+for this review session. Close a PR when the owner's review decision is final
+and any approved hand-merge has been completed and verified.
+
 - **Blitzball fix already covered.** The owner directed closing PR #1 because
   release 1.0.2 already ships the adapted fix. GitHub closed the PR without a
   merge. [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1),
@@ -44,8 +48,9 @@ after the hold is lifted.
   native callback time is 0.252 ms before and 0.163 ms after across those
   episodes. Across 1,000 idle callbacks it is 0.357 ms before and 0.349 ms after.
   The fixture uses controlled capture and speech output. Game and audio
-  response remain unmeasured. Local deployment is blocked because no FFX
-  executable was found in the mounted Steam libraries.
+  response remain unmeasured. The owner confirmed the game is uninstalled.
+  GitHub closed PR #4 after the verified hand-merge. PRs #1 through #4 are
+  confirmed closed.
   [PR #4](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/4),
   [field menu behavior](features/menus/index.md#field-item-focus-and-system-popups),
   [Windows CI run](https://github.com/bladestorm360/FFX-X2-Screen-Reader/actions/runs/45924950918),

@@ -1,14 +1,15 @@
 # FFX current memory — November24
 
 [Pull request review hold](Docs/plan.md#november24-pull-request-review-hold).
-Review each PR with the user and record the decision. The approved
+Review each PR with the user, record the decision, and close it when work on
+it is complete. The game is uninstalled and deployment is on hold for this
+review session. The approved
 [clean-checkout build and Windows CI](Docs/release.md#developer-build-and-ci)
 is integrated. PR #3 closed after successful CI. The review hold still applies
 outside specific approvals.
 The approved [PR #4 hand-merge](Docs/plan.md#november24-pull-request-review-hold)
 uses native Items opening and cancellation events. Blank cells, popup focus
-and optional field indexing pass offline. Local deployment awaits an FFX
-installation.
+and optional field indexing pass offline. PRs #1 through #4 are closed.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
