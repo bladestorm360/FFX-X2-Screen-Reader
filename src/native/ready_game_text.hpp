@@ -12,6 +12,12 @@ void copyReadyBattleName(ReadyBattleName&,unsigned);
 std::wstring renderReadyBattleName(const ReadyBattleName&,const OwnedTextContext&);
 TextRef planNativeText(TextPlan&,unsigned getter,unsigned id);
 TextRef planRecordName(TextPlan&,unsigned getter,unsigned id);
+// The command dispatcher also serves name-only entries for plain commands,
+// equipment and characters. Only these namespaces contain full records.
+inline constexpr bool hasBattleCommandRecord(unsigned id) noexcept {
+    const auto type=id>>12;
+    return type==2 || type==3 || type==4 || type==6 || type==8;
+}
 TextRef planRecordDescription(TextPlan&,unsigned getter,unsigned id);
 TextRef planMenuText(TextPlan&,int space,unsigned id);
 TextRef planMenuDescription(TextPlan&,int space,unsigned id);

@@ -276,6 +276,10 @@ Turn **Show maximum HP** On in **F8 > Miscellaneous** for **HP 321/500** instead
 This applies to Change, Summon and H. The Change rows display current HP/MP and
 an HP bar; they do not display numeric maximum HP or status-effect labels.
 
+When selecting a party target in battle, a command such as Potion reads the
+target's HP, and a command such as Ether reads the target's MP. The preview
+follows the active target window's action on each turn.
+
 When the game reveals **Sensor** information for a highlighted enemy, its
 exact current and maximum HP are read directly. **Ctrl+Left** selects the first
 information line, **Ctrl+Up/Down** browse elemental weaknesses, absorption,

@@ -221,10 +221,13 @@ uintptr_t __cdecl navigationWorker(int) { ++workerReads; return address(0x225100
 unsigned __cdecl language() { return 0; }
 int __cdecl noMessageMode() { return 0; }
 uintptr_t __cdecl names(int id) { return address(id==1 ? 0x2100020 : id==8 ? 0x2100040 : 0x2100000); }
+unsigned commandRecordReads=0;
 uintptr_t __cdecl record(unsigned id, uintptr_t* base) {
+    ++commandRecordReads;
+    const bool restoresMp=id==0x2002 || id==0x3012;
     id&=0xfff;
     if(base) *base=address(id==7 ? 0x21000a0 : id==2 ? 0x2100080 : 0x2100060);
-    set<uint16_t>(0x2101000,0); set<uint8_t>(0x2101022,2); set<uint16_t>(0x2101008,0x200);
+    set<uint16_t>(0x2101000,0); set<uint8_t>(0x2101022,restoresMp?2:0); set<uint16_t>(0x2101008,0x200);
     set<int8_t>(0x2101000+0x5d,id==0x49?0x49:id==0x51?0x51:-1);
     return address(0x2101000);
 }
@@ -247,7 +250,7 @@ uintptr_t __cdecl menu(int space, unsigned id, unsigned) {
 uintptr_t __cdecl menuHelp(int space,unsigned id,unsigned) {
     return space==1?address(id==0x1033?0x2400400:0x2400440):0;
 }
-unsigned __cdecl qty(unsigned id) { return id==2 ? 4 : 3; }
+unsigned __cdecl qty(unsigned id) { return id==2 || id==0x2002 ? 4 : 3; }
 uint8_t __cdecl party(int slot) { return static_cast<uint8_t>(slot==1 ? 1 : 0); }
 uint8_t __cdecl aeon() { return 8; }
 uintptr_t __cdecl shopTable(unsigned, uintptr_t) { return address(0x2110000); }
@@ -350,6 +353,7 @@ ffx::MessagePage messagePage(unsigned slot,uintptr_t source) {
 #include "battle_followups.inc"
 #include "battle_hud_followups.inc"
 #include "battle_switch_followups.inc"
+#include "battle_target_preview_followups.inc"
 #include "battle_outcomes_followups.inc"
 #include "battle_debuff_followups.inc"
 #include "status_animation_followups.inc"
@@ -712,13 +716,15 @@ int main(int argc, char** argv) {
     setSetting(Setting::ShowMaximumHp,0);
     activeBattleFixtures(); battleHudFixtures(); battleSwitchFixtures(); battleOutcomesFixtures(); statusAnimationFixtures();battleAmountFixtures();seymourFixtures();overdriveLearnFixtures();battleHpFixtures();
     set<uintptr_t>(0xf3c930,address(0x2211400)); set<unsigned>(0xf3c934,2); set<unsigned>(0xf3c954,1);
-    set<uint16_t>(0x2211400,1); set<uint16_t>(0x2211402,2); set<uint16_t>(0xf3c92e,1);
-    event(0x49c870,address(0xf3c910)); expect(L"Potion","battle command");
+    set<uint16_t>(0xf3c916,1); set<uint16_t>(0x2211400,0x2001); set<uint16_t>(0x2211402,0x2002); set<uint16_t>(0xf3c92e,1);
+    event(0x49c870,address(0xf3c910)); expect(L"Potion (3)","battle command");
     count=said.size(); event(0x49c870,address(0xf3c910)); check(said.size()==count,"unchanged battle cursor");
-    event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,1);}); expect(L"Ether","battle command move");
+    event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,1);}); expect(L"Ether (4)","battle command move");
     protectSpeech(false);
+    set<uint16_t>(0xf3c91c,0x2002);
     event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");
     check(said.back().second,"target movement interrupts after deliberate input, including held menu navigation");
+    battleTargetPreviewFixtures();
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,8);}); expect(L"Tidus: poison","first application status");
     event(0x38f0b0,0,[]{set<uint16_t>(0x2120606,0);}); expect(L"Tidus: poison cured","status cured");
     event(0x38f0b0,0,[]{set<uint8_t>(0x212060d,5);set<uint8_t>(0x2120613,5);}); expect(L"Tidus: reflect, haste","temporal statuses");

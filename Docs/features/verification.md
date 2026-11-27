@@ -1,5 +1,13 @@
 # Verification and remaining gameplay checks
 
+## Battle target HP/MP — November27
+
+After deployment resumes, browse the weapon list and Change in a battle,
+then target the same party member with Potion and with Ether. Expect HP for
+Potion and MP for Ether. Repeat on a later turn, using the same target. A
+readout that carries the previous action's statistic across a window or
+turn is a failure. [Native preview evidence](battle/hp_sources_20261021.md#battle-target-preview-command).
+
 ## Trial guide sphere undo — November27
 
 After deployment resumes, press Shift+F11 in Besaid after inserting the

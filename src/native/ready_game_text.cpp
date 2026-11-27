@@ -69,9 +69,7 @@ TextRef planRecordName(TextPlan& p,unsigned getter,unsigned id) {
     return planEncoded(p,base+read<uint16_t>(record+(language()&1)*4));
 }
 TextRef planRecordDescription(TextPlan& p,unsigned getter,unsigned id) {
-    if(getter==0x39a4c0) {
-        const auto type=id>>12;if(type!=2 && type!=3 && type!=4 && type!=6 && type!=8) return 0;
-    }
+    if(getter==0x39a4c0 && !hasBattleCommandRecord(id)) return 0;
     using Getter=uintptr_t(__cdecl*)(unsigned,uintptr_t*);
     uintptr_t base=0;const auto record=reinterpret_cast<Getter>(address(getter))(id,&base);
     if(!record || !base) return 0;

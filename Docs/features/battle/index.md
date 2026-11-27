@@ -26,6 +26,10 @@ native descriptions. Combat detail and Autodetail add detail independently of
 essential battle events. Context reset clears prior commands/actors rather than
 reusing a completed cast on a new battle.
 
+Party target HP/MP uses the confirmed command from the active native targeting
+window. Equipment, Change and Summon highlights provide their own descriptions.
+See [target preview ownership and regression coverage](hp_sources_20261021.md#battle-target-preview-command).
+
 Graphical Miss/Guard/Overkill words are qualified by original sprite identity,
 draw ownership and clip position. Status effects and damage are not inferred
 from an English label. A new spell/ability must follow its actual native action,

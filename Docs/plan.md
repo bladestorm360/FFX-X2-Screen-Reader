@@ -123,6 +123,17 @@ and any approved hand-merge has been completed and verified.
   all six trial guides. Both 173-hook reader profiles pass.
   [PR #8](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/8),
   [guide behavior and source evidence](features/puzzles/index.md#manual-guide-sphere-transfers).
+- **Battle target HP/MP preview.** The owner approved the PR #9 hand-merge
+  using the accepted command on the active native target window. The retained
+  89A2A0 body establishes the command field, and 79A4C0 establishes which
+  command namespaces contain full records. Same-target turns and command
+  changes refresh the preview. Equipment, Change and Summon rows keep their
+  own detail paths. The baseline reproduced MP instead of HP for Potion after
+  a weapon highlight. Both 173-hook x86 reader profiles pass the new HP/MP,
+  window retirement and same-target turn cases. Gameplay and deployment remain
+  on hold.
+  [PR #9](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/9),
+  [native ownership and evidence](features/battle/hp_sources_20261021.md#battle-target-preview-command).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

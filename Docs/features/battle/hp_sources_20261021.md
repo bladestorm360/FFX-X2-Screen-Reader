@@ -83,6 +83,27 @@ bounded target loops. No new producer allocation or background scanning is
 needed. Existing worker/queue evidence applies to the unchanged transport;
 reader-host measurements and real game/audio limits must remain separate.
 
+### Battle target preview command
+
+Original VA 89A2A0 allocates the target window and writes its confirmed
+command at offset 0C. VA 8997E0 qualifies the command through the dispatcher,
+and native target callback VA 89D300 updates the current window's target
+masks. The retained Ghidra game-logic export contains these bodies. The
+reader qualifies the active window after the callback and uses the accepted
+command for the existing MP flag check. Native VA 79A4C0 has full records in
+namespaces 2, 3, 4, 6 and 8. Its name-only results and sentinel IDs are excluded
+from the full-record read.
+
+The native owner caches the preview mode for the window, turn owner and
+command. A changed command refreshes the preview even when target masks
+match. Window opening, closing, target exit and battle reset retire that
+state. The existing reader fixture models distinct Potion and Ether flags,
+equipment and Switch highlights, a full ability record, sentinel and
+name-only values, same-target new turns and a retired window. The existing
+enemy and Sensor display tests run in the same two 173-hook reader profiles.
+The previous battle reader reproduced the wrong MP readout for Potion after
+a weapon highlight using the same fixture. Gameplay confirmation is pending.
+
 ## Offline evidence and remaining checks
 
 Original game bodies, relocation records, native jump table and renderer constants remain outside

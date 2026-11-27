@@ -20,12 +20,17 @@ void announceBattleFormation(bool complete=false);
 void battleOpeningMessage(uintptr_t);
 namespace {
 int previousRow = -1, previousCommand = -1;
-unsigned previousPlayers = 0, previousMonsters = 0, lastCommand = 0;
+unsigned previousPlayers = 0, previousMonsters = 0;
 unsigned previousSeymour=0;
-bool targeting = false, previewMp = false;
+bool previewMp = false;
 uintptr_t previousTargetWindow=0;
-unsigned previousTargetOwner=255;
+unsigned previousTargetOwner=255,previousTargetCommand=0xffff;
 bool previousSensor=false;
+void resetTargetPreview() {
+    previousPlayers=previousMonsters=previousSeymour=0;
+    previousTargetWindow=0;previousTargetOwner=255;previousTargetCommand=0xffff;
+    previousSensor=previewMp=false;
+}
 // Numeric pay windows have no command-list cursor. Track the native rendered
 // amount and selected decimal place, retiring on every window transition.
 struct AmountFocus {uintptr_t window=0;unsigned epoch=0,owner=255;int amount=-1,digit=-1;};
@@ -56,16 +61,15 @@ void highlighted(uintptr_t win) {
     const int id=read<uint16_t>(list+row*2);
     if (row == previousRow && id == previousCommand) return;
     previousRow = row; previousCommand = id;
-    lastCommand=id;
     const auto type=read<uint16_t>(win+6);
     TextPlan p;prepareTextPlan(p,"battle-command");TextRef detail=0;
     if(type==7 || type==15) {
         using Gear=uintptr_t(__cdecl*)(unsigned,uintptr_t*);
-        detail=planEquipmentDetails(p,reinterpret_cast<Gear>(address(0x3abbf0))(lastCommand,nullptr));
-    } else if(type==10) detail=planBattleSelectionVitals(p,lastCommand);
-    else if(type==5) detail=summonDetail(p,lastCommand);
+        detail=planEquipmentDetails(p,reinterpret_cast<Gear>(address(0x3abbf0))(id,nullptr));
+    } else if(type==10) detail=planBattleSelectionVitals(p,id);
+    else if(type==5) detail=summonDetail(p,id);
     else {
-        const auto description=planRecordDescription(p,0x39a4c0,lastCommand);
+        const auto description=planRecordDescription(p,0x39a4c0,id);
         detail=planPair(p,TextPlanOp::Or,description,planEncoded(p,address(0xf3f4f8),128,TextPlanOp::Lines));
     }
     const auto name=commandName(p,win,id,type);
@@ -75,12 +79,13 @@ void highlighted(uintptr_t win) {
 
 }
 void cursor(Event& e) {
-    if (targeting) { targeting = false; previousPlayers = previousMonsters = 0; resetBattleSensor(); }
+    if(previousTargetWindow) {resetTargetPreview();resetBattleSensor();}
     highlighted(e.args[0]);
 }
-void pop(Event&) { amountFocus={};resetBattleSensor(); previousRow = previousCommand = -1; highlighted(currentWindow()); }
+void pop(Event&) {amountFocus={};resetTargetPreview();resetBattleSensor();previousRow=previousCommand=-1;highlighted(currentWindow());}
 void opened(Event&) {
     amountFocus={};
+    resetTargetPreview();
     resetBattleSensor();
     if (!inBattle()) return;
     announceBattleFormation();
@@ -163,23 +168,28 @@ TextRef wheelMechanic(TextPlan& p,const SeymourWheels& s,unsigned id) {
 void targets(Event& e) {
     if (!nativeGameThread() || e.epoch!=generation() || !inBattle()) return;
     const auto win = e.args[0];
+    // The native handler can pop the window before its return. The retired
+    // window's command and target masks no longer own a preview.
+    if(!win || win!=currentWindow()) return;
     const unsigned players = read<uint16_t>(win + 0xd8), monsters = read<uint16_t>(win + 0xda);
-    if (!players && !monsters) { targeting = false; previousPlayers = previousMonsters = previousSeymour = 0; resetBattleSensor(); return; }
+    if (!players && !monsters) {resetTargetPreview();resetBattleSensor();return;}
     const auto owner=read<uint8_t>(win+8);
+    // Native 89A2A0 stores the accepted command at +0C when it creates the
+    // target window. Cursor rows in its parent window have unrelated IDs.
+    const auto command=read<uint16_t>(win+0xc,0xffff);
+    const bool newPreview=previousTargetWindow!=win || previousTargetOwner!=owner || previousTargetCommand!=command;
     const auto selected=read<uint16_t>(address(0xf3d1b4),255);
     const auto wheels=seymourWheels(monsters);
     const bool sensor=read<uint8_t>(win+2)==1 && read<int>(address(0xf3d6a0))!=1 && battleSensorVisible(selected);
     highlightBattleSensor(win);
-    if (players == previousPlayers && monsters == previousMonsters && previousTargetWindow==win && previousTargetOwner==owner && previousSensor==sensor && previousSeymour==wheels.key) return;
-    if(previousTargetWindow!=win || previousTargetOwner!=owner) targeting=false;
-    if (!targeting) {
-        targeting = true; previewMp = false;
-        // Same data field used by the game's command HP/MP preview.
-        if (lastCommand) {
+    if(!newPreview && players==previousPlayers && monsters==previousMonsters && previousSensor==sensor && previousSeymour==wheels.key) return;
+    if(newPreview) {
+        previewMp=false;
+        if(hasBattleCommandRecord(command)) {
             using Getter = uintptr_t(__cdecl*)(unsigned, uintptr_t*);
             uintptr_t base = 0;
-            auto record = reinterpret_cast<Getter>(address(0x39a4c0))(lastCommand, &base);
-            if (record) previewMp = (read<uint8_t>(record + 0x22) & 2) != 0;
+            const auto record=reinterpret_cast<Getter>(address(0x39a4c0))(command,&base);
+            if(record && base) previewMp=(read<uint8_t>(record+0x22)&2)!=0;
         }
     }
     TextPlan p;prepareTextPlan(p,"battle-target");TextRef names=0;
@@ -209,7 +219,7 @@ void targets(Event& e) {
             read<int>(chr+(previewMp?0x5d4:0x5d0)),read<int>(chr+(previewMp?0x598:0x594)),previewMp?2:1));
     }
     p.headline=names;commitTextPlan(p); previousPlayers = players; previousMonsters = monsters;
-    previousTargetWindow=win; previousTargetOwner=owner; previousSensor=sensor;previousSeymour=wheels.key;
+    previousTargetWindow=win;previousTargetOwner=owner;previousTargetCommand=command;previousSensor=sensor;previousSeymour=wheels.key;
 }
 void whoseTurn(bool) {
     if (!inBattle()) return;
@@ -341,9 +351,8 @@ void resetBattle() {
     amountFocus={};
     resetBattleHud();
     resetBattleGraphics();
-    previousRow = previousCommand = -1; previousPlayers = previousMonsters = lastCommand = 0;
-    previousTargetWindow=0; previousTargetOwner=255; previousSensor=false;previousSeymour=0;
-    targeting = previewMp = false; resetWakka(); resetOverdrive(); resetBattleSensor(); resetBattleStatus(); resetBattleResults(); resetBattleAnnouncements();
+    previousRow=previousCommand=-1;
+    resetTargetPreview();resetWakka();resetOverdrive();resetBattleSensor();resetBattleStatus();resetBattleResults();resetBattleAnnouncements();
 }
 void installBattle() {
     installBattleHud();
