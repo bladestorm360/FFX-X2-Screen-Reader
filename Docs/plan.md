@@ -16,6 +16,9 @@ after the hold is lifted.
   release 1.0.2 already ships the adapted fix. GitHub closed the PR without a
   merge. [PR #1](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/1),
   [implementation and verification](features/puzzles/minigame_completion_20261020.md#ownership-bounds-cancellation-and-recovery).
+- **MIT license proposal stays closed.** The owner reviewed PR #2 and directed
+  leaving it closed. No license change was approved.
+  [PR #2](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/2)
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)
