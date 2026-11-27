@@ -19,10 +19,6 @@ struct ItemOpening {
 };
 ItemOpening itemOpening;
 
-unsigned fieldMenuLanguage() {
-    using Language=unsigned(__cdecl*)();
-    return reinterpret_cast<Language>(address(0x241290))();
-}
 Key windowKey(uintptr_t p) {
     Key k{};
     k[0] = read<int>(p + 0x28, -1); k[1] = read<int16_t>(p + 0x48, -1);
@@ -53,7 +49,12 @@ Key itemKey(uintptr_t p) {
         auto entry = address(0x1197730) + k[5] * 4;
         auto count = read<uint8_t>(entry + 2);
         k[10]=!count;
-        if (count) {k[7]=read<uint16_t>(entry);k[8]=k[6]==0?count:-1;}
+        if(count) {
+            k[7]=read<uint16_t>(entry);k[8]=k[6]==0?count:-1;
+            // The native Items and Abilities confirmation callbacks read
+            // this byte. Zero marks an existing row as unusable.
+            k[12]=read<uint8_t>(entry+3,255)==0;
+        }
     }
     k[9] = 1; return k;
 }
@@ -75,7 +76,7 @@ void itemAfter(Event& e) {
     if(!initializing) itemOpening={};
     const auto getter = k[6] == 1 ? 0x3908f0 : k[6] == 2 ? 0x39a4c0 : 0x390a40;
     const bool indexed=setting(Setting::MenuIndex)!=0 && k[5]<k[11];
-    const auto locale=k[10] || indexed ? fieldMenuLanguage() : 1u;
+    const auto locale=k[10] || k[12] || indexed ? nativeMenuLanguage() : 1u;
     TextPlan p;prepareTextPlan(p,"items");
     if(k[10]) {
         p.headline=planLiteral(p,menuListText(locale).empty);
@@ -83,6 +84,7 @@ void itemAfter(Event& e) {
     } else {
         auto name=planRecordName(p,getter,static_cast<unsigned>(k[7]));
         p.headline=k[8]>=0?planCountedName(p,name,k[8]):name;
+        if(k[12]) p.headline=planSuffix(p,p.headline,planLiteral(p,menuAvailabilityText(locale).unavailable),L", ");
         planSelectionDetail(p,planRecordDescription(p,getter,static_cast<unsigned>(k[7])),setting(Setting::AutoDetail)!=0);
     }
     if(indexed) p.headline=planMenuListIndex(p,p.headline,static_cast<unsigned>(k[5]),static_cast<unsigned>(k[11]),locale);
@@ -111,6 +113,11 @@ Key listKey(uintptr_t p) {
     if (k[4] == 0x4d16c0 && k[0] == 3) k[0] = 2;
     k[9] = 1; return k;
 }
+void itemRejected(Event& e) {
+    // 8C6DA0 plays this sound when the active grid's confirm callback refuses.
+    if(e.parentRva==0x4c6da0 && e.args[0]==0x80000003 && (scene==2 || scene==3))
+        queueMenuRejectionCue();
+}
 void listBefore(Event& e) { e.before = listKey(e.args[0]); }
 void listAfter(Event& e) {
     if (scene != 4 && scene != 7 && scene != 9 && scene != 0x15) return;
@@ -118,7 +125,7 @@ void listAfter(Event& e) {
     if (!k[9] || k[0] != 2 || k == e.before) return;
     const bool unequip=k[4]==0x4cf9c0 && k[5]==0;
     const bool indexed=setting(Setting::MenuIndex)!=0;
-    const auto locale=k[7] || indexed ? fieldMenuLanguage() : 1u;
+    const auto locale=k[7] || indexed ? nativeMenuLanguage() : 1u;
     TextPlan p;prepareTextPlan(p,"field-list");
     if(k[7]) {
         p.headline=planLiteral(p,menuListText(locale).empty);
@@ -281,10 +288,17 @@ void installFieldDetails();
 void installAeonAttributes();
 void installFieldTargets();
 void resetFieldItemOpening() { itemOpening={}; }
+void queueMenuRejectionCue() {
+    if(!setting(Setting::UnavailableCue)) return;
+    TextPlan p;prepareTextPlan(p,"menu-rejection");
+    p.headline=planLiteral(p,menuAvailabilityText(nativeMenuLanguage()).unavailable);
+    commitTextPlan(p);
+}
 void installFieldMenus() {
     installTextPlans();
     hook(0x4e0340, mainBefore, mainAfter);
     hook(0x4c6da0, itemBefore, itemAfter);
+    hook(0x486de0,itemRejected,nullptr);
     hook(0x4b4460, listBefore, listAfter); hook(0x4d0e80, listBefore, listAfter);
     hook(0x4e3880, barBefore, barAfter);
     hook(0x4ccea0, aeonBefore, aeonAfter);

@@ -51,3 +51,4 @@ older setting string still says H. [Controls](../../controls.md) is authoritativ
 | Butterfly hunt auto-success / `butterfly_assist` | 0; 0..1; 1 | Enable before starting. Collect seven butterflies in the current course and story phase. The normal timer and chest remain; open the chest and confirm its reward manually. |
 | Blitzball auto-win / `blitz_assist` | 0; 0..1; 1 | Enable at team setup. Any confirmed live Action Commands option triggers a native win; setup, formation and forfeit choices do not. Native standings and prizes are preserved. |
 | Automatically read extra info / `auto_extra_info` | 0; 0..1; 1 | Read the visible extra-information pane automatically. Independent of Autodetail. U repeats extra information; I repeats the selected description. |
+| Unavailable cue / `unavailable_cue` | 0; 0..1; 1 | Speak when the Items or Abilities grid or a supported manual battle menu rejects an action. Field row labels are independent of this cue. |

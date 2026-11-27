@@ -52,6 +52,7 @@ public:
     explicit operator bool() const noexcept { return owned_; }
 };
 void installFieldMenus();
+void queueMenuRejectionCue();
 void resetFieldItemOpening();
 void installMessages();
 void installSystemMenus();

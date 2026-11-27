@@ -149,9 +149,20 @@ and any approved hand-merge has been completed and verified.
   restore it. Gameplay and deployment remain on hold.
   [PR #10](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/10),
   [developer warp behavior](features/distribution/index.md#developer-utilities).
-- **Unavailable cue approved.** The game’s error buzzer may be accompanied by
-  spoken “Unavailable.” The proposed default On, settings placement, greyed-out
-  row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)
+- **Field availability and menu rejection cues.** The owner approved the
+  PR #11 hand-merge for localized field labels and a default-Off cue under
+  F8 > Miscellaneous. The native grid usability byte controls the row label.
+  The spoken cue follows verified field and manual battle menu rejection
+  handlers. The original battle sound wrapper is also used by Tidus's
+  Overdrive, which retains its separate cue. The battle row check remains
+  deferred because it can rebuild live battle lists. The previous Yes/No
+  fix is covered by PR #4. The 804-check menu fixture, F8 accessibility
+  and settings persistence checks passed. Both offline reader profiles
+  exercised the menu sound call edge, localized cue and exclusions for
+  Tidus's timing, automatic battle and field overlays. Gameplay and
+  deployment remain on hold.
+  [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11),
+  [native menu behavior and ownership](features/menus/index.md#field-availability-and-menu-rejection-cues).
 - **Enemy HP/MP display evidence unresolved.** The user recalls obtaining
   screenshots of an enemy HP bar. The retained Battle Mode screenshot shows
   party HP and MP and the turn order. Earlier notes document numeric party

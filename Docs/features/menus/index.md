@@ -31,6 +31,27 @@ production scene, menu and speech code with synthetic windows and exercises
 reopening, cancellation, detail retirement, localization and indexing.
 [PR #4 review and verification](../../plan.md#november24-pull-request-review-hold).
 
+### Field availability and menu rejection cues
+
+Field Items and Abilities announce that a populated row is unavailable when
+its native usability byte is zero. The field reader captures the byte with
+the current focus and preserves quantity, position and description behavior.
+The original field confirmation callbacks at VA `008c6a00` and `008c6a10`
+read that same byte. The field rejection cue listens for the buzzer from
+the active Items or Abilities grid handler (`008c6da0`).
+
+**F8 > Miscellaneous > Unavailable cue** is a separate saved option that
+defaults Off. It also listens for rejections from the native manual battle
+menus. The battle cue requires a confirmed sound call into the expected
+profile target and checks the native menu caller. The reference command
+handler at VA `0089c870` and the contributor's installed-profile call site
+identify this edge. Tidus's Overdrive at `00892290` and field scripts use
+the shared sound routines for their own feedback.
+The cue leaves those uses to the existing game and mod audio.
+The row label, spoken cue and new F8 option text follow the eight native UI
+languages. The battle row proposal remains deferred until its native result
+can be observed without rebuilding battle lists.
+
 October21: [Formation membership and parameter confirmation speech](../battle/seymour_amount_prompts_20261021.md)
 use the actual front-party roster and copied native prompt/Yes/No values.
 Original descriptions and Autodetail ownership remain intact.

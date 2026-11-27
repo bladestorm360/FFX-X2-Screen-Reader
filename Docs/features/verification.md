@@ -1,5 +1,14 @@
 # Verification and remaining gameplay checks
 
+## Unavailable menus — November27
+
+After deployment resumes, browse a greyed-out item or ability in the field.
+Expect the unavailable label with the selected name. Try to use it with
+**F8 > Miscellaneous > Unavailable cue** Off, then On. Expect one short spoken
+cue after rejection with the option On. Repeat a rejected battle menu action.
+If testing Tidus's Overdrive, a missed timing input should keep its own audio
+without the spoken menu cue. [Menu behavior](menus/index.md#field-availability-and-menu-rejection-cues).
+
 ## Battle target HP/MP — November27
 
 After deployment resumes, browse the weapon list and Change in a battle,

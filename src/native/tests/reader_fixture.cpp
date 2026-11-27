@@ -143,6 +143,10 @@ std::map<unsigned, std::vector<Listener>> listeners;
 std::map<unsigned, void(*)(bool)> keys;
 std::vector<std::pair<std::wstring, bool>> said;
 bool hook(unsigned id, Handler enter, Handler leave) { listeners[id].push_back({enter,leave}); return true; }
+uintptr_t battleSoundTarget=0;
+bool hookAddress(uintptr_t target,unsigned id,Handler enter,Handler leave) {
+    battleSoundTarget=target;return hook(id,enter,leave);
+}
 void hotkey(unsigned vk, void(*cb)(bool)) { keys[vk] = cb; }
 std::map<unsigned,bool(*)()> contexts;
 void hotkeyWhen(unsigned vk,void(*cb)(bool),bool(*available)()) { keys[vk]=cb; contexts[vk]=available; }
@@ -289,12 +293,12 @@ unsigned __cdecl fixtureStat(uintptr_t saved,uintptr_t entry,int) {
 uintptr_t __cdecl requirementsTable() { return address(0x2110100); }
 int __cdecl increase(int, unsigned, unsigned* id, unsigned* needed) { *id=1; *needed=5; return 1; }
 double fixtureNativeEventMs=0,fixtureUsableEventMs=0;
-void event(unsigned id, uintptr_t arg, const std::function<void()>& change={}, uintptr_t result=0) {
+void event(unsigned id, uintptr_t arg, const std::function<void()>& change={}, uintptr_t result=0,unsigned parent=0) {
     auto& list=listeners[id]; check(!list.empty(),"registered event");
     std::vector<Event> calls(list.size());
     const auto measuredBegin=std::chrono::steady_clock::now();
     for(size_t i=0;i<list.size();++i) {
-        auto& e=calls[i]; e.rva=id; e.args[0]=arg; e.result=result; e.epoch=generation();
+        auto& e=calls[i]; e.rva=id; e.args[0]=arg; e.result=result; e.epoch=generation();e.parentRva=parent;
         if(list[i].enter) list[i].enter(e);
     }
     if(change) change();
@@ -466,8 +470,14 @@ int main(int argc, char** argv) {
     stub(0x46c840,reinterpret_cast<void*>(noMessageMode));
     followupStubs(); navigationIdentityFixtures(); airshipPassageFixtures();
     polishTextFixtures();
+    const auto battleSound=testBase+(nativeProfile==NativeProfile::Installed?0x486ba0:0x486b00);
+    const auto buzzSite=address(0x49c870)+0xeb;
+    check(write<uint8_t>(battleSound,0x55) && write<uint16_t>(battleSound+1,0xec8b) &&
+        write<uint8_t>(buzzSite,0x6a) && write<uint8_t>(buzzSite+1,3) && write<uint8_t>(buzzSite+2,0xe8) &&
+        write<int32_t>(buzzSite+3,static_cast<int32_t>(battleSound-(buzzSite+7))),"synthetic battle reject sound call");
     setSetting(Setting::MenuIndex,1);
     installFieldMenus(); installMessages(); installSystemMenus(); installSphereGrid(); installBattle(); installNavigation();
+    check(battleSoundTarget==battleSound,"validated battle buzzer resolves the active profile target");
     setSetting(Setting::MenuIndex,0); // Indexed native lists have a separate synthetic fixture.
     maintenanceReaderFixtures();
     setSetting(Setting::MenuIndex,1);
@@ -475,8 +485,8 @@ int main(int argc, char** argv) {
     setSetting(Setting::MenuIndex,0);
     set<int>(win+0x28,1); set<uint16_t>(win+0x30,2); set<int8_t>(win+0x45,0);
     set<uint8_t>(win+0x42,1); set<uint8_t>(win+0x43,0); set<int>(win+0x94,4);
-    set<uint16_t>(0x1197730,1); set<uint8_t>(0x1197732,3);
-    set<uint16_t>(0x1197734,2); set<uint8_t>(0x1197736,4);
+    set<uint16_t>(0x1197730,1); set<uint8_t>(0x1197732,3); set<uint8_t>(0x1197733,1);
+    set<uint16_t>(0x1197734,2); set<uint8_t>(0x1197736,4); set<uint8_t>(0x1197737,1);
     scene=3;
     event(0x4c6da0,address(win),[]{set<int>(win+0x28,2);});
     expect(L"Potion, 3","items opening");
@@ -720,6 +730,28 @@ int main(int argc, char** argv) {
     event(0x49c870,address(0xf3c910)); expect(L"Potion (3)","battle command");
     count=said.size(); event(0x49c870,address(0xf3c910)); check(said.size()==count,"unchanged battle cursor");
     event(0x49c870,address(0xf3c910),[]{set<uint8_t>(0xf3c952,1);}); expect(L"Ether (4)","battle command move");
+    const int previousScene=scene;scene=0;
+    const auto previousLocale=fixtureLocale;fixtureLocale=1;
+    setSetting(Setting::UnavailableCue,0);
+    count=said.size();event(0x486b00,3,{},0,0x49c870);
+    check(said.size()==count,"battle rejection respects the cue Off setting");
+    setSetting(Setting::UnavailableCue,1);
+    for(const unsigned parent:{0x49c870,0x49cd50,0x49d580,0x4a2290,0x4a2630}) {
+        count=said.size();event(0x486b00,3,{},0,parent);
+        check(said.size()==count+1,"verified battle menu rejections each speak once");
+        expect(L"Unavailable","battle rejection matches the field cue");
+    }
+    fixtureLocale=2;event(0x486b00,3,{},0,0x49c870);
+    expect(L"Indisponible","battle rejection uses the current game UI language");
+    fixtureLocale=previousLocale;
+    count=said.size();
+    event(0x486b00,3,{},0,0x492290);
+    event(0x486b00,3,{},0,0x4a2100);
+    event(0x486b00,1,{},0,0x49c870);
+    set<int>(0xf3d6a0,1);event(0x486b00,3,{},0,0x49c870);set<int>(0xf3d6a0,0);
+    scene=6;event(0x486b00,3,{},0,0x49c870);scene=previousScene;
+    check(said.size()==count,"Tidus timing, other sounds or handlers, automatic battle and field overlays stay silent");
+    setSetting(Setting::UnavailableCue,0);
     protectSpeech(false);
     set<uint16_t>(0xf3c91c,0x2002);
     event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");

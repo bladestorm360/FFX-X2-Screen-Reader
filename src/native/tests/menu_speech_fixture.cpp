@@ -80,8 +80,8 @@ void check(bool ok,const char* why) {++checks;if(!ok) {std::fprintf(stderr,"FAIL
 template<class T> void set(unsigned off,T value) {check(write<T>(address(off),value),"synthetic write");}
 void drain() {owner=false;drainSpeechDomainsForTest();owner=true;}
 void expect(const wchar_t* expected,const char* why) {check(!said.empty() && said.back().first==expected,why);}
-void event(unsigned id,uintptr_t arg,const std::function<void()>& change={}) {
-    auto listener=listeners.at(id);Event e;e.rva=id;e.args[0]=arg;e.epoch=generation();
+void event(unsigned id,uintptr_t arg,const std::function<void()>& change={},unsigned parent=0) {
+    auto listener=listeners.at(id);Event e;e.rva=id;e.args[0]=arg;e.epoch=generation();e.parentRva=parent;
     if(listener.enter) listener.enter(e);if(change) change();if(listener.leave) listener.leave(e);drain();
 }
 void encoded(unsigned off,const wchar_t* text) {
@@ -115,7 +115,9 @@ void items(unsigned count=3,unsigned kind=0,unsigned slot=win,int phase=1) {
     scene=kind==2?2:3;set<uint16_t>(slot+0x30,static_cast<uint16_t>((count+1)/2));
     set<int8_t>(slot+0x45,0);set<uint8_t>(slot+0x42,1);set<uint8_t>(slot+0x43,static_cast<uint8_t>(kind));
     set<int>(slot+0x94,count);
-    for(unsigned i=0;i<4;++i) {set<uint16_t>(0x1197730+i*4,0x2001);set<uint8_t>(0x1197732+i*4,3);}
+    for(unsigned i=0;i<4;++i) {
+        set<uint16_t>(0x1197730+i*4,0x2001);set<uint8_t>(0x1197732+i*4,3);set<uint8_t>(0x1197733+i*4,1);
+    }
     itemFocus(slot,phase);
 }
 void openOnce() {
@@ -219,6 +221,44 @@ void indexing() {
     }
     uiLanguage=1;
 }
+void availability() {
+    setSetting(Setting::AutoDetail,0);setSetting(Setting::MenuIndex,0);setSetting(Setting::UnavailableCue,0);
+    items(1);auto n=said.size();
+    event(0x486de0,0x80000003,{},0x4c6da0);
+    check(said.size()==n,"field rejection cue defaults Off");
+    event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197733,0);});
+    expect(L"Potion, 3, Unavailable","native field label works independently of cue setting");
+    n=said.size();event(0x4c6da0,address(win));
+    check(said.size()==n,"unchanged availability stays silent");
+    event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197733,1);});
+    expect(L"Potion, 3","availability can change on the same row");
+    struct Locale {unsigned id;const wchar_t* label;};
+    const Locale locales[]={
+        {0,L"\u4f7f\u7528\u3067\u304d\u307e\u305b\u3093"},{1,L"Unavailable"},{2,L"Indisponible"},
+        {3,L"No disponible"},{4,L"Nicht verf\u00fcgbar"},{5,L"Non disponibile"},
+        {9,L"\u65e0\u6cd5\u4f7f\u7528"},{10,L"\uc0ac\uc6a9\ud560 \uc218 \uc5c6\uc74c"},{255,L"Unavailable"}
+    };
+    setSetting(Setting::UnavailableCue,1);
+    for(const auto locale:locales) {
+        uiLanguage=locale.id;items(1,2);
+        event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197733,0);});
+        check(said.back().first==std::wstring(L"Potion, ")+locale.label,"grey Abilities use the game UI locale");
+        n=said.size();event(0x486de0,0x80000003,{},0x4c6da0);
+        check(said.size()==n+1 && said.back().first==locale.label && said.back().second,
+            "active grid rejection speaks a localized short cue");
+    }
+    uiLanguage=1;setSetting(Setting::MenuIndex,1);items(1);
+    event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197733,0);});
+    expect(L"Potion, 3, Unavailable, 1 of 1","availability preserves quantity and index");
+    event(0x4c6da0,address(win),[]{set<uint8_t>(0x1197732,0);});expect(L"Empty, 1 of 1","blank rows keep their separate label");
+    n=said.size();
+    event(0x486de0,0x80000001,{},0x4c6da0);
+    event(0x486de0,0x80000003,{},0x464180);
+    event(0x486de0,0x80000003,{},0);
+    scene=0;event(0x486de0,0x80000003,{},0x4c6da0);
+    check(said.size()==n,"other sounds, script and unrelated buzzers, and inactive field menus stay silent");
+    setSetting(Setting::MenuIndex,0);setSetting(Setting::UnavailableCue,0);
+}
 }
 int main(int argc,char** argv) {
     testBase=reinterpret_cast<uintptr_t>(VirtualAlloc(nullptr,0x2400000,MEM_COMMIT|MEM_RESERVE,PAGE_EXECUTE_READWRITE));
@@ -235,6 +275,7 @@ int main(int argc,char** argv) {
     if(mode=="all" || mode=="slots") slots();
     if(mode=="all" || mode=="yes-no") yesNo();
     if(mode=="all" || mode=="index") indexing();
+    if(mode=="all" || mode=="availability") availability();
     std::printf("PASS: menu speech (%s), %u checks; synthetic fixtures only\n",mode.c_str(),checks);
     VirtualFree(reinterpret_cast<void*>(testBase),0,MEM_RELEASE);return 0;
 }

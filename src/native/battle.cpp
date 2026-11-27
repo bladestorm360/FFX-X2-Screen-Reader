@@ -7,8 +7,10 @@
 #include "ready_game_text.hpp"
 #include "game_visual_text.hpp"
 #include "battle_hud.hpp"
+#include "profile.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 
 namespace ffx {
 void queueBattleActiveStats(unsigned,uintptr_t);
@@ -81,6 +83,33 @@ void highlighted(uintptr_t win) {
 void cursor(Event& e) {
     if(previousTargetWindow) {resetTargetPreview();resetBattleSensor();}
     highlighted(e.args[0]);
+}
+void battleMenuRejected(Event& e) {
+    // These controller bodies use sound 3 for refused inputs. The same sound
+    // from 892290 belongs to Tidus's Overdrive timing and has its own cue.
+    switch(e.parentRva) {
+    case 0x49c870: case 0x49cd50: case 0x49d580: case 0x4a2290: case 0x4a2630:
+        if(e.args[0]==3 && !scene && inBattle() && read<int>(address(0xf3d6a0))!=1)
+            queueMenuRejectionCue();
+        break;
+    }
+}
+void installBattleMenuRejection() {
+    // Verify the direct PUSH 3 / CALL edge within the profile-matched command
+    // handler before hooking the sound wrapper. A mismatch skips this cue.
+    const auto push=address(0x49c870)+0xeb;
+    std::array<uint8_t,7> bytes{};
+    if(copy(push,bytes.data(),bytes.size()) && bytes[0]==0x6a && bytes[1]==3 && bytes[2]==0xe8) {
+        int32_t displacement=0;
+        std::memcpy(&displacement,bytes.data()+3,sizeof(displacement));
+        const auto target=push+bytes.size()+static_cast<uintptr_t>(displacement);
+        const auto expected=address(0)+(nativeProfile==NativeProfile::Installed?0x486ba0:0x486b00);
+        if(target==expected && read<uint8_t>(target)==0x55 && read<uint16_t>(target+1)==0xec8b) {
+            hookAddress(target,0x486b00,battleMenuRejected,nullptr);
+            return;
+        }
+    }
+    recordLog("battle menu rejection cue address not verified");
 }
 void pop(Event&) {amountFocus={};resetTargetPreview();resetBattleSensor();previousRow=previousCommand=-1;highlighted(currentWindow());}
 void opened(Event&) {
@@ -362,6 +391,7 @@ void installBattle() {
     installBattleResults(); installBattleAnnouncements();
     hook(0x49a5a0, nullptr, pop); hook(0x4a0d70, nullptr, opened);
     for (auto rva : {0x49c870,0x49cd50,0x49d580,0x4a2100,0x4a2290,0x4a2630}) hook(rva, nullptr, cursor);
+    installBattleMenuRejection();
     hook(0x49d300, nullptr, targets);
     hook(0x4a3250,nullptr,amountDrawn);
     hotkey('T', whoseTurn); hotkey('H', activeStats);

@@ -40,7 +40,10 @@ equipment, Change and new-turn transitions. Gameplay remains pending.
 [PR #10](Docs/plan.md#november24-pull-request-review-hold) scopes the temporary
 developer warp flag to the native action. Checked reads and active-controller
 ownership protect unrelated bits. Offline checks pass. Gameplay remains pending.
-The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
+[PR #11](Docs/plan.md#november24-pull-request-review-hold) adds localized
+greyed-out field labels and a saved, default-Off Unavailable cue for verified
+menu rejections. Battle row announcements remain deferred. Enemy HP/MP
+rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
 are fixed in [PR #20](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/20).
