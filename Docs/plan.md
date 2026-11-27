@@ -31,6 +31,16 @@ after the hold is lifted.
   [Windows CI run](https://github.com/bladestorm360/FFX-X2-Screen-Reader/actions/runs/45919818678),
   [developer build and CI](release.md#developer-build-and-ci),
   [local verification](../../Analysis/FFX/CleanCloneCI_20261126/verification.json).
+- **Field menu speech hand-merge.** The owner approved blank-cell speech,
+  reopened Save/Load and Yes/No focus, and optional field list indexing in
+  PR #4. Replace the proposed timer with the verified native opening and
+  cancellation boundaries. Fixed scope keeps the existing menus, F8 default
+  and deployment guard. The focused x86 fixture passes 463 checks, including
+  immediate reopen on the same row, equal text on separate rows, popup
+  replacement and all eight UI locales. Current local deployment is blocked
+  because no FFX executable was found in the mounted Steam libraries.
+  [PR #4](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/4),
+  [field menu behavior](features/menus/index.md#field-item-focus-and-system-popups).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

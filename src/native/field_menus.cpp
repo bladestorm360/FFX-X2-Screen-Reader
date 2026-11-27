@@ -6,12 +6,23 @@
 #include "esc_details.hpp"
 #include "ready_game_text.hpp"
 #include "naming.hpp"
+#include "menu_list_text.hpp"
 #include <algorithm>
 
 namespace ffx {
 void announceIncreaseRequirements(int row);
 namespace {
 using Key = std::array<intptr_t, 32>;
+struct ItemOpening {
+    Key initialFocus{};
+    unsigned window=0,epoch=0;
+};
+ItemOpening itemOpening;
+
+unsigned fieldMenuLanguage() {
+    using Language=unsigned(__cdecl*)();
+    return reinterpret_cast<Language>(address(0x241290))();
+}
 Key windowKey(uintptr_t p) {
     Key k{};
     k[0] = read<int>(p + 0x28, -1); k[1] = read<int16_t>(p + 0x48, -1);
@@ -21,13 +32,16 @@ Key windowKey(uintptr_t p) {
 }
 Key itemKey(uintptr_t p) {
     auto k = windowKey(p);
-    if (k[0] != 2 || k[1] < 0 || k[1] >= k[2] || k[3] < 0) return {};
+    // Preserve the native phase even when the controller has no ready row.
+    if (k[0] != 2 || k[1] < 0 || k[1] >= k[2] || k[3] < 0) return k;
     k[3] = std::min(k[3], static_cast<intptr_t>(read<uint8_t>(p + 0x42)) - 1);
-    if (k[3] < 0 || k[3] > 1) return {};
+    if (k[3] < 0 || k[3] > 1) return k;
     auto col = read<int>(p + 0x58 + k[3] * 4, -1);
-    if (col < 0 || col > 1) return {};
+    if (col < 0 || col > 1) return k;
     k[5] = k[1] * 2 + col; k[6] = read<uint8_t>(p + 0x43);
-    if (k[5] < 0 || k[5] >= 512 || k[5] >= read<int>(p + 0x94)) return {};
+    k[11] = read<int>(p + 0x94, -1);
+    if (k[5] < 0 || k[5] >= 512 || k[6] > 2 || k[11] < 0 || k[11] > 512) return k;
+    if (k[5] >= k[11]) {k[10]=k[9]=1;return k;}
     if (k[6] == 1) {
         k[7] = read<uint16_t>(address(0x1196f30) + k[5] * 2); k[8] = -1;
         // Native 8C7C00 draws only a nonzero, currently owned key item.
@@ -35,28 +49,44 @@ Key itemKey(uintptr_t p) {
         using Owned=int(__cdecl*)(unsigned);
         k[10]=!k[7] || !reinterpret_cast<Owned>(address(0x390850))(static_cast<unsigned>(k[7]));
     }
-    else if (k[6] == 0 || k[6] == 2) {
+    else {
         auto entry = address(0x1197730) + k[5] * 4;
         auto count = read<uint8_t>(entry + 2);
-        if (!count) return {};
-        k[7] = read<uint16_t>(entry); k[8] = k[6] == 0 ? count : -1;
-    } else return {};
+        k[10]=!count;
+        if (count) {k[7]=read<uint16_t>(entry);k[8]=k[6]==0?count:-1;}
+    }
     k[9] = 1; return k;
 }
 void itemBefore(Event& e) { e.before = itemKey(e.args[0]); }
 void itemAfter(Event& e) {
     if (scene != 2 && scene != 3) return;
     const auto k = itemKey(e.args[0]);
+    // A confirmed child entry or cancel out of the grid retires its opening.
+    // Only the opaque window offset is retained, and it is never dereferenced.
+    const auto window=static_cast<unsigned>(e.args[0]-address(0));
+    if(itemOpening.window==window &&
+       ((e.before[0]==2 && k[0]==0x11) || (e.before[0]==0x13 && k[0]==0x14))) itemOpening={};
     if (!k[9] || k == e.before) return;
+    const bool initializing=e.before[0]==0;
+    const auto epoch=generation();
+    // The same window can run phase zero twice for its initial selection.
+    // Ordinary focus changes and fresh native openings retain their speech.
+    if(initializing && itemOpening.epoch==epoch && itemOpening.window==window && itemOpening.initialFocus==k) return;
+    if(!initializing) itemOpening={};
     const auto getter = k[6] == 1 ? 0x3908f0 : k[6] == 2 ? 0x39a4c0 : 0x390a40;
+    const bool indexed=setting(Setting::MenuIndex)!=0 && k[5]<k[11];
+    const auto locale=k[10] || indexed ? fieldMenuLanguage() : 1u;
     TextPlan p;prepareTextPlan(p,"items");
     if(k[10]) {
-        p.headline=planLiteral(p,L"Empty");planSelectionDetail(p,0,false);commitTextPlan(p);return;
+        p.headline=planLiteral(p,menuListText(locale).empty);
+        planSelectionDetail(p,0,false);
+    } else {
+        auto name=planRecordName(p,getter,static_cast<unsigned>(k[7]));
+        p.headline=k[8]>=0?planCountedName(p,name,k[8]):name;
+        planSelectionDetail(p,planRecordDescription(p,getter,static_cast<unsigned>(k[7])),setting(Setting::AutoDetail)!=0);
     }
-    auto name=planRecordName(p,getter,static_cast<unsigned>(k[7]));
-    p.headline=k[8]>=0?planCountedName(p,name,k[8]):name;
-    planSelectionDetail(p,planRecordDescription(p,getter,static_cast<unsigned>(k[7])),setting(Setting::AutoDetail)!=0);
-    commitTextPlan(p);
+    if(indexed) p.headline=planMenuListIndex(p,p.headline,static_cast<unsigned>(k[5]),static_cast<unsigned>(k[11]),locale);
+    if(commitTextPlan(p) && initializing) itemOpening={k,window,epoch};
 }
 Key listKey(uintptr_t p) {
     auto k = windowKey(p);
@@ -87,15 +117,20 @@ void listAfter(Event& e) {
     auto k = listKey(e.args[0]);
     if (!k[9] || k[0] != 2 || k == e.before) return;
     const bool unequip=k[4]==0x4cf9c0 && k[5]==0;
+    const bool indexed=setting(Setting::MenuIndex)!=0;
+    const auto locale=k[7] || indexed ? fieldMenuLanguage() : 1u;
     TextPlan p;prepareTextPlan(p,"field-list");
     if(k[7]) {
-        p.headline=planLiteral(p,L"Empty");planSelectionDetail(p,0,false);commitTextPlan(p);return;
+        p.headline=planLiteral(p,menuListText(locale).empty);
+        if(indexed) p.headline=planMenuListIndex(p,p.headline,static_cast<unsigned>(k[1]),static_cast<unsigned>(k[2]),locale);
+        planSelectionDetail(p,0,false);commitTextPlan(p);return;
     }
     if(unequip) p.headline=planLiteral(p,L"Unequip armor");
     else if (k[6] == -1 || k[4] == 0x4cf9c0) p.headline=planNativeText(p,0x3abe10,static_cast<unsigned>(k[5]));
     else if (k[4] == 0x4d16c0 && k[6] == 2) p.headline=planNativeText(p,0x473af0,static_cast<unsigned>(k[5]));
     else if (k[4] == 0x4d16c0 && k[6] == 3) p.headline=planNativeText(p,0x4ddfa0,static_cast<unsigned>(k[5]) + 0x1033);
     else p.headline=planRecordName(p,0x39a4c0,static_cast<unsigned>(k[5]));
+    if(indexed) p.headline=planMenuListIndex(p,p.headline,static_cast<unsigned>(k[1]),static_cast<unsigned>(k[2]),locale);
     if(unequip) {
         planSelectionDetail(p,planLiteral(p,L"Remove the selected character's armor."),setting(Setting::AutoDetail)!=0);
     } else if(k[6]==-1 || k[4]==0x4cf9c0) {
@@ -245,6 +280,7 @@ void installSaveLoadMenu();
 void installFieldDetails();
 void installAeonAttributes();
 void installFieldTargets();
+void resetFieldItemOpening() { itemOpening={}; }
 void installFieldMenus() {
     installTextPlans();
     hook(0x4e0340, mainBefore, mainAfter);

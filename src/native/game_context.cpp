@@ -6,10 +6,17 @@ namespace ffx {
 void resetStatusReview();
 void helpSceneChanged();
 namespace {
+unsigned fieldItemScenes=0;
 void opening(Event&) { pauseNavAudio(); }
 void changed(Event&) {
     using Active=unsigned(__cdecl*)();
     const auto mask=reinterpret_cast<Active>(address(0x4aa410))()&0x1ffffff;
+    // Read the actual Items/Abilities membership, even under a higher overlay.
+    const auto items=mask&((1u<<2)|(1u<<3));
+    if(fieldItemScenes!=items) {
+        fieldItemScenes=items;
+        resetFieldItemOpening();
+    }
     int next=0;
     // Native overlays have higher window IDs than their parent. Observe the
     // completed mutation, including nested opens and main-menu ID remapping.

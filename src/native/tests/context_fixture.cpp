@@ -7,6 +7,7 @@
 namespace ffx {
 std::atomic<int> scene{0};
 unsigned mask=0,paused=0,resumed=0,details=0,status=0,audio=0;
+unsigned itemResets=0;
 struct Listener { Handler before,after; };
 std::map<unsigned,Listener> listeners;
 unsigned __cdecl active() { return mask; }
@@ -19,6 +20,7 @@ void refreshMinigameAudio() { ++audio; }
 void resetSelectionDetail() { ++details; }
 void resetStatusReview() { ++status; }
 void helpSceneChanged() {} // Help owns its separate renderer/context fixture.
+void resetFieldItemOpening() { ++itemResets; }
 void log(const char*,...) {}
 unsigned generation() { return 1; }
 }
@@ -34,5 +36,8 @@ int main() {
     event(0x4aa0b0,1u<<22); check(scene==22,"native remapping is observed after the open call");
     event(0x4aad20,0); check(!scene && resumed==2,"closing remapped overlay restores field context");
     event(0x4aa0b0,1); check(!scene,"field window zero is compatible with navigation");
+    event(0x4aa0b0,1u<<3);check(scene==3 && itemResets==1,"native Items open starts a fresh focus lifetime");
+    event(0x4aa0b0,(1u<<3)|(1u<<19));check(scene==19 && itemResets==1,"an overlay leaves the Items lifetime unchanged");
+    event(0x4aad20,1u<<19);check(scene==19 && itemResets==2,"closing Items under an overlay retires its lifetime");
     std::puts("PASS: native window open, remap, nesting, close/delete and field restoration.");
 }

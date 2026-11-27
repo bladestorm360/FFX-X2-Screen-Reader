@@ -457,7 +457,11 @@ int main(int argc, char** argv) {
     polishTextFixtures();
     setSetting(Setting::MenuIndex,1);
     installFieldMenus(); installMessages(); installSystemMenus(); installSphereGrid(); installBattle(); installNavigation();
-    maintenanceReaderFixtures(); airshipRuntimeFixtures(); baajNavigationFixtures(); airshipCidFixtures(); sinNativeFixtures(); sinPlatformFixtures(); airshipDestinationFixtures(); reportedEventRuntimeFixtures(); arenaCaptureFixtures(); helpCaptureFixtures();
+    setSetting(Setting::MenuIndex,0); // Indexed native lists have a separate synthetic fixture.
+    maintenanceReaderFixtures();
+    setSetting(Setting::MenuIndex,1);
+    airshipRuntimeFixtures(); baajNavigationFixtures(); airshipCidFixtures(); sinNativeFixtures(); sinPlatformFixtures(); airshipDestinationFixtures(); reportedEventRuntimeFixtures(); arenaCaptureFixtures(); helpCaptureFixtures();
+    setSetting(Setting::MenuIndex,0);
     set<int>(win+0x28,1); set<uint16_t>(win+0x30,2); set<int8_t>(win+0x45,0);
     set<uint8_t>(win+0x42,1); set<uint8_t>(win+0x43,0); set<int>(win+0x94,4);
     set<uint16_t>(0x1197730,1); set<uint8_t>(0x1197732,3);
@@ -733,6 +737,7 @@ int main(int argc, char** argv) {
     check(keys.count('N') && keys.count('H') && keys.count('S') && keys.count(VK_OEM_COMMA) && keys.count(VK_OEM_PERIOD),"all review hotkeys");
     set<uint8_t>(0xd2a8e0,0); resetNavigation();
     keys[VK_OEM_5](false); expect(L"No entity selected","navigation empty selection feedback");
+    setSetting(Setting::MenuIndex,1);
     constexpr unsigned actors=0x2240000, npc=actors+0x880;
     set<uintptr_t>(0x1fc44e4,address(actors)); set<unsigned>(0x1fc44e0,2);
     set<uint16_t>(actors+2,1); set<uint16_t>(npc,0x2002); set<uint16_t>(npc+2,1);
@@ -844,7 +849,9 @@ int main(int argc, char** argv) {
     sphereOwnedFixtures();
     messageFixtures();
     followupFixtures();
+    setSetting(Setting::MenuIndex,0);
     fieldMenuFixtures();
+    setSetting(Setting::MenuIndex,1);
     swimmingFixtures();
     buttonGlyphFixtures();
     swimmingProgressionFixtures();

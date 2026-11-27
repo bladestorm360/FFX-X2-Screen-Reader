@@ -1,5 +1,36 @@
 # Menus, dialogue, Help and Sphere Grid
 
+## Field item focus and system popups
+
+Items, Key Items and Abilities keep the native two-column focus order. A
+zero-quantity or trailing blank cell in a valid row says “Empty” and retires
+the previous description from both **I** and Autodetail. Existing Key Items
+ownership checks and native Customize and Overdrive visibility stay in place.
+An invalid row produces no announcement. With Menu indexing on, the worker
+uses the copied cell index and item total for these grids, and the native row
+index and total for equipment, Customize and Overdrive. The three grids omit
+the position outside their item total. New field labels and positions follow
+the eight supported game UI languages.
+
+The Items controller's phase-zero callback can repeat for the same opening.
+The existing scene open/close hooks retire the initial-focus record when the
+Items or Abilities scene membership changes, including beneath an overlay.
+The Items controller also retires it on accepted item use or grid cancel. The
+record holds one focus key, a resource generation and an opaque window offset.
+The first accepted queue submission marks the initialization as spoken.
+Another opening, window, resource generation or ordinary focus change can
+speak the same words. The record stays on the native owner. The worker
+formats copied text, counts and language. No new hook is registered.
+
+Both system popup callbacks reset the remembered slot and answer so the same
+selection reads when the popup opens again. If Confirm replaces a question
+with a loading or status popup inside the native action handler, the question
+revision retires the returning cursor. Existing prompt and Autodetail ordering
+remain attached to the current popup. The public `--menu-speech` fixture uses
+production scene, menu and speech code with synthetic windows and exercises
+reopening, cancellation, detail retirement, localization and indexing.
+[PR #4 review and verification](../../plan.md#november24-pull-request-review-hold).
+
 October21: [Formation membership and parameter confirmation speech](../battle/seymour_amount_prompts_20261021.md)
 use the actual front-party roster and copied native prompt/Yes/No values.
 Original descriptions and Autodetail ownership remain intact.

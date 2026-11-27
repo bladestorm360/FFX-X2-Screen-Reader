@@ -2,6 +2,7 @@
 #include "events.hpp"
 #include "settings.hpp"
 #include "owned_message_decoder.hpp"
+#include "menu_list_text.hpp"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -48,6 +49,14 @@ std::wstring render(TextRef root) {
             continue;
         }
         if(n.op==TextPlanOp::Integer) {out=std::to_wstring(n.value);continue;}
+        if(n.op==TextPlanOp::MenuListIndex) {
+            if(!left.empty()) {
+                const auto& labels=menuListText(n.length);
+                out=left+L", "+labels.positionPrefix+std::to_wstring(n.value+1)+
+                    labels.positionSeparator+std::to_wstring(n.offset)+labels.positionSuffix;
+            }
+            continue;
+        }
         if(n.op==TextPlanOp::OrderedRows) {
             // Sort copied presentation coordinates on preparation, never on
             // the native render/input owner. Repeated turns stay separate.
@@ -163,6 +172,11 @@ TextRef planLiteral(TextPlan& p,const wchar_t* value) {
 TextRef planPrimaryDodgeName(TextPlan& p) {TextPlanNode n;n.op=TextPlanOp::PrimaryDodgeName;return node(p,n);}
 TextRef planNativeButtonMask(TextPlan& p,uint16_t value) {TextPlanNode n;n.op=TextPlanOp::NativeButtonMask;n.value=value;return node(p,n);}
 TextRef planInteger(TextPlan& p,int64_t value) {TextPlanNode n;n.op=TextPlanOp::Integer;n.value=value;return node(p,n);}
+TextRef planMenuListIndex(TextPlan& p,TextRef label,unsigned selected,unsigned count,unsigned locale) {
+    if(!label || selected>=count) return label;
+    TextPlanNode n;n.op=TextPlanOp::MenuListIndex;n.left=label;n.value=selected;n.offset=count;n.length=locale;
+    return node(p,n);
+}
 TextRef planSettingValue(TextPlan& p,int value,unsigned style) {TextPlanNode n;n.op=TextPlanOp::SettingValue;n.value=value;n.offset=style;return node(p,n);}
 TextRef planBattleTarget(TextPlan& p,TextRef name,int current,int maximum,unsigned kind) {
     TextPlanNode n;n.op=TextPlanOp::BattleTarget;n.left=name;n.value=current;n.offset=static_cast<unsigned>(maximum);n.length=kind;return node(p,n);
