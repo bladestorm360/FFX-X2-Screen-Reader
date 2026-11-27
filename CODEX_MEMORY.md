@@ -37,6 +37,9 @@ exact script evidence before they can drive automatic guide rollback.
 [PR #9](Docs/plan.md#november24-pull-request-review-hold) uses the accepted
 native targeting command for party HP and MP previews, including across
 equipment, Change and new-turn transitions. Gameplay remains pending.
+[PR #10](Docs/plan.md#november24-pull-request-review-hold) scopes the temporary
+developer warp flag to the native action. Checked reads and active-controller
+ownership protect unrelated bits. Offline checks pass. Gameplay remains pending.
 The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)

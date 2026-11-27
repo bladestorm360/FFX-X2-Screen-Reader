@@ -156,6 +156,16 @@ warps to reset flags. [Console threading/focus](../../console_thread_hardening_2
 [Gagazet test setup](../../gagazet_cave_20261016.md) contain exact allowed state
 changes, refusal cases and commands.
 
+`utility_memory.cpp` checks the field controller's flags before starting a
+warp and sets the forced-jump bit only if it was clear. The native action
+cleans up a bit it added even when map invalidation or loading skips the
+completion callback. Cleanup requires the same active controller and a
+successful flag read. It preserves other flag changes and skips the write
+when the game consumed the bit. This cleanup covers the bit only. Recovery
+after a fault that already disabled player control remains unresolved.
+`src/native/tests/run_tests.bat --warp-flag` checks the setup, native exit
+and fault cases with synthetic controller state.
+
 ## Maintenance checks and evidence boundaries
 
 Run the relevant native fixtures before the canonical build. Profile/preflight,

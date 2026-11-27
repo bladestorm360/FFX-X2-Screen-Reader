@@ -269,12 +269,27 @@ void utilityWarp(unsigned room, unsigned spawn,bool force,bool macalaniaTest,boo
             data.storyWorker=script.worker;
             data.storySetter=address(0x4713a0);
         }
-        const auto flags=read<uint8_t>(script.controller); data.addedFlag=(flags&0x80)==0;
+        uint8_t flags=0;
+        if(!copy(script.controller,&flags,sizeof(flags))) return false;
+        data.addedFlag=(flags&0x80)==0;
         data.function=address(0x46fed0);
-        command.data(data);return write<uint8_t>(script.controller,flags|0x80);
+        command.data(data);
+        return !data.addedFlag || write<uint8_t>(script.controller,flags|0x80);
     };
     action.invoke=[room,spawn,gagazetTest](NativeAction& command) {
         auto data=command.data<WarpData>();
+        // The map-request hook can retire completion before the native jump
+        // consumes its flag. Keep cleanup on this action's native owner.
+        struct ForcedJumpFlag {
+            uintptr_t controller;
+            ~ForcedJumpFlag() {
+                uint8_t flags=0;
+                if(controller && read<uintptr_t>(address(0xf26ae8))==controller &&
+                    copy(controller,&flags,sizeof(flags)) && (flags&0x80)) {
+                    write<uint8_t>(controller,static_cast<uint8_t>(flags&~0x80u));
+                }
+            }
+        } added{data.addedFlag?data.controller:0};
         // Explicit developer tests only. Preparation and mutation share this
         // native owner; a cancelled/stale command never changes test progress.
         if(gagazetTest && !write<std::array<uint8_t,3>>(data.globals+0xd8,{})) {
@@ -290,13 +305,6 @@ void utilityWarp(unsigned room, unsigned spawn,bool force,bool macalaniaTest,boo
     };
     action.complete=[](NativeAction& command,bool success) {
         const auto data=command.data<WarpData>();
-        // Completion is called only in the original generation. A successful
-        // load resets the generation, so its old controller is never touched.
-        if(data.controller && data.addedFlag &&
-            read<uintptr_t>(address(0xf26ae8))==data.controller) {
-            const auto flags=read<uint8_t>(data.controller);
-            write<uint8_t>(data.controller,flags&~0x80);
-        }
         if(!success || data.setupFailed) utilityReply(data.refusal?data.refusal:L"The field transition was cancelled or failed.");
     };
     if(!deferNativeAction(std::move(action))) throw std::runtime_error("Native action owner or queue unavailable");

@@ -31,6 +31,7 @@ if /I "%~1"=="--native-actions" goto nativeactions
 if /I "%~1"=="--jecht" goto jecht
 if /I "%~1"=="--lightning" goto lightning
 if /I "%~1"=="--console" goto console
+if /I "%~1"=="--warp-flag" goto warpflag
 if /I "%~1"=="--readers" goto readers
 if /I "%~1"=="--sphere" goto sphere
 if /I "%~1"=="--controller" goto controller
@@ -157,6 +158,12 @@ if not "%errorlevel%"=="0" goto failed
 .\utility_console_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--console" goto success
+:warpflag
+cl /nologo /W4 /WX /O2 /EHa /std:c++17 /MT /DFFX_READER_TEST /Fe:warp_flag_fixture.exe "%TEST_SRC%warp_flag_fixture.cpp" "%TEST_SRC%..\utility_memory.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+.\warp_flag_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--warp-flag" goto success
 :profile
 cl /nologo /W4 /EHa /std:c++17 /MT /Fe:profile_extensions_fixture.exe "%TEST_SRC%profile_extensions_fixture.cpp" "%TEST_SRC%..\profile_extensions.cpp" "%TEST_SRC%..\profile_dependencies.cpp"
 if not "%errorlevel%"=="0" goto failed

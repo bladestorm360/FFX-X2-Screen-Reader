@@ -134,6 +134,21 @@ and any approved hand-merge has been completed and verified.
   on hold.
   [PR #9](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/9),
   [native ownership and evidence](features/battle/hp_sources_20261021.md#battle-target-preview-command).
+- **Developer warp flag cleanup.** The owner approved the PR #10 hand-merge.
+  The retained native warp body (VA `0086fed0`) establishes the forced-jump
+  bit and its normal clear. The map-request hook can skip completion after a
+  fault. The warp action now cleans up the bit it set on the active controller
+  after a successful flag read. Preparation also requires a successful read.
+  The baseline reproduced the fault after the map-generation change.
+  The focused x86 fixture passed 15 checks, including failed reads, changes to
+  other bits and controller replacement. The archive-backed Gagazet,
+  Macalania and all-six-trial regressions passed in development and release
+  utility builds. The actual native-action adapter fixture also passed its
+  stale cancellation, loader concurrency and exception recovery checks.
+  If a native fault has already disabled player control, this cleanup cannot
+  restore it. Gameplay and deployment remain on hold.
+  [PR #10](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/10),
+  [developer warp behavior](features/distribution/index.md#developer-utilities).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)
