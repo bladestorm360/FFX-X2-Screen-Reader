@@ -1,8 +1,8 @@
 ## November24 pull request review hold
 
-**Documentation only until the user lifts the hold.** Keep existing PR states
-unless the owner explicitly directs a change. Merges, hand-merges, builds and
-deployments stay on hold. The earlier merge of PR #20 is recorded below.
+**Documentation only until the user lifts the hold.** A specific PR change,
+hand-merge, build or deployment may proceed when the owner explicitly approves
+it. The earlier merge of PR #20 is recorded below.
 
 Review one PR at a time in conversation with the user. Explain the current mod
 behavior, the evidence for the reported gap, the proposed changes and their
@@ -19,12 +19,18 @@ after the hold is lifted.
 - **MIT license proposal stays closed.** The owner reviewed PR #2 and directed
   leaving it closed. No license change was approved.
   [PR #2](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/2)
-- **Clean-clone build and CI approved for hand-merge.** The owner approved the
-  revised PR #3 and requested the same practice in the shared accessibility
-  template. The implementation stages by default, retains guarded deployment
-  and resource limits, and distinguishes public checks from full local suites.
+- **Clean-clone build and CI integrated.** The owner approved the revised PR #3
+  and the same practice is now required by the shared accessibility template.
+  The hand-merge reached `master` at `2f9da1f`. It stages by default, retains
+  guarded deployment and resource limits, and distinguishes public checks from
+  full local suites. The fresh-checkout x86 build and public native and installer
+  suites passed locally and in Windows CI. The full local installer suite passed
+  807 assertions with the locked PRISM runtime. Defender scanned all seven
+  staged files with no detections reported. GitHub closed PR #3 after verification.
   [PR #3](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/3),
-  [developer build and CI](release.md#developer-build-and-ci).
+  [Windows CI run](https://github.com/bladestorm360/FFX-X2-Screen-Reader/actions/runs/45919818678),
+  [developer build and CI](release.md#developer-build-and-ci),
+  [local verification](../../Analysis/FFX/CleanCloneCI_20261126/verification.json).
 - **Unavailable cue approved.** The game’s error buzzer may be accompanied by
   spoken “Unavailable.” The proposed default On, settings placement, greyed-out
   row announcements and implementation remain for individual review. [PR #11](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/11)

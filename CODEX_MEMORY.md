@@ -1,10 +1,11 @@
 # FFX current memory — November24
 
 [Pull request review hold](Docs/plan.md#november24-pull-request-review-hold).
-Documentation only until the user lifts the hold. Review each PR with the user
-and record which pieces they approve for later hand-merging. The Unavailable cue
-is approved. Enemy HP/MP rendering and all other proposals await
-individual review.
+Review each PR with the user and record the decision. The approved
+[clean-checkout build and Windows CI](Docs/release.md#developer-build-and-ci)
+is integrated. PR #3 closed after successful CI. The review hold still applies
+outside specific approvals.
+The Unavailable cue is approved. Enemy HP/MP rendering awaits individual review.
 
 [Airship Proceed? choices](Docs/plan.md#november24-airship-proceed-confirmation)
 are fixed in [PR #20](https://github.com/bladestorm360/FFX-X2-Screen-Reader/pull/20).
