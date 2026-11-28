@@ -98,5 +98,6 @@ void scanExits(Point player, std::vector<Entity>& entities);
 #ifdef FFX_READER_TEST
 bool navigationSelectedForTest(Entity&); // Preparation-owner fixture observation only.
 unsigned navigationPendingForTest();
+bool navigationResumeForTest(const NativeRouteTarget&,const std::vector<Entity>&,bool routeReady);
 #endif
 }

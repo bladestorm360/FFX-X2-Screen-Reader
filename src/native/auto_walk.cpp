@@ -16,6 +16,7 @@
 #include "game_bindings.hpp"
 #include "controller.hpp"
 #include <atomic>
+#include <cstring>
 #include <cmath>
 #include <algorithm>
 namespace ffx {
@@ -41,6 +42,32 @@ FieldControlsSnapshot messageGuard;
 std::array<unsigned,4> scans{0xc8,0xcb,0xd0,0xcd};
 unsigned diveScan=0; int diveButton=-1;
 std::array<unsigned,8> swimManualScans{};
+// Screen-reader modifiers: DIK_INSERT, DIK_NUMPAD0 (Numpad Insert) and DIK_CAPITAL.
+// A key first pressed while one is held belongs to the reader until released.
+constexpr unsigned readerModifierScans[]={0xd2,0x52,0x3a};
+constexpr unsigned cancelScans[]={0x11,0x1e,0x1f,0x20,0xc8,0xd0,0xcb,0xcd,0x1c,0x01};
+std::atomic<bool> readerModifier{false};
+std::array<bool,256> readerOwned{},physicalDown{}; // DirectInput poll owner only
+// Common 005E stops immediately. Its saved destination is only a candidate
+// until the native battle flag confirms an encounter; restored control or a
+// map change retires a nonbattle takeover. After battle, request the route on
+// the first safe native field update. No elapsed-time arming or settling.
+enum ResumePhase : int {ResumeNone,ResumeCandidate,ResumeBattle,ResumeAfter};
+std::atomic<int> resumePhase{ResumeNone};
+std::atomic<bool> resumeCancel{false};
+std::atomic<AutoWalkResume> resumeHandler{nullptr};
+unsigned resumeEpoch=0;
+// Field identity when the walk was interrupted: room id and player position. A
+// battle returns the player to the same room and spot; anything else (another
+// map, a cutscene or script that moved the player) drops the resume.
+uint16_t resumeRoom=0;Point resumeWhere;
+constexpr double ResumeDriftUnits=22.26; // two steps
+uint16_t currentRoom() {return read<uint16_t>(address(0xd2ca90),0xffff);}
+bool sameResumeField() {
+    const auto p=playerPosition();
+    return currentRoom()==resumeRoom && std::isfinite(p.x) && std::isfinite(p.z) && std::hypot(p.x-resumeWhere.x,p.z-resumeWhere.z)<=ResumeDriftUnits;
+}
+NativeRouteTarget walking; // native thread only: the destination of the current walk
 constexpr unsigned octMasks[]={1,9,8,12,4,6,2,3}; // forward, left, backward, right
 uint64_t nowMs() {
 #ifdef FFX_READER_TEST
@@ -69,13 +96,28 @@ void announceStop(const wchar_t* spokenReason) {
     commitTextPlan(announcement);
 }
 void stop(const char* reason,const wchar_t* spokenReason=nullptr,bool routeFailure=false) {
-    const bool was=engaged.exchange(false); mask=0; cancel=false; stamp=0;messageGuard={};arrivalReleased=false;
+    const bool was=engaged.exchange(false),cancelled=cancel.exchange(false); mask=0; stamp=0;messageGuard={};arrivalReleased=false;
     if(was) {
         recordLog("auto walk stopped: %s",reason);
+        const bool controlLost=!std::strcmp(reason,"native player control disabled");
+        const bool battleStop=inBattle() && (controlLost || !std::strcmp(reason,"context") ||
+            !std::strcmp(reason,"reset") || !std::strcmp(reason,"map changed"));
+        if(!cancelled && setting(Setting::AutoWalk) && (controlLost || battleStop)) {
+            // Keep the last field position and room, not a battle actor's pose.
+            resumeCancel=false;resumeWhere=last;resumeEpoch=epoch;resumePhase=battleStop?ResumeBattle:ResumeCandidate;
+        }
+        else resumePhase=ResumeNone;
         if(spokenReason && epoch==generation() && (!routeFailure || claimNavRouteStopSpeech())) announceStop(spokenReason);
     }
 }
 const wchar_t* const ControlDisabled=L"player control disabled";
+bool retireResumeCandidate() {
+    if(resumePhase.load()!=ResumeCandidate) return false;
+    const auto reason=nativeFieldControlReason();
+    if(resumeEpoch==generation() && currentRoom()==resumeRoom &&
+        (scene || (reason && std::wcscmp(reason,ControlDisabled)==0))) return false;
+    resumePhase=ResumeNone;return true;
+}
 bool messageAllowsAssist() {
     if(!messageGuard.candidate) return true;
     const auto state=classifyFieldControls(messageGuard);
@@ -104,12 +146,31 @@ void textOpened(Event& e) {
 // Common 005E is also used by normal exits and authored events. Its owner
 // cancels immediately and leaves the native transition/message to announce.
 void controlDisabled(Event&) { stop("native player control disabled"); }
+void controlRestored(Event&) {if(resumePhase.load()==ResumeCandidate && !inBattle()) resumePhase=ResumeNone;}
+// Battle completion can run without intervening field-input updates. Confirm
+// the candidate before native completion restores control or reloads the field.
+void battleFinished(Event&) {if(resumePhase.load()==ResumeCandidate && !retireResumeCandidate()) resumePhase=ResumeBattle;}
+// Input before the next field update must still cancel once the native battle
+// flag clears. Battle commands and result confirmation keep the destination.
+void cancelFieldResume() {if(resumePhase.load()!=ResumeNone && !inBattle()) resumeCancel=true;}
 }
 void setNavigationInputAssist(NavigationKeyboardAssist keyAssist,NavigationControllerAssist padAssist) { keyboardAssist=keyAssist;controllerAssist=padAssist; }
-void stopAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("cancelled");else {engaged=false;cancel=true;mask=0;stamp=0;}}
+void suspendAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("reset");else {engaged=false;cancel=true;mask=0;stamp=0;}}
+void stopAutoWalk() {
+    cancelFieldResume();
+    manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("cancelled");else {engaged=false;cancel=true;mask=0;stamp=0;}
+}
+bool toggleAutoWalkOff() {
+    if(!autoWalkActive()) return false;
+    stopAutoWalk();output(L"Auto walk stopped",true,"auto-walk");return true;
+}
+void releaseAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("route lost");else {engaged=false;cancel=true;mask=0;stamp=0;}}
+bool autoWalkResumePending() {const int phase=resumePhase.load();return phase==ResumeBattle || phase==ResumeAfter;}
+void setAutoWalkResume(AutoWalkResume handler) {resumeHandler=handler;}
 unsigned autoWalkInputRevision() {return manualRevision.load(std::memory_order_acquire);}
 bool autoWalkActive() { return engaged && !cancel; }
 void startAutoWalk() {
+    resumePhase=ResumeNone;resumeCancel=false;
     stop("new route");
     NavLeg leg;
     if(!safe() || navRouteObservationPending.load(std::memory_order_acquire) || !navLeg(leg) ||
@@ -126,6 +187,7 @@ void startAutoWalk() {
     if(leg.target.swimDepth && ((nativeInputUsesController() && diveButton<0) || (!nativeInputUsesController() && !diveScan))) {
         output(L"Auto walk unavailable: Dive has no configured control",false,"auto-walk"); return;
     }
+    walking=leg.target;resumeRoom=currentRoom();
     epoch=generation(); maskEpoch=epoch; previous=0; octant=-1; best=-1;collisionPendingSince=0;
     const auto now=nowMs(); improved=movingSince=now; unstickUntil=0;
     last=playerPosition(); cancel=false; engaged=true;
@@ -135,7 +197,24 @@ void startAutoWalk() {
     commitTextPlan(announcement);
     updateAutoWalk();
 }
+void serviceResume() {
+    const int phase=resumePhase.load();if(phase==ResumeNone) return;
+    if(resumeCancel.exchange(false) || !setting(Setting::AutoWalk)) {resumePhase=ResumeNone;return;}
+    if(retireResumeCandidate()) return;
+    if(inBattle()) {resumePhase=ResumeBattle;return;}
+    if(phase==ResumeCandidate) return;
+    // A battle may reload its own field. Accept that generation at battle end;
+    // any subsequent reset retires the pending request, even in the same room.
+    if(phase==ResumeBattle) {resumePhase=ResumeAfter;resumeEpoch=generation();}
+    if(resumeEpoch!=generation()) {resumePhase=ResumeNone;return;}
+    if(!safe() || !nativeReaderResourcesReady()) return;
+    if(!sameResumeField()) {resumePhase=ResumeNone;recordLog("auto walk resume dropped: room or position changed");return;}
+    resumePhase=ResumeNone;
+    const auto handler=resumeHandler.load();
+    recordLog("auto walk resume after battle: %s",handler && handler(walking)?"requested":"unavailable");
+}
 void updateAutoWalk() {
+    if(!engaged) serviceResume();
     // The map announcement owns transition speech, including stale dialogue guards.
     if(engaged && epoch!=generation()) {stop("map changed");return;}
     if(!messageAllowsAssist()) {mask=0;return;}
@@ -230,30 +309,49 @@ void updateAutoWalk() {
     mask=octMasks[desired] | (leg.target.swimDepth?16u:0u); stamp=now;
     maskObservationRevision=observationRevision;
 }
+void autoWalkReaderModifier(bool held) {readerModifier=held;}
 void autoWalkPlayerInput(unsigned vk) {
     pedestalPlayerInput(vk);
-    if(pedestalConsentVk(vk)) return;
-    if(vk=='W' || vk=='A' || vk=='S' || vk=='D' || vk==VK_UP || vk==VK_DOWN || vk==VK_LEFT || vk==VK_RIGHT || vk==VK_ESCAPE || vk==VK_RETURN) {
+    if(pedestalConsentVk(vk) || readerModifier) return;
+    const bool movement=vk=='W' || vk=='A' || vk=='S' || vk=='D' || vk==VK_UP || vk==VK_DOWN || vk==VK_LEFT || vk==VK_RIGHT;
+    if(movement || vk==VK_ESCAPE) cancelFieldResume();
+    if(movement || vk==VK_ESCAPE || vk==VK_RETURN) {
         manualRevision.fetch_add(1,std::memory_order_acq_rel);
         cancel=true; mask=0;
     }
 }
 void autoWalkKeyboard(uint8_t* keys) {
     pedestalKeyboardInput(keys);
+    bool modifier=false;
+    for(unsigned scan:readerModifierScans) if(keys[scan]&0x80) modifier=true;
+    for(unsigned i=0;i<256;++i) {
+        const bool down=(keys[i]&0x80)!=0;
+        readerOwned[i]=down && (readerOwned[i] || (modifier && !physicalDown[i]));
+        physicalDown[i]=down;
+    }
+    const auto player=[&](unsigned scan) {return (keys[scan]&0x80) && !readerOwned[scan];};
     bool physical=false;
-    for(unsigned scan:{0x11u,0x1eu,0x1fu,0x20u,0xc8u,0xd0u,0xcbu,0xcdu,0x1cu,0x01u})
-        if((keys[scan]&0x80) && !pedestalConsentKey(scan)) physical=true;
-    for(unsigned scan:scans) if((keys[scan]&0x80) && !pedestalConsentKey(scan)) physical=true;
+    for(unsigned scan:cancelScans) if(player(scan) && !pedestalConsentKey(scan)) physical=true;
+    for(unsigned scan:scans) if(player(scan) && !pedestalConsentKey(scan)) physical=true;
     if(physical) manualRevision.fetch_add(1,std::memory_order_acq_rel);
+    bool moved=false;
+    for(unsigned scan:cancelScans) if(scan!=0x1c && scan!=0x01 && player(scan)) moved=true;
+    for(unsigned scan:scans) if(player(scan)) moved=true;
+    if(moved || player(0x01)) cancelFieldResume();
     if(const auto assist=keyboardAssist.load()) assist(keys);
     if(!engaged) return;
     // Raw physical buffer is checked before adding configured movement bits. Held-state
     // edge tracking must retain this original buffer, never injected keys.
-    for(unsigned scan: {0x11u,0x1eu,0x1fu,0x20u,0xc8u,0xd0u,0xcbu,0xcdu,0x1cu,0x01u})
-        if((keys[scan]&0x80) && !pedestalConsentKey(scan)) { cancel=true; mask=0; return; }
+    for(unsigned scan:cancelScans)
+        if(player(scan) && !pedestalConsentKey(scan)) { cancel=true; mask=0; return; }
     const auto bits=command();
-    for(unsigned i=0;i<scans.size();++i) if(keys[scans[i]]&0x80) { cancel=true; mask=0; return; }
-    if(mask.load()&16) for(auto scan:swimManualScans) if(scan && (keys[scan]&0x80)) { cancel=true; mask=0; return; }
+    for(unsigned i=0;i<scans.size();++i) if(player(scans[i])) { cancel=true; mask=0; return; }
+    if(mask.load()&16) for(auto scan:swimManualScans) if(scan && player(scan)) { cancel=true; mask=0; return; }
+    // A reader chord such as Insert+Down must not steer the character either.
+    const auto strip=[&](unsigned scan) {if(scan && readerOwned[scan]) keys[scan]=0;};
+    for(unsigned scan:cancelScans) strip(scan);
+    for(unsigned scan:scans) strip(scan);
+    for(unsigned scan:swimManualScans) strip(scan);
     if(bits&16) {
         if(diveScan) keys[diveScan]|=0x80; else { cancel=true; mask=0; }
     }
@@ -265,6 +363,8 @@ void autoWalkController(pad::State& state) {
         std::abs(int(state.rx))>=5000 || std::abs(int(state.ry))>=5000 ||
         (state.lt>=30 && !(consent&pad::bit(pad::LT))) || (state.rt>=30 && !(consent&pad::bit(pad::RT))) || (state.held&~consent);
     if(physical) manualRevision.fetch_add(1,std::memory_order_acq_rel);
+    if(std::abs(int(state.lx))>=5000 || std::abs(int(state.ly))>=5000 ||
+        (state.held&(pad::bit(pad::Up)|pad::bit(pad::Down)|pad::bit(pad::Left)|pad::bit(pad::Right)))) cancelFieldResume();
     if(const auto assist=controllerAssist.load()) assist(state);
     if(!engaged) return;
     const bool manual=std::abs(int(state.lx))>=5000 || std::abs(int(state.ly))>=5000 ||
@@ -296,5 +396,7 @@ void installAutoWalk() {
     // The native dialogue/control guard already blocks injection mid-call.
     hook(0x4b8980,nullptr,textOpened);
     hook(0x471980,controlDisabled,nullptr); // verified native player-control disable
+    hook(0x471a50,nullptr,controlRestored); // Common 005D ends a nonbattle takeover
+    hook(0x382730,battleFinished,nullptr); // verified native battle completion
 }
 }

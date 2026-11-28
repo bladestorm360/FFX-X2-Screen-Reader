@@ -23,6 +23,7 @@ bool controllerOwned() { return false; }
 bool capturesKey(unsigned,bool,bool) { return false; }
 bool consumeKey(unsigned,bool,bool) { return false; }
 void autoWalkKeyboard(uint8_t*) {}
+void autoWalkReaderModifier(bool) {}
 void directKeyboard(bool active) { registered=active; if(active) ++registrations; }
 unsigned generation() { return 1; }
 uintptr_t address(unsigned rva) { return reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr))+rva; }

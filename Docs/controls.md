@@ -488,15 +488,29 @@ next leg using the new camera direction. Slow camera pans do not repeat guidance
 
 **Auto walk** in **F8 → Navigation** defaults **Off**. Turn it **On**, select a
 destination, then press **Backslash** to walk its current collision route.
-The field controller route command (right trigger) also starts walking. Movement input or Escape cancels immediately. Dialogue, scripted
+The field controller route command (right trigger) also starts walking. Movement input or Escape cancels immediately.
+Pressing **Backslash** (or the right trigger) again while walking stops the walk and says **Auto walk stopped**,
+without reading the route again.
+Screen-reader commands do not cancel it: an arrow, Enter or Escape pressed while
+**Insert**, **Numpad Insert** or **Caps Lock** is held is left to the screen reader
+until that key is released, and does not steer the character. Dialogue, scripted
 scenes, menus, battle, lost focus and a map change stop it; press Backslash
-again to start a new walk. A route can include up to one additional step into
-an interaction zone when the floor connects and the approach is clear.
-Auto walk releases movement at arrival and faces the target on the next native
-update. Pedestals use their existing push position. Confirm the interaction
-yourself. If the final facing check fails for an ordinary target, Auto walk
-says **Auto walk stopped: not in interaction range**. Backslash reports an
-inactive destination and reads any available route for manual movement.
+again to start a new walk. When a battle interrupts a walk, Auto walk requests
+its route to the same destination on the first native field update after the
+battle with player control and no dialogue or menu. Outside battle, movement,
+Escape, Backslash/right trigger, destination scans or browsing, guide paths,
+and pedestal or airship actions cancel the resume. Starting a new walk or
+turning Auto walk off also cancels it. Returning in a different room or more
+than two steps from the interruption drops it. A map change after battle end or a missing
+destination also drops it. Control taken by an exit or scripted event without
+a battle never resumes the walk.
+A route can include up to one additional step into an interaction zone when
+the floor connects and the approach is clear. Auto walk releases movement at
+arrival and faces the target on the next native update. Pedestals use their
+existing push position. Confirm the interaction yourself. If the final facing
+check fails for an ordinary target, Auto walk says **Auto walk stopped: not in
+interaction range**. Backslash reports an inactive destination and reads any
+available route for manual movement.
 Backslash with a message box open says **Auto walk unavailable while a message
 is open**; during a scene it says **Auto walk unavailable during a scene**; and
 while a scripted event still holds player control it says **Auto walk

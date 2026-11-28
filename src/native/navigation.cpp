@@ -1,5 +1,6 @@
 #include "navigation.hpp"
 #include "navigation_order.hpp"
+#include "nav_resume.hpp"
 #include "airship_map.hpp"
 #include "navigation_scene.hpp"
 #include "navigation_targets.hpp"
@@ -105,6 +106,13 @@ std::vector<const Entity*> filtered() {
 std::wstring label(const Entity& e) {return e.name.empty()?e.category:e.name;}
 std::wstring decimal(double value) {wchar_t text[40]{};swprintf_s(text,L"%.1f",value);return text;}
 void emit(const Pending& event,std::wstring text,const char* producer,bool interrupt=true) {speechq::emitOwned(std::move(text),event.header,producer,false,interrupt);}
+// Runs on the game thread (updateAutoWalk from native input): no lock, no allocation.
+nav::ResumeMailbox resumeTarget;
+bool resumeAutoWalk(const NativeRouteTarget& target) {
+    resumeTarget.publish(target.name.data(),target.id,target.pushControl,target.position);
+    interested.store(true,std::memory_order_release);
+    return nav::submitNavigationQuery(nav::Query::Resume);
+}
 void lockSelected() {
     auto& s=owned();const auto rows=filtered();s.selection=s.selected<rows.size()?key(*rows[s.selected]):EntityKey{};interested.store(true,std::memory_order_release);
 }
@@ -225,6 +233,16 @@ void execute(const Pending& event) {
     }
     case nav::Query::Distance:announce(event,true,false);break;
     case nav::Query::Path:pathfind(event);break;
+    case nav::Query::Resume: {
+        nav::ResumeRequest request;
+        if(!resumeTarget.take(request)) {emit(event,L"Auto walk not resumed","navigation-path",false);break;}
+        const std::wstring name=request.name.data();
+        const int found=nav::resumeRow(s.entities,request.id,request.pushControl,name,request.position,label);
+        const auto rows=filtered();unsigned row=0;
+        while(found>=0 && row<rows.size() && rows[row]!=&s.entities[found]) ++row;
+        if(found<0 || row==rows.size()) {emit(event,L"Auto walk not resumed: "+name+L" not found","navigation-path",false);break;}
+        s.selected=row;lockSelected();pathfind(event);break;
+    }
     case nav::Query::Filter:
         adjustSetting(Setting::HideUnreachable,1);requestOwnedReachability(s.observation,s.entities);
         // The row index counts visible rows only; find the selected destination again so "N of M"
@@ -362,6 +380,8 @@ void enqueue(nav::Query query,bool shift=false,bool cancel=false) {
 }
 void pathKey(bool shift) {
     if(inBattle()) output(L"Field navigation is unavailable in battle",true,"navigation-path");
+    // Backslash again during a walk stops it rather than re-reading and restarting the route.
+    else if(!shift && toggleAutoWalkOff()) return;
     else if(!interested.load(std::memory_order_acquire) && !nav::navigationDataPending()) output(L"No entity selected",true,"navigation-path");
     else if(scene && setting(Setting::AutoWalk))
         output(nav::routeStartRefusal(true,false,false,false,false),true,"navigation-action-refused");
@@ -405,10 +425,10 @@ void refreshNavigation() {enqueue(nav::Query::Refresh);}
 void refreshSelectedBeacon() {enqueue(nav::Query::Beacon);}
 bool requestNavigationAssistRoute() {return nav::submitNavigationQuery(nav::Query::AssistRoute);}
 void requestNavigationAssistInstruction() {enqueue(nav::Query::AssistInstruction);}
-void resetNavigation() {nav::invalidateNavigationIntents();nav::resetNavigationObservations();resetReachability();cancelPedestal();stopAutoWalk();resetNavigationScripts();resetNavAudio();interested=false;}
+void resetNavigation() {nav::invalidateNavigationIntents();nav::resetNavigationObservations();resetReachability();cancelPedestal();suspendAutoWalk();resetNavigationScripts();resetNavAudio();interested=false;}
 void prepareNavigationScriptRetirement();void prepareNavRetirement();
 void installNavigation() {
-    storage.prepare();startPuzzleGuideTargets();prepareNavigationScriptRetirement();prepareNavRetirement();installReachability();installAutoWalk();installPedestal();nav::startNavigationIntents();
+    storage.prepare();startPuzzleGuideTargets();prepareNavigationScriptRetirement();prepareNavRetirement();installReachability();installAutoWalk();setAutoWalkResume(resumeAutoWalk);installPedestal();nav::startNavigationIntents();
     nav::startNavigationObservations(receiveQuery,receiveScene,resetOwned);speechq::registerDomainMaintenance(12,maintenance);onReachabilityPrepared(speechq::notifyPreparation);
     hotkey('U',[](bool shift) {enqueue(nav::Query::Filter,shift);});hotkey('G',gilKey);hotkey('M',[](bool) {announceCurrentMap();});
     hook(map_transition::EnableControl,nullptr,actorEvent);hook(0x225930,nullptr,capture);
@@ -422,5 +442,16 @@ void installNavigation() {
 #ifdef FFX_READER_TEST
 bool navigationSelectedForTest(Entity& target) {if(nativeGameThread() || !owned().ready) return false;const auto rows=filtered();if(owned().selected>=rows.size()) return false;target=*rows[owned().selected];return true;}
 unsigned navigationPendingForTest() {return static_cast<unsigned>(owned().pending.size());}
+// Synthetic destinations on the captured field; execute and maintenance stay real.
+bool navigationResumeForTest(const NativeRouteTarget& target,const std::vector<Entity>& entities,bool routeReady) {
+    if(nativeGameThread() || !owned().ready || entities.empty()) return false;
+    auto& s=owned();s.entities=entities;s.selected=0;lockSelected();
+    s.mesh={};s.mesh.openPlane=true;s.mesh.events=s.observation.geometry.events;s.mesh.events.ready=routeReady;
+    s.observation.geometryValid=true;retireOwnedReachability();requestOwnedReachability(s.observation,s.entities);
+    resumeTarget.publish(target.name.data(),target.id,target.pushControl,target.position);
+    Pending event{s.header,{},{}};event.query.query=nav::Query::Resume;
+    event.query.manual=autoWalkInputRevision();event.query.intentRevision=nav::navigationIntentRevision();
+    execute(event);return true;
+}
 #endif
 }

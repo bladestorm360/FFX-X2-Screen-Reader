@@ -25,6 +25,7 @@ void updateAutoWalk() {}
 void updatePedestalInput() {}
 void autoWalkPlayerInput(unsigned) {}
 void autoWalkKeyboard(uint8_t*) {}
+void autoWalkReaderModifier(bool) {}
 bool blitzCapturesKey(unsigned vk,bool control) { return control && vk==VK_DOWN; }
 bool fieldControlsCapturesKey(unsigned vk,bool control) { return control && vk==VK_UP; }
 unsigned fieldInputs=0;

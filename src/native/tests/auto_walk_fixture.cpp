@@ -20,7 +20,8 @@ bool swimmingHud=false,hudPending=false;
 bool depthActive=true,padOwned=false;
 bool nativeOwner=true;
 bool nativeGameThread() { return nativeOwner; }
-bool nativeReaderResourcesReady() noexcept { return true; }
+bool resourcesReady=true;
+bool nativeReaderResourcesReady() noexcept { return resourcesReady; }
 bool controllerOwned() { return padOwned; }
 bool swimmingGoalActive(const NativeRouteTarget&) { return depthActive; }
 int dialogue=0;
@@ -132,12 +133,16 @@ bool faceNavigationTarget(const NativeRouteTarget&) { ++faceCalls; return faceRe
 void log(const char*,...) {}
 }
 using namespace ffx;
+unsigned resumes=0;std::wstring resumedName;
+bool onResume(const NativeRouteTarget& target) {++resumes;resumedName=target.name.data();return true;}
+// Resume assertions use native updates without advancing the synthetic clock.
+void frames(unsigned count) {for(unsigned i=0;i<count;++i) updateAutoWalk();}
 void check(bool value,const char* reason) { if(!value) { std::fprintf(stderr,"FAIL: %s\n",reason); std::exit(1); } }
 std::array<uint8_t,256> keyboard() { std::array<uint8_t,256> keys{}; autoWalkKeyboard(keys.data()); return keys; }
 void begin(Point destination={0,0,100}) {
     navRouteStopReported=false;
     stopAutoWalk(); player={}; forward={0,0,1}; known=camera=focused=enabled=true;
-    menu=console=battle=false; scene=dialogue=0; clockValue+=1000;
+    menu=console=battle=false;resourcesReady=true; scene=dialogue=0; clockValue+=1000;
     *reinterpret_cast<uintptr_t*>(address(0xf26ae8))=address(0x1000000);
     *reinterpret_cast<uint8_t*>(address(0x1000000))=2;
     *reinterpret_cast<uintptr_t*>(address(0xf00740))=address(0x1001000);
@@ -156,6 +161,10 @@ int main() {
     begin();speech.clear();++epoch;updateAutoWalk();updateAutoWalk();
     check(speech.empty(),"map transition leaves speech to the map announcement");
     begin();speech.clear();stopAutoWalk();updateAutoWalk();check(speech.empty(),"explicit toggle cancellation stays silent");
+    // Backslash during a walk stops it and says so, without reading or restarting the route.
+    begin();speech.clear();check(toggleAutoWalkOff(),"Backslash during a walk is taken as the stop toggle");updateAutoWalk();updateAutoWalk();
+    check(!autoWalkActive() && !keyboard()[0xc8] && speech.size()==1 && speech.back()==L"Auto walk stopped","the toggle stops the walk once and says Auto walk stopped");
+    speech.clear();check(!toggleAutoWalkOff() && speech.empty(),"with no walk active Backslash keeps its route command");
     begin();speech.clear();autoWalkPlayerInput(VK_ESCAPE);updateAutoWalk();
     check(speech.empty() && !autoWalkActive(),"manual player-input cancellation stays silent");
     begin();speech.clear();known=false;updateAutoWalk();updateAutoWalk();
@@ -186,6 +195,25 @@ int main() {
     begin(); std::array<uint8_t,256> keys{}; keys[0xcd]=0x80; autoWalkKeyboard(keys.data());
     check(keys[0xcd]==0x80 && !keys[0xc8],"same-poll manual movement wins without an extra auto key");
     updateAutoWalk(); check(!keyboard()[0xc8],"manual cancellation never resumes itself");
+    // Screen-reader modifiers: Insert 0xD2, Numpad Insert/0 0x52, Caps Lock 0x3A.
+    begin(); keys={}; keys[0xd2]=0x80; keys[0xd0]=0x80; autoWalkKeyboard(keys.data());
+    check(autoWalkActive() && !keys[0xd0] && keys[0xc8]==0x80,"Insert+Down reader command neither cancels nor steers auto walk");
+    keys={}; keys[0xd0]=0x80; autoWalkKeyboard(keys.data());
+    check(autoWalkActive() && !keys[0xd0],"reader-owned Down stays exempt after Insert is released first");
+    keyboard(); keys={}; keys[0xd0]=0x80; autoWalkKeyboard(keys.data());
+    check(!autoWalkActive() && keys[0xd0]==0x80,"a fresh Down press without a reader modifier still cancels");
+    begin(); keys={}; keys[0x3a]=0x80; keys[0x1c]=0x80; autoWalkKeyboard(keys.data());
+    check(autoWalkActive() && !keys[0x1c],"Caps Lock+Enter reader command does not cancel");
+    begin(); keys={}; keys[0x52]=0x80; keys[0xc8]=0x80; keys[0x01]=0x80; autoWalkKeyboard(keys.data());
+    check(autoWalkActive() && !keys[0x01],"Numpad Insert+Up+Escape reader command does not cancel");
+    keyboard(); updateAutoWalk(); check(autoWalkActive(),"reader command leaves the walk running on the next tick");
+    begin(); autoWalkReaderModifier(true); autoWalkPlayerInput(VK_DOWN); autoWalkPlayerInput(VK_RETURN); updateAutoWalk();
+    check(autoWalkActive(),"message-path arrow and Enter with a reader modifier held do not cancel");
+    autoWalkReaderModifier(false); autoWalkPlayerInput(VK_DOWN); updateAutoWalk();
+    check(!autoWalkActive(),"message-path arrow without a reader modifier still cancels");
+    stopAutoWalk(); keyboard(); revision=autoWalkInputRevision(); keys={}; keys[0xd2]=0x80; keys[0x11]=0x80; autoWalkKeyboard(keys.data());
+    check(autoWalkInputRevision()==revision && keys[0x11]==0x80,"stopped reader command is not counted as manual movement and is left to the game");
+    keys={}; autoWalkKeyboard(keys.data());
     begin(); pad::State state; autoWalkController(state); check(state.ly==24000 && !state.lx,"physical controller receives forward left-stick input");
     state={}; state.lx=18000; autoWalkController(state); check(state.lx==18000 && !state.ly,"manual stick remains intact and cancels auto walk");
     begin(); clockValue+=251; check(!keyboard()[0xc8],"stale input expires after 250 ms");
@@ -304,6 +332,86 @@ int main() {
     check(state.lt==255 && state.lx>0,"physical controller combines configured Dive trigger and southward-route steering");
     state={};state.ly=20000;autoWalkController(state);check(!state.lt,"manual swimming still cancels both injected channels in the same poll");padOwned=false;
     std::puts("PASS: swim depth Auto walk, configured keyboard/controller Dive, vertical progress, strict completion and manual cancellation.");
+    // Battle resume: a walk stopped by a battle starts again toward the same destination.
+    setAutoWalkResume(onResume);
+    const auto battleStop=[&] {begin();resumes=0;battle=true;updateAutoWalk();check(!autoWalkActive(),"battle stops auto walk");frames(20);};
+    battleStop();check(!resumes,"no resume while the battle lasts");
+    battle=false;frames(1);check(resumes==1 && resumedName==L"Save Sphere","first safe native field update requests the same destination without a timer");
+    frames(700);check(resumes==1,"a resume fires once");
+    battleStop();uint8_t battleKeys[256]{};battleKeys[0xc8]=battleKeys[0x1c]=0x80;autoWalkKeyboard(battleKeys);autoWalkPlayerInput(VK_RETURN);
+    battle=false;std::array<uint8_t,256> confirm{};confirm[0x1c]=0x80;autoWalkKeyboard(confirm.data());autoWalkPlayerInput(VK_RETURN);frames(1);
+    check(resumes==1,"battle commands and confirming battle results do not cancel the resume");
+    battleStop();battle=false;dialogue=1;frames(1);std::array<uint8_t,256> walk{};walk[0xc8]=0x80;autoWalkKeyboard(walk.data());dialogue=0;frames(1);
+    check(!resumes,"walking after the battle cancels the resume");
+    // Input in the first frame after the battle, before auto walk has seen it end, counts too.
+    battleStop();battle=false;walk={};walk[0xc8]=0x80;autoWalkKeyboard(walk.data());walk={};autoWalkKeyboard(walk.data());frames(15);
+    check(!resumes,"walking straight after the battle ends cancels the resume");
+    // The resume belongs to the field the walk was interrupted in.
+    auto& room=*reinterpret_cast<uint16_t*>(address(0xd2ca90));room=70;
+    battleStop();room=71;battle=false;frames(15);room=70;
+    check(!resumes,"a battle that returns to another room drops the resume");
+    battleStop();battle=false;player={100,0,0};frames(15);
+    check(!resumes,"a scripted relocation after the battle drops the resume");
+    battleStop();battle=false;dialogue=1;frames(1);++epoch;room=71;dialogue=0;frames(1);room=70;
+    check(!resumes,"a map change after the field is back drops the resume");
+    battleStop();battle=false;dialogue=1;frames(1);++epoch;dialogue=0;frames(1);
+    check(!resumes,"a new generation after battle end drops the resume even in the same room");
+    battleStop();++epoch;battle=false;frames(15);
+    check(resumes==1,"a field reload while the battle closes keeps the resume");
+    battleStop();battle=false;autoWalkPlayerInput(VK_UP);frames(15);
+    check(!resumes,"a window-message arrow straight after the battle cancels the resume");
+    battleStop();battle=false;stopAutoWalk();frames(15);
+    check(!resumes,"a navigation command straight after the battle cancels the resume");
+    battleStop();walk={};walk[0xc8]=0x80;autoWalkKeyboard(walk.data());walk={};autoWalkKeyboard(walk.data());stopAutoWalk();battle=false;frames(15);
+    check(resumes==1,"input and route teardown while the battle lasts keep the resume");
+    battleStop();battle=false;pad::State stick;stick.ly=20000;autoWalkController(stick);frames(1);
+    check(!resumes,"moving the stick after the battle cancels the resume");
+    battleStop();battle=false;dialogue=1;frames(1);stopAutoWalk();dialogue=0;frames(1);
+    check(!resumes,"a navigation command after the battle cancels the resume");
+    battleStop();++epoch;suspendAutoWalk();battle=false;frames(1);
+    check(resumes==1,"the battle's field reload keeps the resume");
+    battleStop();battle=false;releaseAutoWalk();frames(1);
+    check(resumes==1,"losing the route at the end of a battle keeps the resume");
+    battleStop();releaseAutoWalk();battle=false;frames(15);
+    check(resumes==1,"losing the route during a battle keeps the resume");
+    begin();resumes=0;releaseAutoWalk();battle=true;frames(5);battle=false;frames(15);
+    check(!resumes,"a walk ended by route loss is not resumed after a later battle");
+    // Common 005E ends the walk immediately. Only the native battle flag can
+    // turn that candidate into a resume, regardless of transition duration.
+    auto& control=*reinterpret_cast<uint8_t*>(address(0x1000000));
+    begin();resumes=0;Event disabled;hooks.at(0x471980)(disabled);control=0;clockValue+=120000;frames(50);battle=true;frames(20);battle=false;control=2;frames(1);
+    check(resumes==1,"a walk stopped by control loss resumes after a slow battle transition");
+    begin();resumes=0;hooks.at(0x471980)(disabled);control=0;
+    battle=true;hooks.at(0x382730)(disabled);battle=false;control=2;hooks.at(0x471a50)(disabled);frames(1);
+    check(resumes==1,"native battle completion confirms a candidate without intervening field updates");
+    begin();resumes=0;hooks.at(0x471980)(disabled);control=0;frames(1);control=2;hooks.at(0x471a50)(disabled);battle=true;frames(1);battle=false;frames(1);
+    check(!resumes,"native control restoration without a battle retires an authored-event candidate");
+    begin();resumes=0;hooks.at(0x471980)(disabled);control=0;frames(1);control=2;frames(1);battle=true;frames(1);battle=false;frames(1);
+    check(!resumes,"the first update with restored control also retires a nonbattle candidate");
+    begin();resumes=0;hooks.at(0x471980)(disabled);control=0;++epoch;frames(1);battle=true;frames(1);battle=false;control=2;frames(1);
+    check(!resumes,"an exit's map change retires the candidate before a later battle");
+    begin();resumes=0;autoWalkPlayerInput(VK_UP);hooks.at(0x471980)(disabled);control=0;battle=true;frames(1);battle=false;control=2;frames(1);
+    check(!resumes,"manual cancellation before the control-disable hook never arms a resume");
+    battleStop();enabled=false;frames(1);enabled=true;battle=false;frames(15);
+    check(!resumes,"turning auto walk off during the battle cancels the resume");
+    begin();resumes=0;autoWalkPlayerInput(VK_ESCAPE);updateAutoWalk();battle=true;frames(5);battle=false;frames(15);
+    check(!resumes,"a walk the player cancelled is not resumed after a battle");
+    begin();resumes=0;speech.clear();Event opened;hooks.at(0x4b8980)(opened);updateAutoWalk();frames(40);battle=true;frames(5);battle=false;frames(15);
+    check(!resumes,"dialogue does not arm a resume for a later battle");
+    begin();resumes=0;++epoch;updateAutoWalk();frames(1);walk={};walk[0x11]=0x80;autoWalkKeyboard(walk.data());battle=true;frames(5);battle=false;frames(15);
+    check(!resumes,"walking between the stop and the battle cancels the resume");
+    begin();resumes=0;++epoch;updateAutoWalk();battle=true;frames(1);battle=false;frames(1);
+    check(!resumes,"a resource change without a confirmed battle does not arm a resume");
+    battleStop();battle=false;resourcesReady=false;frames(1);check(!resumes,"resume waits for native resource readiness");
+    resourcesReady=true;frames(1);check(resumes==1,"first ready field update requests the route");
+    battleStop();battle=false;dialogue=1;frames(30);check(!resumes,"resume waits while dialogue holds the field");
+    dialogue=0;frames(12);check(resumes==1,"resume fires once dialogue ends");
+    battleStop();battle=false;dialogue=1;frames(1);clockValue+=120000;frames(1);dialogue=0;frames(1);
+    check(resumes==1,"elapsed wall time never expires a pending battle resume in the same field");
+    battleStop();battle=false;autoWalkPlayerInput(VK_ESCAPE);frames(1);check(!resumes,"Escape cancels before the first safe field update");
+    battleStop();battle=false;startAutoWalk();frames(1);check(!resumes,"an explicit new walk replaces a pending resume");
+    setAutoWalkResume(nullptr);
+    std::puts("PASS: auto walk resumes once after a battle and stays cancelled by player movement, commands and the setting.");
     VirtualFree(reinterpret_cast<void*>(memory),0,MEM_RELEASE);
     std::puts("PASS: auto walk steering, native remaps, manual priority, controller, arrival, context cancellation, stale input and bounded recovery.");
     return 0;

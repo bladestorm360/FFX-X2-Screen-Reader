@@ -64,6 +64,7 @@ void received(Event& e) {
     // is still edge-only and DirectInput remains the producer when available.
     const bool repeat=down && (message.lParam & (1u<<30));
     const bool shift=(GetKeyState(VK_SHIFT)&0x8000)!=0;
+    if(down && !repeat && !keyboard) autoWalkReaderModifier(((GetKeyState(VK_INSERT) | GetKeyState(VK_CAPITAL) | GetKeyState(VK_NUMPAD0)) & 0x8000) != 0);
     const bool control=(GetKeyState(VK_CONTROL)&0x8000)!=0;
     bool captured=swallowedMessages[vk] || capturesKey(vk,shift,control);
     if(down && !repeat) captured=keyboard?capturesKey(vk,shift,control):consumeKey(vk,shift,control);

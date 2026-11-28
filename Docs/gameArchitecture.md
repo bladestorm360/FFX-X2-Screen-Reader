@@ -3121,6 +3121,22 @@ destinations remain unknown and room IDs use the existing verified 304-entry
 room-to-area mapping. Invalid navmesh indices stay in place so adjacency cannot
 silently shift. Actual late actor/worker timing remains unverified until gameplay.
 
+Auto walk battle resume uses native transitions, without an arm, settle or
+expiry timer. Common 005E (471980) stops movement immediately and retains only
+a candidate destination. The battle flag at D2A8E0, or entry to battle completion
+382730 when no field update sampled that flag, confirms the interruption.
+Common 005D (471A50) restoring control without a battle retires the candidate;
+an ordinary exit, dialogue or authored scene never restarts a stopped walk.
+The first safe 471D10 input return after battle end requests a fresh route.
+Native controller bit 2, the controlled actor, dialogue mode and resource
+readiness must allow field input. The last field room and position are retained;
+a changed room, more than 22.26 units of horizontal relocation, or another map
+generation after the observed battle end drops the resume. The worker matches
+the copied destination against the newly captured list and drops a missing
+target. The bounded snapshot mailbox does not wait or allocate on the native
+thread. Existing input freshness, collision recovery and progress bounds remain.
+See [Auto walk controls](controls.md).
+
 ### Corrected field-menu sources
 
 Full bodies were extracted from existing archives into timestamped

@@ -211,6 +211,10 @@ cl /nologo /W4 /WX /EHsc /std:c++17 /MT /DFFX_READER_TEST /Fe:reachability_cache
 if not "%errorlevel%"=="0" goto failed
 .\reachability_cache_fixture.exe
 if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:resume_mailbox_fixture.exe "%TEST_SRC%resume_mailbox_fixture.cpp"
+if not "%errorlevel%"=="0" goto failed
+resume_mailbox_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--navigation-audio" copy /Y "%REPO_ROOT%\install\native\SDL3.dll" SDL3.dll >nul
 pushd "%TEST_SRC%.."
 rc /nologo /fo "%TEST_BUILD%\test_audio.res" audio_assets.rc
