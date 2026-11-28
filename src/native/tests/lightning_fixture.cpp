@@ -185,5 +185,9 @@ int main() {
     write<unsigned>(chunkPtr()+read<unsigned>(h+0x14)+countIndex*8,0x0c000006);
     check(!query(6).overrideResult && cues==0,"changed native declaration rejected");
     load(); query(0); ++epoch; query(0); check(query(6).overrideResult && cueEpoch==epoch,"new resource generation clears stale ownership");
+    load(); for(unsigned i=0;i<12;++i) query(i);
+    query(12); check(cues==1,"expired window cues nothing more");
+    value(countIndex,uint8_t{0}); query(0); check(cues==2,"missed strike with unchanged bolts still warns on the next strike");
+    check(query(6).overrideResult,"missed strike with unchanged bolts still auto-dodges on the next strike");
     puts("PASS: lightning actual EV receipts/preparation, pending first-window retention, both archived maps, manual input, cancellation and identity guards");
 }
