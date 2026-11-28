@@ -113,14 +113,15 @@ bool process(const speechq::Header& header,const Frame& frame) {
     if(frame.announce && frame.allowed) {
         if(next && !previousHunt) say(L"Butterfly hunt started","butterfly-start");
         else if(frame.collection && next && previousHunt && state.caught>=0 && frame.caught>state.caught)
-            say(L"Blue butterfly. "+std::to_wstring(frame.caught)+L" of 7","butterfly-catch");
+            say(L"Blue butterfly caught","butterfly-catch");
         if(!next && previousHunt) say(verified?L"All seven blue butterflies caught":time(frame)==0?L"Butterfly hunt time expired":L"Butterfly hunt ended","butterfly-end");
     }
     state.caught=frame.caught;state.verifiedSeven=verified;
     if(frame.allowed && state.hunt && frame.command) {
         if(frame.command==Status) {
-            auto text=std::to_wstring(state.caught)+L" of 7 blue butterflies";const int remaining=time(frame);
-            text+=remaining>=0?L". Time: "+std::to_wstring(remaining/10)+L"."+std::to_wstring(remaining%10)+L" seconds":L". Time unavailable";
+            // The game draws only the timer, so the status reads the time and not the caught count.
+            const int remaining=time(frame);
+            std::wstring text=remaining>=0?L"Time: "+std::to_wstring(remaining/10)+L"."+std::to_wstring(remaining%10)+L" seconds":L"Time unavailable";
             say(std::move(text),"butterfly-status",true);
         } else {
             const bool red=frame.command==Red;const auto target=nearest(state,red);

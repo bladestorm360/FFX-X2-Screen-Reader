@@ -125,8 +125,8 @@ bootstrap and all13 installed SHA256s were verified. Scoped retained evidence
 is `Docs/Scripts/Offline/output/exit_status_20261009_200145_700895/`.
 Gameplay confirmation remains user-side.
 
-Test Surface: choose the depth Exit, hear the configured Dive control and
-remaining descent, then hold Dive or use enabled Auto walk until the map
+Test Surface: choose the depth Exit, hear the configured Dive control (no
+remaining-descent percent, because the game draws no depth gauge), then hold Dive or use enabled Auto walk until the map
 changes. Choose Exit1 to Underwater Ruins for the following swimming route.
 Check distinct numbered Ruins passages and the Grid Status opening/arrow
 review/character-switch/close behavior.

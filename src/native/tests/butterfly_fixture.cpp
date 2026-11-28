@@ -141,7 +141,7 @@ int main(){
         check(cue.active && cue.hazard,"near red hazard overrides blue pickup cue");
         directions();check(spoken[spoken.size()-2].find(L"0.9")!=std::wstring::npos,"spoken butterfly distance converts native units to steps");
         status();check(spoken.back().find(L"29.9 seconds")!=std::wstring::npos,"actual signed local native countdown");
-        for(int caught=1;caught<=7;++caught){change(first,count,caught);check(spoken.back()==L"Blue butterfly. "+std::to_wstring(caught)+L" of 7","each producer collection increment spoken");}
+        for(int caught=1;caught<=7;++caught){change(first,count,caught);check(spoken.back()==L"Blue butterfly caught","each producer collection increment spoken");}
         const auto messages=spoken.size();change(first,count,7);check(spoken.size()==messages,"same value is not a collection event");
         put(actors,first*0x880+0x358,0.f);commit();check(butterflyTargets().size()==1,"native fade target immediately removes collected blue");
         actor(first,10,0,true);commit();check(butterflyTargets()[0].name==L"Red butterfly","same worker changes to red in another story layout");
@@ -163,8 +163,8 @@ int main(){
     check(spoken.empty(),"first activation and catches remain pending before resource preparation");
     const auto codeOffset=read<unsigned>(chunkPtr()+0x30);check(nativeChunkOffset+codeOffset<chunk.size(),"pending source overwrite bound");chunk[nativeChunkOffset+codeOffset]^=1;
     workerDrain=true;drainAtelResourcesForTest();speechq::fixture::drain();workerDrain=false;
-    check(spoken.size()>=2 && spoken[0]==L"Butterfly hunt started" && spoken[1]==L"Blue butterfly. 1 of 7","pending first activation and catch survive owned preparation after source overwrite");
-    change(20,27,2);check(spoken.back()==L"Blue butterfly. 2 of 7","catch producer remains ordered after pending start");
+    check(spoken.size()>=2 && spoken[0]==L"Butterfly hunt started" && spoken[1]==L"Blue butterfly caught","pending first activation and catch survive owned preparation after source overwrite");
+    change(20,27,2);check(spoken.size()>=3 && spoken.back()==L"Blue butterfly caught","catch producer remains ordered after pending start");
     const auto queryBegin=spoken.size();directions(false,false);directions(false,false);check(spoken.size()==queryBegin,"equal direction queries wait for FIFO drain");
     workerDrain=true;speechq::fixture::drain();workerDrain=false;
     check(spoken.size()==queryBegin+4 && spoken[queryBegin]==spoken[queryBegin+2] && spoken[queryBegin+1]==spoken[queryBegin+3] && spoken[queryBegin+1]==L"Red butterfly nearby","equal direction queries and hazards remain distinct FIFO commands");

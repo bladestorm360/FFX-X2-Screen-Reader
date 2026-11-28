@@ -611,10 +611,10 @@ a red butterfly is close; steer away from that tone. Louder means nearer.
 These cues use Beacon volume and remain independent of the ordinary beacon.
 
 - **F1:** distance and bearing to the nearest blue butterfly.
-- **F5** or **G:** catch count and the game's current time remaining.
+- **F5** or **G:** the game's current time remaining (the game draws no catch count).
 - **F6:** toggle butterfly cues.
 - **Controller:** normal field destination/category and route commands work;
-  **View then X** reads count/time, and **L3** toggles butterfly cues.
+  **View then X** reads the time, and **L3** toggles butterfly cues.
 
 Catches and actual start/end events are spoken. Collected or disabled targets
 disappear; leaving the course cannot be announced as a win. Menus, battles,

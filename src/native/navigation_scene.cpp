@@ -178,11 +178,8 @@ std::wstring sceneSwimmingInstruction(const Scene& s) {
     if(nativeGameThread()) return {};
     if(!s.swimming || !s.dive) return L"Dive first to enter the water, then request the route again";
     auto controls=s.controls;controls.swap=false;const auto context=copiedControlContext(controls);const auto& name=context.glyphs[0x32];
-    auto text=L"Dive first. Hold "+(name.empty() || name==L"unassigned control"?std::wstring(L"the configured Dive button"):name)+L" and follow the route until the map changes";
-    if(s.room==71 && s.area==20 && s.surfaceReady && s.surface<250) {
-        const auto remaining=static_cast<unsigned>(std::ceil(std::clamp((250-s.player.y)/(250-s.surface),0.0,1.0)*100));
-        text+=L". "+std::to_wstring(remaining)+L" percent of the descent remains";
-    }return text;
+    // The game draws no depth gauge during the descent, so no remaining percent is spoken.
+    return L"Dive first. Hold "+(name.empty() || name==L"unassigned control"?std::wstring(L"the configured Dive button"):name)+L" and follow the route until the map changes";
 }
 std::wstring scenePersonName(const Scene& s,int index,const OwnedTextContext& controls) {
     if(nativeGameThread() || index<0 || static_cast<unsigned>(index)>=s.people.size()) return {};

@@ -83,8 +83,8 @@ UtilityText viaCommand(std::wstring_view action) {
         return L"Collecting all Via Purifico treasures through the game's chest scripts. Confirm each game dialogue. You remain in the dungeon.";
     }
     if(action==L"status") {
-        const auto flags=value(s,6);unsigned n=0;for(const auto& c:viaChests) if(flags&c.mask) ++n;
-        return UtilityText(L"Via Purifico. ")+utilityInteger(n)+L" of 7 treasures collected. "+(viaCollecting()?L"Automatic collection on.":L"Automatic collection off.");
+        // The game draws no treasure counter, so the status names only the mod's collection state.
+        return UtilityText(L"Via Purifico. ")+(viaCollecting()?L"Automatic collection on.":L"Automatic collection off.");
     }
     if(action!=L"step" && action!=L"expected" && action!=L"next" && action!=L"previous" && action!=L"path") return L"Use the Via Purifico guide in the mod menu.";
     if(!guiding) { step=expected(s);guiding=true; }
@@ -142,7 +142,7 @@ void pumpViaPurifico() {
             pending=static_cast<int>(i);runUtilityScript(s,viaChests[i].action);
             emitUtilityText(UtilityText(L"Opening treasure chest ")+utilityInteger(i+1)+L". Confirm the game dialogue.");return;
         }
-        collecting=false;utilityReply(L"All 7 Via Purifico treasures collected. Use Exit 1 when ready to continue.");
+        collecting=false;utilityReply(L"Via Purifico treasure collection finished. Use Exit 1 when ready to continue.");
     } catch(const std::exception& error) {
         pending=-1;collecting=false;emitUtilityText(utilityError(L"Treasure collection stopped: ",error.what()));
     }
