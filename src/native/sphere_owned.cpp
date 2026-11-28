@@ -157,14 +157,14 @@ bool queueSphereWork(SphereWork work,bool shift,unsigned key,bool cursor) {
     if(work==SphereWork::Abilities || (work==SphereWork::Paths && !shift) || work==SphereWork::Section || work==SphereWork::Orientation) {
         unsigned token=(nextToken.fetch_add(1)+1)&~Writing;if(!token) token=(nextToken.fetch_add(1)+1)&~Writing;
         for(unsigned i=0;i<Slots;++i) {unsigned empty=0;if(tickets[i].compare_exchange_strong(empty,token|Writing,std::memory_order_acquire)) {packet.slot=i;break;}}
-        if(packet.slot==Slots) {output(L"Sphere Grid preparation is busy. Try the command again after it recovers.",true,"sphere-pressure");return true;}
+        if(packet.slot==Slots) {output(L"Sphere Grid busy. Press again.",true,"sphere-pressure");return true;}
         auto& frame=frames.get()[packet.slot];frame.revision=packet.revision;
         if(!capture(frame.facts)) {release(packet.slot,token|Writing);output(L"Open the Sphere Grid for path guidance.",true,"sphere-section");return true;}
         packet.token=token;tickets[packet.slot].store(token,std::memory_order_release);
     }
     const bool reserving=(work==SphereWork::Abilities || (work==SphereWork::Paths && !shift)) && !spherePlannerActive();
     if(reserving) {opening=true;captureSpeech(true);drainController();pauseNavAudio();}
-    if(!speechq::captureDomain(Domain,packet,packet.epoch)) {release(packet.slot,packet.token);if(reserving) {opening=false;captureSpeech(false);}output(L"Sphere Grid preparation is busy. Try the command again after it recovers.",true,"sphere-pressure");}
+    if(!speechq::captureDomain(Domain,packet,packet.epoch)) {release(packet.slot,packet.token);if(reserving) {opening=false;captureSpeech(false);}output(L"Sphere Grid busy. Press again.",true,"sphere-pressure");}
     return true;
 }
 void cancelSphereWork(bool clear) {opening=false;const auto next=revision.fetch_add(1,std::memory_order_acq_rel)+1;if(clear) clearRevision.store(next,std::memory_order_release);speechq::notifyPreparation();}

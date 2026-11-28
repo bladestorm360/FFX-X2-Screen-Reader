@@ -125,7 +125,7 @@ bool queueControllerHotkey(unsigned vk,bool shift,bool control,bool(*guard)()) {
     // Do not call consumeKey: that would misclassify this controller event as
     // keyboard input. Keep physical passthrough and native input sampling immediate.
     const bool accepted=queue.tryPush({vk,shift,control,generation(),inputRevision.load(std::memory_order_acquire),false,false,escMenuActive(),nullptr,guard});
-    if(!accepted) output(L"Input is busy. Try the command again.",true,"input-pressure");
+    if(!accepted) output(L"Input busy. Press again.",true,"input-pressure");
     return accepted;
 }
 void hotkey(unsigned vk,void(*handler)(bool)) {if(vk<bindings.size()) bindings[vk]={handler,nullptr};}

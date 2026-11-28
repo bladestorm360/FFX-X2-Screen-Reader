@@ -120,7 +120,7 @@ UtilityText viaCommand(std::wstring_view action) {
         instruction=L"Reach the active warp panel. Wait for "+UtilityText(directions[direction])+L", then step onto it when the guide says now. Read the current step after the warp to follow the next panel.";
         finish=L"Stand beside the panel and wait for its spoken cue.";
     }
-    if(action==L"path" && !queuePuzzleGuidePoint(point,local,talk,finish,prefix+instruction)) return prefix+instruction+L" Navigation action is unavailable or busy. Request the route again after it recovers.";
+    if(action==L"path" && !queuePuzzleGuidePoint(point,local,talk,finish,prefix+instruction)) return prefix+instruction+L" Navigation busy. Press again.";
     return action==L"path"?UtilityText{}:prefix+instruction;
 }
 void viaScriptCompleted(bool completed,bool owned) {

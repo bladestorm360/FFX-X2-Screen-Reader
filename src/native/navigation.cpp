@@ -135,7 +135,7 @@ void intent(const Pending& event,const Entity& target,nav::Intent kind) {
     const auto refusal=nav::intentRefusalText(owned().observation.controlled);
     if(refusal && kind!=nav::Intent::AssistFailed) {emit(event,refusal,"navigation-action-refused",false);return;}
     if(!nav::submitNavigationIntent(owned().observation,target,kind,event.query.manual,event.query.intentRevision))
-        emit(event,L"Navigation action is unavailable or busy. Request the route again after it recovers.","navigation-pressure",false);
+        emit(event,L"Navigation busy. Press again.","navigation-pressure",false);
 }
 void beacon(const Pending&) {
     auto& s=owned();if(!setting(Setting::Beacon) || navRouteKnown() || !s.selection.valid || !s.observation.allowed) return;
@@ -275,7 +275,7 @@ void resetOwned(unsigned) {
     if(!storage.ready()) return;auto& s=owned();s.entities.clear();s.pending.erase(std::remove_if(s.pending.begin(),s.pending.end(),[&](const Pending& event) {return event.query.epoch!=generation() || event.query.revision!=nav::navigationObservationRevision();}),s.pending.end());s.areas.clear();s.names={};s.selection={};s.list={};s.epoch=0;s.revision=0;s.ready=s.haveMesh=false;s.selected=0;s.mesh={};interested=false;retireOwnedReachability();
 }
 void receiveQuery(const speechq::Header& header,const nav::QueryObservation& query) {
-    auto& s=owned();if(s.pending.size()>=128) {if(query.query==nav::Query::GuideTarget) {QueuedPuzzleTarget retired;takePuzzleGuideTarget(query.local,query.resourceSerial,retired);}speechq::emitOwned(L"Navigation is busy. Try the command again after it recovers.",header,"navigation-pressure",false,false);return;}
+    auto& s=owned();if(s.pending.size()>=128) {if(query.query==nav::Query::GuideTarget) {QueuedPuzzleTarget retired;takePuzzleGuideTarget(query.local,query.resourceSerial,retired);}speechq::emitOwned(L"Navigation busy. Press again.",header,"navigation-pressure",false,false);return;}
     Pending event{header,query,{}};
     if(query.query==nav::Query::GuideTarget) {event.direct.emplace();if(!takePuzzleGuideTarget(query.local,query.resourceSerial,*event.direct)) {speechq::emitOwned(L"Navigation action is unavailable or retired. Request the route again.",header,"utility-reply",false,false);return;}}
     s.pending.push_back(std::move(event));processPending();
