@@ -40,7 +40,7 @@ SphereNodePlan planSphereNode(TextPlan& p,int index,bool materials) {
     const int count=read<int16_t>(engine+2,-1);if(!nativeGameThread() || !engine || !table || count<1 || count>1024 || index<0 || index>=count) return result;
     const auto node=engine+0x808+index*0x28;const int type=read<int16_t>(node+6,-1);uintptr_t strings=0;
     const auto native=type<0?0:reinterpret_cast<Definition>(address(0x3ab890))(type,table,&strings);if(!native || !strings) return result;
-    result.valid=true;result.flags=read<uint16_t>(native+0x10);result.activated=read<uint8_t>(node+0x21);
+    result.valid=true;result.type=type;result.flags=read<uint16_t>(native+0x10);result.activated=read<uint8_t>(node+0x21);
     const auto language=reinterpret_cast<unsigned(__cdecl*)()>(address(0x3852b0))()&1;
     result.name=planEncoded(p,strings+read<uint16_t>(native+language*4));result.description=planEncoded(p,strings+read<uint16_t>(native+8+language*4),1024,TextPlanOp::Lines);
     const unsigned ability=read<uint16_t>(native+0x12);if(ability) {

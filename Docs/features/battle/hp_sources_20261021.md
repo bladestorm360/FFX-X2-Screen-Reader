@@ -13,8 +13,8 @@ Logs, source/test freeze and seven-file verification receipt are retained in
 ## Report, design and source ownership
 
 The user reports stale H totals after healing/Regen and an apparently low Wakka
-maximum in the battle Change/Switch list. Preserve percentages and the saved
-maximum-HP preference. Read native displayed/current values and effective battle
+maximum in the battle Change/Switch list. (Later superseded: HP/MP speech now
+follows what each screen draws, and the maximum HP/MP settings were removed.) Read native displayed/current values and effective battle
 capacity; never reconstruct totals from damage/healing announcements or infer a
 character's capacity. Percentage arithmetic represents the health proportion,
 using the same native current/effective maximum pair. It does not calculate HP.
@@ -72,7 +72,7 @@ H captures the current turn owner; Change captures the highlighted native row,
 including inactive initialized reserves. These identities must not be conflated.
 Both producers read bounded native values on the validated native/input owner,
 copy names/control substitutions and numbers into existing owned packets/plans,
-then hand off without waiting. Workers format percentages or maximum preference,
+then hand off without waiting. Workers format the displayed numbers,
 statuses and speech using copies. No actor pointer is walked off-thread, no new
 hook/thread/queue is introduced, and reset/generation cancellation is retained.
 Shift+H continues to report accepted drawn HUD operands, including native number
@@ -139,7 +139,7 @@ do not introduce HP calculation or writes in production.
 
 After the staged build is deployed when the user releases the hold, verify H
 after regeneration/restoration and revisit Wakka in Change. If a native capacity
-effect is active, the spoken maximum/percentage must follow its effective value.
+effect is active, the spoken party-target maximum must follow its effective value.
 Compare H with Shift+H once native number animation has settled. Missing updates,
 an unchanged base maximum under a real capacity effect, or current HP above the
 native displayed maximum are failures. Gameplay and frame-to-audio timing remain

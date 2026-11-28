@@ -79,18 +79,6 @@ std::wstring characterDescription(unsigned id) {
         L", MP "+std::to_wstring(read<unsigned>(record+0x20))+L"/"+std::to_wstring(read<unsigned>(record+0x28))+
         L", Sphere Levels "+std::to_wstring(read<uint8_t>(record+0x3b));
 }
-std::wstring hpReadout(int current,int maximum) {
-    auto text=L"HP "+std::to_wstring(current);
-    if(maximum<=0) return text;
-    if(setting(Setting::ShowMaximumHp)) return text+L"/"+std::to_wstring(maximum);
-    const auto percent=std::clamp<int64_t>((static_cast<int64_t>(current)*100+maximum/2)/maximum,0,100);
-    return text+L" ("+std::to_wstring(percent)+L"%)";
-}
-std::wstring battleMpReadout(int current,int maximum) {
-    auto text=L"MP "+std::to_wstring(current);
-    if(setting(Setting::ShowMaximumMp) && maximum>0) text+=L"/"+std::to_wstring(maximum);
-    return text;
-}
 std::wstring battleSelectionVitals(unsigned command) {
     using Character=uintptr_t(__cdecl*)(unsigned);
     const auto vitals=[](unsigned id) -> std::wstring {
@@ -100,9 +88,10 @@ std::wstring battleSelectionVitals(unsigned command) {
         // actors are initialized (+10), but intentionally not active (+DC8).
         if(!actor || !read<uint8_t>(actor+0x10)) return {};
         // Native max-HP getter39AE00 returns effective actor+594 for HP color
-        // rendering. Original38D330 updates it when capacity changes, retaining
+        // rendering only; the row draws current HP and MP without a maximum.
+        // Original38D330 updates it when capacity changes, retaining
         // the independent base maximum at+59C; never reconstruct the maximum.
-        return hpReadout(read<int>(actor+0x5d0),read<int>(actor+0x594))+
+        return L"HP "+std::to_wstring(read<int>(actor+0x5d0))+
             L", MP "+std::to_wstring(read<int>(actor+0x5d4));
     };
     if(command!=0x30ff) return vitals(command&255);

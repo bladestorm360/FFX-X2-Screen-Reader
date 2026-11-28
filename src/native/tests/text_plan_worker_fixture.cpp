@@ -107,15 +107,12 @@ int main() {
     reusedGear=gear;equipment.headline=ffx::planEquipmentDetails(equipment,reinterpret_cast<uintptr_t>(gear));
     check(ffx::commitTextPlan(equipment),"equipment ready names and slot POD");nativeCapture=false;
     check(take()==L"Potion, Potion, 1 empty slot","four ability IDs copied before native getters can reuse the record");
-    nativeCapture=true;ffx::TextPlan percent;ffx::prepareTextPlan(percent,"vitals");
-    percent.headline=ffx::planVitals(percent,100,200,false,false);check(ffx::commitTextPlan(percent),"HP percent recipe");nativeCapture=false;
-    check(take()==L"HP 100 (50%)","HP percentage preserves the existing maximum-HP preference");
     nativeCapture=true;ffx::TextPlan maximum;ffx::prepareTextPlan(maximum,"vitals");
-    maximum.headline=ffx::planVitals(maximum,100,200,false,true);check(ffx::commitTextPlan(maximum),"HP maximum recipe");nativeCapture=false;
-    check(take()==L"HP 100/200","opt-in HP maximum");
+    maximum.headline=ffx::planVitals(maximum,100,200,false);check(ffx::commitTextPlan(maximum),"HP target recipe");nativeCapture=false;
+    check(take()==L"HP 100/200","HP target reads the drawn current and maximum numbers");
     nativeCapture=true;ffx::TextPlan mpPlan;ffx::prepareTextPlan(mpPlan,"vitals");
-    mpPlan.headline=ffx::planVitals(mpPlan,17,30,true,false);check(ffx::commitTextPlan(mpPlan),"displayed MP recipe");nativeCapture=false;
-    check(take()==L"MP 17/30","native MP target display remains distinct from HP preference");
+    mpPlan.headline=ffx::planVitals(mpPlan,17,30,true);check(ffx::commitTextPlan(mpPlan),"displayed MP recipe");nativeCapture=false;
+    check(take()==L"MP 17/30","native MP target display reads current and maximum MP");
     nativeCapture=true;ffx::TextPlan prefix;ffx::prepareTextPlan(prefix,"prefix");
     prefix.headline=ffx::planPrefix(prefix,0,ffx::planLiteral(prefix,L"Value"),L". ");
     prefix.headline=ffx::planSuffix(prefix,prefix.headline,0,L". ");check(ffx::commitTextPlan(prefix),"empty prefix/suffix recipe");nativeCapture=false;
@@ -124,14 +121,14 @@ int main() {
     encoded(text,L"Potion");
     for(unsigned i=0;i<18;++i) {
         const auto name=ffx::planEncoded(party,reinterpret_cast<uintptr_t>(text),40);
-        const auto resource=ffx::planVitals(party,100+i,200,false,false);
+        const auto resource=ffx::planVitals(party,100+i,200,false);
         const auto line=ffx::planConcat(party,ffx::planConcat(party,name,ffx::planLiteral(party,L": ")),resource);
         rows=ffx::planPair(party,ffx::TextPlanOp::Periods,rows,line);
     }
     party.headline=ffx::planConcat(party,ffx::planLiteral(party,L"All party members. "),rows);
     check(ffx::commitTextPlan(party),"largest supported18-row party recipe fits complete capacity");nativeCapture=false;
     auto expected=std::wstring(L"All party members. ");
-    for(unsigned i=0;i<18;++i) {if(i) expected+=L". ";expected+=L"Potion: HP "+std::to_wstring(100+i)+L" ("+std::to_wstring(((100+i)*100+100)/200)+L"%)";}
+    for(unsigned i=0;i<18;++i) {if(i) expected+=L". ";expected+=L"Potion: HP "+std::to_wstring(100+i)+L"/200";}
     check(take()==expected,"all party members keep order, distinct equal names and exact HP values");
     nativeCapture=true;ffx::TextPlan page;ffx::prepareTextPlan(page,"attributes");
     page.headline=ffx::planLiteral(page,L"Attributes");

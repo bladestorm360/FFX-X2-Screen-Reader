@@ -46,7 +46,6 @@ void followupStubs() {
     }
 }
 void followupFixtures() {
-    setSetting(Setting::ShowMaximumHp,1);
     setSetting(Setting::AutoDetail,0); resetSystemMenus(); resetSphereGrid();
     std::memset(reinterpret_cast<void*>(address(win)),0,0x100);
     scene=3; set<int>(win+0x28,1); set<int16_t>(win+0x48,0); set<int>(win+0x58,0); set<int>(win+0x5c,0);
@@ -62,7 +61,6 @@ void followupFixtures() {
     event(0x4c7400,address(win),[]{set<uint8_t>(0x146a351,0);}); expect(L"All party members. Tidus: MP 12/12. Yuna: MP 20/40","all targets includes actual party and displayed resource");
     event(0x4c7400,address(win),[]{set<int>(win+0x28,9);});
     event(0x4c7400,address(win),[]{set<int>(win+0x28,4);}); expect(L"All party members. Tidus: MP 12/12. Yuna: MP 20/40","target reopens at initial selection");
-    setSetting(Setting::ShowMaximumHp,0);
     stub(0x38fd40,menuLabels); stub(0x3abe10,slotName);
     scene=4; set<int>(win+0x1c,9); set<int>(0x147150c,0); equipSlot=0;
     event(0x4ceff0,address(win),[]{set<int>(win+0x1c,10);}); expect(L"Weapon: Sonic Steel","initial equipment slot");

@@ -93,8 +93,6 @@ std::wstring equipmentDescription(uintptr_t record);
 std::wstring characterDescription(unsigned id);
 std::wstring battleSelectionVitals(unsigned command);
 bool readBattleSummonDetail();
-std::wstring hpReadout(int current,int maximum);
-std::wstring battleMpReadout(int current,int maximum);
 std::wstring shopEquipmentDescription(uintptr_t record);
 void selectionDetail(const std::wstring& text, bool automatic);
 void appendSelectionDetail(const std::wstring& text);

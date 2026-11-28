@@ -30,7 +30,9 @@ TextRef planBattleSelectionVitals(TextPlan& p,unsigned command) {
         // Original492C20 uses39ADE0/39AE00/39AE60: current HP, effective
         // battle maximum and current MP. +594 already includes native capacity
         // changes; +59C is the separate base maximum and must not replace it.
-        const auto hp=planVitals(p,read<int>(actor+0x5d0),read<int>(actor+0x594),false,setting(Setting::ShowMaximumHp)!=0);
+        // The row draws only the current numbers (the maximum only colors HP),
+        // so speech reads current HP and current MP, never a percentage.
+        const auto hp=planConcat(p,planLiteral(p,L"HP "),planInteger(p,read<int>(actor+0x5d0)));
         return planConcat(p,hp,planConcat(p,planLiteral(p,L", MP "),planInteger(p,read<int>(actor+0x5d4))));
     };
     if(command!=0x30ff) return vitals(command&255);

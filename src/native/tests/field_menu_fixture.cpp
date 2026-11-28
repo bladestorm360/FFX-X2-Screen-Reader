@@ -6,26 +6,25 @@ uintptr_t __cdecl customizedName(unsigned) { return address(0x2105900); }
 uintptr_t __cdecl liveCustomizeRecord(unsigned id,uintptr_t*) {return id>=0x5000 && id<0x5004?address(0x2106000)+(id-0x5000)*22:0;}
 uintptr_t __cdecl liveCustomizeName(unsigned id) {return address(id==0x5002?0x2106200:id==0x5003?0x2106240:0x2106280);}
 void fieldMenuFixtures() {
-    setSetting(Setting::AutoDetail,0); setSetting(Setting::ShowMaximumHp,0);
+    setSetting(Setting::AutoDetail,0);
     std::memset(reinterpret_cast<void*>(address(win)),0,0x100);
     scene=2; set<int>(win+0x28,1); set<int16_t>(win+0x48,0);
     set<int>(win+0x58,0); set<int>(win+0x5c,0); set<uint8_t>(0x146a351,1);
     stub(0x4a9a80,fieldParty);
     set<unsigned>(0xd3205c+6*0x94+0x1c,75); set<unsigned>(0xd3205c+6*0x94+0x24,300);
     event(0x4c7400,address(win),[]{set<int>(win+0x28,4);});
-    expect((playerName(6)+L": HP 75 (25%)").c_str(),"spell initial target uses saved native party ID and percentage");
+    expect((playerName(6)+L": HP 75/300").c_str(),"spell initial target uses saved native party ID and displayed current/maximum HP");
     auto n=said.size(); event(0x4c7400,address(win),[]{set<int>(win+0x28,5);});
     check(said.size()==n,"initial-to-active target phase has one producer");
     event(0x4c7400,address(win),[]{set<unsigned>(0xd3205c+6*0x94+0x1c,150);});
-    expect((playerName(6)+L": HP 150 (50%)").c_str(),"same target refreshed after native heal event");
+    expect((playerName(6)+L": HP 150/300").c_str(),"same target refreshed after native heal event");
     event(0x4c7400,address(win),[]{set<int16_t>(win+0x48,1);});
     check(said.back().first.find(playerName(0)+L": HP ")==0,"spell target follows actual native order");
     event(0x4c7400,address(win),[]{set<uint8_t>(0x146a351,0);});
-    check(said.back().first.find(L"All party members. "+playerName(6)+L": HP 150 (50%). "+playerName(0))==0,
+    check(said.back().first.find(L"All party members. "+playerName(6)+L": HP 150/300. "+playerName(0))==0,
         "all-party spell target keeps native ordering");
-    setSetting(Setting::ShowMaximumHp,1);
     event(0x4c7400,address(win),[]{set<uint8_t>(0x146a351,1); set<int16_t>(win+0x48,0);});
-    expect((playerName(6)+L": HP 150/300").c_str(),"field HP maximum preference uses central formatter");
+    expect((playerName(6)+L": HP 150/300").c_str(),"field HP target uses the central current/maximum formatter");
     scene=3; set<unsigned>(0xd3205c+6*0x94+0x20,9); set<unsigned>(0xd3205c+6*0x94+0x28,18);
     event(0x4c7400,address(win),[]{set<int>(win+0x5c,1);});
     expect((playerName(6)+L": MP 9/18").c_str(),"item MP-only renderer semantics preserved");
@@ -38,7 +37,7 @@ void fieldMenuFixtures() {
     stub(0x4a9a80,fieldParty);
     n=said.size(); scene=4; event(0x4c7400,address(win),[]{set<int16_t>(win+0x48,1);});
     check(said.size()==n,"unrelated menu cannot produce field target vitals");
-    stub(0x4a9a80,orderedParty); setSetting(Setting::ShowMaximumHp,0);
+    stub(0x4a9a80,orderedParty);
 
     scene=9; set<int16_t>(win+0x48,0); set<uint16_t>(win+0x30,1);
     set<uintptr_t>(0x146a9f8,address(0x2105980)); set<uint16_t>(0x2105980,0);

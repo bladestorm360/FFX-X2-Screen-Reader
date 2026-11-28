@@ -20,7 +20,7 @@ Optional assistance settings default Off unless the guide says otherwise.
 
 Features include:
 
-- Battle review and speech, with HP/MP values and percentages.
+- Battle review and speech, with HP/MP read as each screen shows them.
 - Field destinations and routes, with optional Auto walk.
 - Cloister of Trials guides and solvers.
 - Sphere Grid guidance.

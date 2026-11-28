@@ -26,10 +26,8 @@ constexpr SettingInfo options[] = {
     {L"Menu indexing",L"Announce the selected entry number and total in mod menus and destination lists.",L"menu_index",0,0,1,1},
     {L"Lightning warning",L"Play a short beep as the Thunder Plains warning flash begins, giving the full dodge window. Press dodge once when it sounds. Turn off Auto dodge to practise manually.",L"lightning_warning",1,0,1,1},
     {L"Lightning auto-dodge",L"Automatically dodge ordinary Thunder Plains lightning. Disabled during dialogue, menus and battle.",L"lightning_auto_dodge",0,0,1,1},
-    {L"Show maximum HP",L"In battle and field targeting, read current HP followed by the maximum HP number. Off reads current HP and its percentage of maximum.",L"show_maximum_hp",0,0,1,1},
     {L"Butterfly cues",L"In the Makalania hunt, continuous stereo guides toward a blue butterfly. A low pulsing tone warns of a nearby red butterfly; steer away from that tone. Both grow louder as you approach. F6 toggles this during the hunt.",L"butterfly_cues",1,0,1,1},
     {L"Overdrive cues",L"With auto-success off, speaks Auron's button sequence, beeps for Tidus's success zone and Wakka's symbols, and reads Lulu's cast count.",L"overdrive_cues",1,0,1,1},
-    {L"Speak maximum MP",L"With H in battle, include maximum MP. Off reads current MP shown on the battle panel.",L"show_maximum_mp",0,0,1,1},
     {L"Polish text",L"Automatically detect the installed Polish translation when its verified area names are ready. Polish forces Polish glyphs.",L"polish_text",0,0,1,1},
     {L"Speech backend",L"Select Automatic or an available Prism backend.",L"speech_backend",0,0,15,1},
     {L"Enable hidden destinations menu for airship map",L"Enable the optional six-destination search picker. Off keeps the menu and its shortcut disabled.",L"hidden_airship_destinations",0,0,1,1},
@@ -45,7 +43,8 @@ constexpr SettingInfo options[] = {
     {L"Blitzball auto-win",L"Enable at team setup. Any confirmed live Action Commands option triggers a native win; setup, formation and forfeit choices do not. Native standings and prizes are preserved.",L"blitz_assist",0,0,1,1},
     // Append the persistent ID; menu order is independent, so old IDs/keys stay stable.
     {L"Automatically read extra info",L"Read the visible extra-information pane automatically. Independent of Autodetail. U repeats extra information; I repeats the selected description.",L"auto_extra_info",0,0,1,1},
-    {L"Unavailable cue",L"Say Unavailable when the game rejects an action in the Items, Abilities, or battle menus.",L"unavailable_cue",0,0,1,1}
+    {L"Unavailable cue",L"Say Unavailable when the game rejects an action in the Items, Abilities, or battle menus.",L"unavailable_cue",0,0,1,1},
+    {L"Sphere Grid node numbers",L"Say the node number after each Sphere Grid node name and in route guidance. F6 node-number entry works either way.",L"sphere_node_numbers",1,0,1,1}
 };
 static_assert(_countof(options)==static_cast<unsigned>(Setting::Count));
 std::atomic<int> values[_countof(options)];

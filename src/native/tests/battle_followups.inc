@@ -4,7 +4,7 @@ unsigned __cdecl currentGil() { return fixtureGil; }
 void activeBattleFixtures() {
     set<uint8_t>(0x2120000+0xf90+0xdc8,1);
     set<unsigned>(0x2120000+0xf90+0x6e4,999);
-    keys['H'](false); drainSpeechDomainsForTest(); expect(L"Tidus HP 100 (50%) MP 17. Status: None","H never reads other live party slots");
+    keys['H'](false); drainSpeechDomainsForTest(); expect(L"Tidus HP 100 MP 17. Status: None","H never reads other live party slots");
     stub(0x395560,reinterpret_cast<void*>(overdriveCurrent)); stub(0x3955a0,reinterpret_cast<void*>(overdriveMaximum));
     set<uint8_t>(0x2120000+0x5bc,33); set<uint8_t>(0x2120000+0x5bd,150);
     check(chords['O'].second(),"battle O owns its context"); chords['O'].first(false);
@@ -17,7 +17,7 @@ void activeBattleFixtures() {
     set<unsigned>(aeon+0x5d4,45);set<unsigned>(aeon+0x6e8,999); set<unsigned>(aeon+0x598,60);
     set<uint16_t>(aeon+0x606,8); set<uint8_t>(aeon+0x613,3);
     set<uint8_t>(0xf3c918,8); keys['H'](false); drainSpeechDomainsForTest();
-    expect(L"Valefor HP 400 (50%) MP 45. Status: poison, haste","active summon HP MP and statuses use native turn owner");
+    expect(L"Valefor HP 400 MP 45. Status: poison, haste","active summon HP MP and statuses use native turn owner");
     set<uint8_t>(aeon+0x5bc,25); set<uint8_t>(aeon+0x5bd,100); chords['O'].first(false); drainSpeechDomainsForTest();
     expect(L"Valefor Overdrive 25%","O reads the active summon rather than a party member");
     auto quiet=said.size(); set<uint8_t>(0xf3c918,18); keys['H'](false);

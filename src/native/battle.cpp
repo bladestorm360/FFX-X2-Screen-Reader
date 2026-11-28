@@ -299,13 +299,27 @@ TextRef wheelMechanic(TextPlan& p,const SeymourWheels& s,unsigned id) {
     if(!s.key || id<20 || id>24)return 0;
     if(id!=20) return planConcat(p,planLiteral(p,L"Energizing "),
         planConcat(p,planEncoded(p,s.actors+0x540,40),planConcat(p,planLiteral(p,L" with "),
-        planConcat(p,planLiteral(p,elements[s.element[id-21]]),
-            planLiteral(p,L". Physical attacks turn left; magic turns right.")))));
+        planLiteral(p,elements[s.element[id-21]]))));
     std::array<unsigned,4> counts{};for(const auto element:s.element)++counts[element];
     TextRef mix=0;
     for(unsigned i=0;i<4;++i)if(counts[i])mix=planJoin(p,mix,
         planSuffix(p,planLiteral(p,elements[i]),planInteger(p,counts[i]),L" "));
     return planConcat(p,planLiteral(p,L"Energizing wheels: "),mix);
+}
+// Copies the target's status words (actor+606/+608..+614/+616, KO+DCC and
+// Doom's counter+5C8) as one node; names are chosen on the worker.
+// Without Sensor/Scan an enemy's statuses are not drawn, so only Doom and its
+// on-screen counter remain.
+TextRef targetAilments(TextPlan& p,uintptr_t chr,bool statuses) {
+    uint16_t permanent=read<uint16_t>(chr+0x606),temporal=0,extra=read<uint16_t>(chr+0x616);
+    if(read<uint8_t>(chr+0xdcc)) permanent|=1;
+    for(unsigned i=0;i<13;++i) if(read<uint8_t>(chr+0x608+i)) temporal|=static_cast<uint16_t>(1u<<i);
+    if(!statuses) {permanent=temporal=0;extra&=0x4000;}
+    return planBattleAilments(p,permanent,temporal,extra,read<uint8_t>(chr+0x5c8));
+}
+TextRef withAilments(TextPlan& p,TextRef target,uintptr_t chr,bool statuses=true) {
+    const auto ailments=targetAilments(p,chr,statuses);
+    return ailments?planJoin(p,target,ailments):target;
 }
 void targets(Event& e) {
     if (!nativeGameThread() || e.epoch!=generation() || !inBattle()) return;
@@ -348,7 +362,7 @@ void targets(Event& e) {
             using Getter=uintptr_t(__cdecl*)(unsigned);const auto actor=reinterpret_cast<Getter>(address(0x394030))(bit+16);
             hp=read<int>(actor+0x5d0);maximum=read<int>(actor+0x594);kind=1;
         }
-        auto target=planBattleTarget(p,name,hp,maximum,kind);
+        auto target=withAilments(p,planBattleTarget(p,name,hp,maximum,kind),chr,battleSensorVisible(bit+16));
         if(selected==bit+16) {
             const auto mechanic=wheelMechanic(p,wheels,selected);
             if(mechanic)target=planSuffix(p,target,mechanic,L", ");
@@ -356,10 +370,14 @@ void targets(Event& e) {
         names=planJoin(p,names,target);
     }
     const auto array=read<uintptr_t>(address(0xd334cc));
+    // The party panel draws a maximum only in mode F3D742 0 (HP) or 1 (MP);
+    // otherwise speak the current value alone, as the H key does.
+    const auto panelMode=read<uint8_t>(address(0xf3d742),255);
+    const unsigned partyKind=previewMp?(panelMode==1?2:4):(panelMode==0?1:3);
     for(unsigned bit=0;bit<18;++bit) if((players&(1u<<bit)) && array) {
         const auto chr=array+bit*0xf90;if(!read<uint8_t>(chr+0xdc8)) continue;
-        names=planJoin(p,names,planBattleTarget(p,planBattleName(p,bit),
-            read<int>(chr+(previewMp?0x5d4:0x5d0)),read<int>(chr+(previewMp?0x598:0x594)),previewMp?2:1));
+        names=planJoin(p,names,withAilments(p,planBattleTarget(p,planBattleName(p,bit),
+            read<int>(chr+(previewMp?0x5d4:0x5d0)),read<int>(chr+(previewMp?0x598:0x594)),partyKind),chr));
     }
     p.headline=names;commitTextPlan(p); previousPlayers = players; previousMonsters = monsters;
     previousTargetWindow=win;previousTargetOwner=owner;previousTargetCommand=command;previousSensor=sensor;previousSeymour=wheels.key;

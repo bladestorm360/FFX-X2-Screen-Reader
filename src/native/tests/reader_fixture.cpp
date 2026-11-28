@@ -740,14 +740,7 @@ int main(int argc, char** argv) {
     keys['T'](false); expect(L"Tidus","turn hotkey");
     set<unsigned>(0x21205d0,100);set<unsigned>(0x21206e4,100); set<unsigned>(0x2120594,200);
     set<unsigned>(0x21205d4,17);set<unsigned>(0x21206e8,17); set<unsigned>(0x2120598,30);
-    setSetting(Setting::ShowMaximumHp,0);
-    setSetting(Setting::ShowMaximumMp,0);
-    keys['H'](false); expect(L"Tidus HP 100 (50%) MP 17. Status: None","H defaults to current MP displayed by the battle panel");
-    setSetting(Setting::ShowMaximumMp,1);
-    keys['H'](false); expect(L"Tidus HP 100 (50%) MP 17/30. Status: None","maximum MP is independently opt-in");
-    setSetting(Setting::ShowMaximumMp,0); setSetting(Setting::ShowMaximumHp,1);
-    keys['H'](false); expect(L"Tidus HP 100/200 MP 17. Status: None","maximum HP does not enable maximum MP");
-    setSetting(Setting::ShowMaximumHp,0);
+    keys['H'](false); expect(L"Tidus HP 100 MP 17. Status: None","H reads the current HP and MP the battle panel draws");
     activeBattleFixtures(); battleHudFixtures(); battleSwitchFixtures(); battleOutcomesFixtures(); statusAnimationFixtures();battleAmountFixtures();seymourFixtures();overdriveLearnFixtures();battleHpFixtures();
     set<uintptr_t>(0xf3c930,address(0x2211400)); set<unsigned>(0xf3c934,2); set<unsigned>(0xf3c954,1);
     set<uint16_t>(0xf3c916,1); set<uint16_t>(0x2211400,0x2001); set<uint16_t>(0x2211402,0x2002); set<uint16_t>(0xf3c92e,1);
@@ -778,7 +771,20 @@ int main(int argc, char** argv) {
     setSetting(Setting::UnavailableCue,0);
     protectSpeech(false);
     set<uint16_t>(0xf3c91c,0x2002);
-    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview");
+    event(0x49d300,address(0xf3c910),[]{set<uint8_t>(0xf3d742,2);set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17","panel without a drawn maximum speaks current MP only");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint8_t>(0xf3d742,0);set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17","HP panel mode never adds the MP maximum");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint8_t>(0xf3d742,1);set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","party MP target preview keeps the maximum the MP panel draws");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);set<uint16_t>(0x2120606,8);set<uint8_t>(0x212060a,2);set<uint8_t>(0x2120613,3);});
+    expect(L"Tidus: MP 17/30, poison, darkness","target names visible ailments but not buffs");
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);set<uint16_t>(0x2120616,0x4000);set<uint8_t>(0x21205c8,3);});
+    expect(L"Tidus: MP 17/30, poison, darkness, doom, 3 turns","target doom counter");
+    set<uint16_t>(0x2120606,0);set<uint8_t>(0x212060a,0);set<uint8_t>(0x2120613,0);set<uint16_t>(0x2120616,0);set<uint8_t>(0x21205c8,0);
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,0);});
+    event(0x49d300,address(0xf3c910),[]{set<uint16_t>(0xf3c9e8,1);}); expect(L"Tidus: MP 17/30","target without ailments has no status suffix");
     check(said.back().second,"target movement interrupts after deliberate input, including held menu navigation");
     battleTargetPreviewFixtures();
     {
