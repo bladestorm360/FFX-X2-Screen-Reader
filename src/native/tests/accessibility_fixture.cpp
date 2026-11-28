@@ -142,6 +142,7 @@ void selectRow(const std::wstring& label) {
 int main() {
     installTextPlans();
     SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX|SEM_NOOPENFILEERRORBOX);
+    DeleteFileW(settingsPath().c_str()); // start from defaults, not an INI left by an earlier run
     initializeControllerBindings();
     pad::Router router; pad::State state;
     router.update(state,true,false); check(!router.draining,"neutral focus acquisition");
