@@ -78,6 +78,15 @@ int main() {
         pages[4094] = 0x50; pages[4095] = 0;
         parts = ffx::decode(reinterpret_cast<uintptr_t>(pages + 4094), 256);
         require(parts.size() == 1 && parts[0] == L"A", "terminator at unreadable page boundary");
+        {
+            // A stale pointer into a guard page (for example another thread's
+            // stack guard) must fail the copy without consuming the guard.
+            auto guarded = static_cast<uint8_t*>(VirtualAlloc(nullptr, 4096, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE | PAGE_GUARD));
+            uint32_t value = 0; MEMORY_BASIC_INFORMATION info{};
+            require(guarded && !ffx::copy(reinterpret_cast<uintptr_t>(guarded), &value, sizeof(value)), "copy refuses a guard page");
+            require(VirtualQuery(guarded, &info, sizeof(info)) && (info.Protect & PAGE_GUARD), "copy leaves the guard page armed");
+            VirtualFree(guarded, 0, MEM_RELEASE);
+        }
         pages[4095] = 0x04;
         parts = ffx::decode(reinterpret_cast<uintptr_t>(pages + 4094), 256);
         require(parts.size() == 1 && parts[0] == L"A", "truncated opcode at page boundary");

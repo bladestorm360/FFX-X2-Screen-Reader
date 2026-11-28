@@ -16,7 +16,31 @@ std::atomic<uintptr_t> keyboard{0};
 std::array<uint8_t, 256> held{};
 std::array<bool,256> swallowed{};
 uintptr_t activeKeyboard=0;
-unsigned virtualKey(unsigned scan) {
+// 0 = not read yet. GetKeyboardType only reads a cached system value.
+std::atomic<int> keyboardType{0};
+bool japaneseKeyboard() {
+    auto type=keyboardType.load(std::memory_order_relaxed);
+    if(!type) {type=GetKeyboardType(0);keyboardType.store(type?type:-1,std::memory_order_relaxed);}
+    return type==7;
+}
+// DirectInput reports Japanese-106 key codes when Windows says the keyboard
+// is type 7, even with a US layout. Turn them back into the physical scan
+// codes so [ ] \ and ` reach the same hotkeys they do in window messages.
+unsigned physicalScan(unsigned dik) {
+    if(!japaneseKeyboard()) return dik;
+    switch(dik) {
+    case DIK_CIRCUMFLEX: return 0x0d;
+    case DIK_AT: return 0x1a;
+    case DIK_LBRACKET: return 0x1b;
+    case DIK_COLON: return 0x28;
+    case DIK_KANJI: return 0x29;
+    case DIK_RBRACKET: return 0x2b;
+    case DIK_BACKSLASH: return 0x73;
+    default: return dik;
+    }
+}
+unsigned virtualKey(unsigned dik) {
+    const auto scan=physicalScan(dik);
     return MapVirtualKeyW(scan & 0x80 ? 0xe000 | (scan & 0x7f) : scan, MAPVK_VSC_TO_VK_EX);
 }
 void deviceState(Event& e) {
@@ -61,7 +85,9 @@ void deviceData(Event& e) {
         const bool shift=((nextHeld[DIK_LSHIFT] | nextHeld[DIK_RSHIFT]) & 0x80) != 0;
         const bool control=((nextHeld[DIK_LCONTROL] | nextHeld[DIK_RCONTROL]) & 0x80) != 0;
         if (down && !wasDown) nextSwallowed[scan]=peek?capturesKey(virtualKey(scan),shift,control):consumeKey(virtualKey(scan),shift,control);
-        if(inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive())) nextSwallowed[scan]=true;
+        // A modal owns new presses only. A release is suppressed only when its
+        // press was; one the game saw pressed must reach it or the key sticks.
+        if(down && (inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive()))) nextSwallowed[scan]=true;
         const bool suppress=nextSwallowed[scan];
         if(!down) nextSwallowed[scan]=false;
         if(!suppress) {
@@ -172,6 +198,7 @@ void installDirectInputKeyboard() {
 #ifdef FFX_READER_TEST
 void directInputStateForTest(Event& e,bool pad) {e.before[31]=pad?2:1;deviceState(e);}
 void directInputDataForTest(Event& e,bool pad) {e.before[31]=pad?2:1;deviceData(e);}
+void directInputKeyboardTypeForTest(int type) {keyboardType=type;}
 void directInputReleaseForTest(Event& e) {if(!e.result && keyboard==e.args[0]) {keyboard=0;activeKeyboard=0;held.fill(0);swallowed.fill(false);directKeyboard(false);}}
 #endif
 }

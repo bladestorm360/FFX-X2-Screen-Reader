@@ -27,7 +27,10 @@ if /I "%~1"=="--review" goto review
 if /I "%~1"=="--abi" goto abi
 if /I "%~1"=="--threading" goto threading
 if /I "%~1"=="--tail" goto tail
+if /I "%~1"=="--overflow" goto overflow
+if /I "%~1"=="--hook-batch" goto hookbatch
 if /I "%~1"=="--native-actions" goto nativeactions
+if /I "%~1"=="--retirement" goto retirement
 if /I "%~1"=="--jecht" goto jecht
 if /I "%~1"=="--lightning" goto lightning
 if /I "%~1"=="--console" goto console
@@ -122,6 +125,22 @@ if not "%errorlevel%"=="0" goto failed
 .\hook_tail_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--tail" goto success
+:overflow
+cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_overflow_fixture.exe "%TEST_SRC%hook_overflow_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
+if not "%errorlevel%"=="0" goto failed
+copy /Y "%MINHOOK_ROOT%\bin\MinHook.x86.dll" MinHook.x86.dll >nul
+if not "%errorlevel%"=="0" goto failed
+hook_overflow_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--overflow" goto success
+:hookbatch
+cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_batch_fixture.exe "%TEST_SRC%hook_batch_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
+if not "%errorlevel%"=="0" goto failed
+copy /Y "%MINHOOK_ROOT%\bin\MinHook.x86.dll" MinHook.x86.dll >nul
+if not "%errorlevel%"=="0" goto failed
+hook_batch_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--hook-batch" goto success
 :nativeactions
 cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_native_actions_fixture.exe "%TEST_SRC%hook_native_actions_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
 if not "%errorlevel%"=="0" goto failed
@@ -130,6 +149,12 @@ if not "%errorlevel%"=="0" goto failed
 .\hook_native_actions_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--native-actions" goto success
+:retirement
+cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_RETIREMENT_TEST /Fe:owned_retirement_fixture.exe "%TEST_SRC%owned_retirement_fixture.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+owned_retirement_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--retirement" goto success
 :jecht
 if not defined FFX_PUBLIC_TESTS goto jecht_have
 echo SKIP: jecht needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files"
