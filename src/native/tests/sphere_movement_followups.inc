@@ -12,8 +12,11 @@ void sphereMovementFixtures() {
     set<uintptr_t>(pool+9*0x340+0x40,address(0x2105800));
     set<uintptr_t>(pool+10*0x340+0x40,address(0x2105840));
     set<uintptr_t>(choices+0x40,address(0x21001a0)); set<uintptr_t>(choices+0x4c,address(0x21001c0));
+    // Native route preview stores the pending cost at +1161C before the prompt.
+    set<uintptr_t>(0x1f05834,address(grid)); set<uint8_t>(grid+0x115bc,0);
+    set<int32_t>(grid+0x1161c,2); set<uint8_t>(0xd3205c+0x3b,8);
     auto before=said.size(); event(0x6583e0,0);
-    check(said.size()==before+2 && said[before].first==L"Move to this location?" && said.back().first==L"Yes",
+    check(said.size()==before+2 && said[before].first==L"Move to this location? Costs 2 Sphere Levels, 6 left." && said.back().first==L"Yes",
         "movement callback selects native slot 9 prompt and actual Yes choice");
     check(said[before].second && !said.back().second,"movement prompt precedes queued initial focus");
     keys['I'](false); expect(L"Move to this location?","I reads movement prompt rather than grid/action detail");
@@ -21,9 +24,12 @@ void sphereMovementFixtures() {
     event(0x6583e0,0,[=]{set<int16_t>(choices+0x18,1);}); expect(L"No","movement choice navigation");
     check(said.back().second,"moved choice interrupts");
     event(0x6583e0,0,[=]{set<int16_t>(pool+0x2700,-1);});
-    before=said.size();
+    before=said.size(); set<int32_t>(grid+0x1161c,1);
     event(0x6583e0,0,[=]{set<int16_t>(pool+0x2700,11);set<int16_t>(choices+0x18,0);});
-    check(said.size()==before+2 && said[before].first==L"Move to this location?","same movement confirmation reopens audibly");
+    check(said.size()==before+2 && said[before].first==L"Move to this location? Costs 1 Sphere Level, 7 left.","same movement confirmation reopens audibly with current cost");
+    event(0x6583e0,0,[=]{set<int16_t>(pool+0x2700,-1);}); before=said.size();
+    event(0x6583e0,0,[=]{set<int16_t>(pool+0x2700,11);set<int32_t>(grid+0x1161c,9);});
+    check(said.size()==before+2 && said[before].first==L"Move to this location?","unaffordable or unknown cost keeps the native prompt only");
     event(0x6583e0,0,[=]{set<uintptr_t>(pool+0x2704,address(0x656060));});
     expect(L"Yes","exit after movement still announces initial focus");
     check(said[said.size()-2].first==L"Quit Sphere Grid","callback identity distinguishes shared slot 11 confirmations");

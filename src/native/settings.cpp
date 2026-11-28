@@ -45,7 +45,8 @@ constexpr SettingInfo options[] = {
     {L"Blitzball auto-win",L"Enable at team setup. Any confirmed live Action Commands option triggers a native win; setup, formation and forfeit choices do not. Native standings and prizes are preserved.",L"blitz_assist",0,0,1,1},
     // Append the persistent ID; menu order is independent, so old IDs/keys stay stable.
     {L"Automatically read extra info",L"Read the visible extra-information pane automatically. Independent of Autodetail. U repeats extra information; I repeats the selected description.",L"auto_extra_info",0,0,1,1},
-    {L"Unavailable cue",L"Say Unavailable when the game rejects an action in the Items, Abilities, or battle menus.",L"unavailable_cue",0,0,1,1}
+    {L"Unavailable cue",L"Say Unavailable when the game rejects an action in the Items, Abilities, or battle menus.",L"unavailable_cue",0,0,1,1},
+    {L"Sphere Grid node numbers",L"Say the node number after each Sphere Grid node name and in route guidance. F6 node-number entry works either way.",L"sphere_node_numbers",1,0,1,1}
 };
 static_assert(_countof(options)==static_cast<unsigned>(Setting::Count));
 std::atomic<int> values[_countof(options)];

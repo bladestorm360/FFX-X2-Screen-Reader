@@ -117,6 +117,8 @@ int main(int argc,char** argv) {
         loadSettings();
         check(!setting(Setting::AutoExtraInfo) && settingInfo(Setting::AutoExtraInfo).initial==0,"fresh extra information defaults Off");
         check(!setting(Setting::UnavailableCue) && settingInfo(Setting::UnavailableCue).initial==0,"fresh rejection cue defaults Off");
+        check(setting(Setting::SphereNodeNumbers)==1 && settingInfo(Setting::SphereNodeNumbers).initial==1 &&
+            static_cast<unsigned>(Setting::SphereNodeNumbers)>static_cast<unsigned>(Setting::AutoExtraInfo),"node numbers default On with a new appended ID");
         check(static_cast<unsigned>(Setting::AutoDetail)==2 && static_cast<unsigned>(Setting::BlitzAssist)==36 &&
             static_cast<unsigned>(Setting::AutoExtraInfo)==37 && static_cast<unsigned>(Setting::UnavailableCue)==38,
             "appending the rejection cue preserves all previous setting IDs");
