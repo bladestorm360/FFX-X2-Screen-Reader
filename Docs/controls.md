@@ -497,10 +497,11 @@ until that key is released, and does not steer the character. Dialogue, scripted
 scenes, menus, battle, lost focus and a map change stop it; press Backslash
 again to start a new walk. When a battle interrupts a walk, Auto walk requests
 its route to the same destination on the first native field update after the
-battle with player control and no dialogue or menu. Walking yourself, Escape,
-a navigation command outside battle, starting a new walk, or turning Auto walk
-off cancels the resume. Returning in a different room or more than two steps
-from the interruption drops it. A map change after battle end or a missing
+battle with player control and no dialogue or menu. Outside battle, movement,
+Escape, Backslash/right trigger, destination scans or browsing, guide paths,
+and pedestal or airship actions cancel the resume. Starting a new walk or
+turning Auto walk off also cancels it. Returning in a different room or more
+than two steps from the interruption drops it. A map change after battle end or a missing
 destination also drops it. Control taken by an exit or scripted event without
 a battle never resumes the walk.
 A route can include up to one additional step into an interaction zone when

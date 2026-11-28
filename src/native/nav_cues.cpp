@@ -220,8 +220,8 @@ void prepareNavRetirement() {
 }
 void clearNavRoute() {navRouteStopReported=true;clearRevision.fetch_add(1,std::memory_order_acq_rel);known=false;pauseNavRouteAudio();stopNavPreview();if(onOwner() && state.ready()) clearOwned();}
 void loseNavRoute(const wchar_t* reason) {
-    // A pending battle resume speaks its own outcome ("not found" when the
-    // destination is really gone), so a route lost while it waits stays silent.
+    // A battle-confirmed resume speaks its own outcome ("not found" when the
+    // destination is really gone). Unconfirmed control loss still reports it.
     const bool announce=onOwner() && current() && known.load(std::memory_order_acquire) && !owned().arrived && !autoWalkResumePending() && claimNavRouteStopSpeech();
     releaseAutoWalk();clearNavRoute();
     if(announce) emit(L"Route lost: "+std::wstring(reason),"navigation-route-lost");

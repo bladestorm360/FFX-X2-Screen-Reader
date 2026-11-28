@@ -9,7 +9,7 @@ void stopAutoWalk();
 void releaseAutoWalk();
 // Backslash toggle: stops an active walk and says so. False when no walk is active.
 bool toggleAutoWalkOff();
-// True while a control-loss candidate or confirmed battle resume is pending.
+// True only while a battle-confirmed resume is pending, including field recovery.
 bool autoWalkResumePending();
 // Stops like stopAutoWalk but keeps a pending battle resume. For field resets only.
 void suspendAutoWalk();
@@ -23,8 +23,8 @@ void updateAutoWalk();
 void autoWalkKeyboard(uint8_t* keys);
 void autoWalkController(pad::State& state);
 void autoWalkPlayerInput(unsigned vk);
-// Input owners publish whether Insert, Numpad Insert or Caps Lock is held before
-// reporting key presses; those screen-reader chords never cancel auto walk.
+// Each input path publishes Insert, Numpad Insert or Caps Lock state before
+// reporting key presses. autoWalkKeyboard uses its own local physical scan.
 void autoWalkReaderModifier(bool held);
 unsigned autoWalkInputRevision(); // Copied manual-input cancellation token for delayed routes.
 void installAutoWalk();

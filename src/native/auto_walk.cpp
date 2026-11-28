@@ -111,6 +111,13 @@ void stop(const char* reason,const wchar_t* spokenReason=nullptr,bool routeFailu
     }
 }
 const wchar_t* const ControlDisabled=L"player control disabled";
+bool retireResumeCandidate() {
+    if(resumePhase.load()!=ResumeCandidate) return false;
+    const auto reason=nativeFieldControlReason();
+    if(resumeEpoch==generation() && currentRoom()==resumeRoom &&
+        (scene || (reason && std::wcscmp(reason,ControlDisabled)==0))) return false;
+    resumePhase=ResumeNone;return true;
+}
 bool messageAllowsAssist() {
     if(!messageGuard.candidate) return true;
     const auto state=classifyFieldControls(messageGuard);
@@ -142,7 +149,7 @@ void controlDisabled(Event&) { stop("native player control disabled"); }
 void controlRestored(Event&) {if(resumePhase.load()==ResumeCandidate && !inBattle()) resumePhase=ResumeNone;}
 // Battle completion can run without intervening field-input updates. Confirm
 // the candidate before native completion restores control or reloads the field.
-void battleFinished(Event&) {if(resumePhase.load()==ResumeCandidate) resumePhase=ResumeBattle;}
+void battleFinished(Event&) {if(resumePhase.load()==ResumeCandidate && !retireResumeCandidate()) resumePhase=ResumeBattle;}
 // Input before the next field update must still cancel once the native battle
 // flag clears. Battle commands and result confirmation keep the destination.
 void cancelFieldResume() {if(resumePhase.load()!=ResumeNone && !inBattle()) resumeCancel=true;}
@@ -158,7 +165,7 @@ bool toggleAutoWalkOff() {
     stopAutoWalk();output(L"Auto walk stopped",true,"auto-walk");return true;
 }
 void releaseAutoWalk() {manualRevision.fetch_add(1,std::memory_order_acq_rel);if(nativeGameThread()) stop("route lost");else {engaged=false;cancel=true;mask=0;stamp=0;}}
-bool autoWalkResumePending() {return resumePhase.load()!=ResumeNone;}
+bool autoWalkResumePending() {const int phase=resumePhase.load();return phase==ResumeBattle || phase==ResumeAfter;}
 void setAutoWalkResume(AutoWalkResume handler) {resumeHandler=handler;}
 unsigned autoWalkInputRevision() {return manualRevision.load(std::memory_order_acquire);}
 bool autoWalkActive() { return engaged && !cancel; }
@@ -193,13 +200,9 @@ void startAutoWalk() {
 void serviceResume() {
     const int phase=resumePhase.load();if(phase==ResumeNone) return;
     if(resumeCancel.exchange(false) || !setting(Setting::AutoWalk)) {resumePhase=ResumeNone;return;}
+    if(retireResumeCandidate()) return;
     if(inBattle()) {resumePhase=ResumeBattle;return;}
-    if(phase==ResumeCandidate) {
-        const auto reason=nativeFieldControlReason();
-        if(resumeEpoch!=generation() || currentRoom()!=resumeRoom ||
-            (!scene && (!reason || std::wcscmp(reason,ControlDisabled)!=0))) resumePhase=ResumeNone;
-        return;
-    }
+    if(phase==ResumeCandidate) return;
     // A battle may reload its own field. Accept that generation at battle end;
     // any subsequent reset retires the pending request, even in the same room.
     if(phase==ResumeBattle) {resumePhase=ResumeAfter;resumeEpoch=generation();}
@@ -321,7 +324,6 @@ void autoWalkKeyboard(uint8_t* keys) {
     pedestalKeyboardInput(keys);
     bool modifier=false;
     for(unsigned scan:readerModifierScans) if(keys[scan]&0x80) modifier=true;
-    readerModifier=modifier;
     for(unsigned i=0;i<256;++i) {
         const bool down=(keys[i]&0x80)!=0;
         readerOwned[i]=down && (readerOwned[i] || (modifier && !physicalDown[i]));

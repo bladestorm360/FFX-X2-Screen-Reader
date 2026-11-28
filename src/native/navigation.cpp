@@ -241,7 +241,7 @@ void execute(const Pending& event) {
         const auto rows=filtered();unsigned row=0;
         while(found>=0 && row<rows.size() && rows[row]!=&s.entities[found]) ++row;
         if(found<0 || row==rows.size()) {emit(event,L"Auto walk not resumed: "+name+L" not found","navigation-path",false);break;}
-        s.selected=row;pathfind(event);break;
+        s.selected=row;lockSelected();pathfind(event);break;
     }
     case nav::Query::Filter:
         adjustSetting(Setting::HideUnreachable,1);requestOwnedReachability(s.observation,s.entities);
@@ -442,5 +442,16 @@ void installNavigation() {
 #ifdef FFX_READER_TEST
 bool navigationSelectedForTest(Entity& target) {if(nativeGameThread() || !owned().ready) return false;const auto rows=filtered();if(owned().selected>=rows.size()) return false;target=*rows[owned().selected];return true;}
 unsigned navigationPendingForTest() {return static_cast<unsigned>(owned().pending.size());}
+// Synthetic destinations on the captured field; execute and maintenance stay real.
+bool navigationResumeForTest(const NativeRouteTarget& target,const std::vector<Entity>& entities,bool routeReady) {
+    if(nativeGameThread() || !owned().ready || entities.empty()) return false;
+    auto& s=owned();s.entities=entities;s.selected=0;lockSelected();
+    s.mesh={};s.mesh.openPlane=true;s.mesh.events=s.observation.geometry.events;s.mesh.events.ready=routeReady;
+    s.observation.geometryValid=true;retireOwnedReachability();requestOwnedReachability(s.observation,s.entities);
+    resumeTarget.publish(target.name.data(),target.id,target.pushControl,target.position);
+    Pending event{s.header,{},{}};event.query.query=nav::Query::Resume;
+    event.query.manual=autoWalkInputRevision();event.query.intentRevision=nav::navigationIntentRevision();
+    execute(event);return true;
+}
 #endif
 }

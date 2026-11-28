@@ -16,6 +16,8 @@
 #include "../navigation.hpp"
 #include "../navigation_intents.hpp"
 #include "../navigation_observations.hpp"
+#include "../reachability.hpp"
+#include "../reachability_shared.hpp"
 #include "../nav_audio.hpp"
 #include "../owned_nav_target.hpp"
 #include "../pedestal.hpp"
@@ -904,6 +906,38 @@ int main(int argc, char** argv) {
         check(fixtureResume && fixtureResume(missing),"native resume callback queues the copied destination");
         expect(L"Auto walk not resumed: Missing battle destination not found","fresh field observation drops a missing resume destination");
         check(autoStarts==starts,"a missing destination never restarts Auto walk");
+    }
+    {
+        const auto previousAutoWalk=setting(Setting::AutoWalk),previousFilter=setting(Setting::HideUnreachable);
+        setSetting(Setting::AutoWalk,1);setSetting(Setting::HideUnreachable,1);
+        std::vector<Entity> destinations(3);
+        for(unsigned i=0;i<destinations.size();++i) {
+            destinations[i].name=L"Resume fixture "+std::to_wstring(i);
+            destinations[i].id=0xf100+i;destinations[i].position={100.0+50*i,0,0};
+        }
+        NativeRouteTarget target;target.id=destinations[1].id;target.position=destinations[1].position;
+        wcscpy_s(target.name.data(),target.name.size(),destinations[1].name.c_str());
+        // Success already locks inside pathfind. Its data-unavailable return
+        // must also keep the row chosen by Resume before maintenance runs.
+        for(bool routeReady:{true,false}) {
+            navigationFixturePump();const auto starts=autoStarts;
+            testStatusOwner=false;
+            check(navigationResumeForTest(target,destinations,routeReady),"execute Resume against the captured field");
+            check(ownedReachabilityChecking(),"resume fixture has a pending reachability result");
+            testStatusOwner=true;nav::dispatchNavigationIntents();
+            check(autoStarts==starts+(routeReady?1u:0u),"only a ready Resume route starts Auto walk once");
+            testStatusOwner=false;
+            reach::ResultBatch result;result.request=reach::latest.load();result.count=3;result.unreachable[2]=1;
+            reach::results.publish(result);speechq::fixture::maintenance.at(12)();
+            check(!ownedReachabilityChecking(),"maintenance consumes the changed reachability result");
+            Entity selected;
+            check(navigationSelectedForTest(selected) && selected.id==target.id,
+                "Resume keeps its selected row after reachability maintenance, including a route-data refusal");
+            retireOwnedReachability();drainReachabilityForTest();
+            testStatusOwner=true;
+        }
+        setSetting(Setting::AutoWalk,previousAutoWalk);setSetting(Setting::HideUnreachable,previousFilter);
+        resetNavigation();keys[VK_OEM_3](false);navigationFixturePump();
     }
     mapControlsFixtures(); navigationIdentityRuntimeFixtures();
     setSetting(Setting::PartialSteps,0);
