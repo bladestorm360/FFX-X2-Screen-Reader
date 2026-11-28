@@ -30,6 +30,12 @@ void sensorFixtures() {
     resetBattle(); event(0x49d300,address(0xf3c910));
     expect(L"Gold Element: 78%","without Sensor the gauge uses committed HP rather than the action calculator's forecast");
     check(!battleSensorVisible(20) && !battleSensorAvailable(),"hidden Sensor information is unavailable");
+    set<uint16_t>(monster+0x606,8); set<uint8_t>(monster+0x60a,2); resetBattle(); event(0x49d300,address(0xf3c910));
+    expect(L"Gold Element: 78%","without Sensor or Scan enemy ailments stay unspoken");
+    set<uint16_t>(monster+0x616,0x4400); set<uint8_t>(monster+0x5c8,4); resetBattle(); event(0x49d300,address(0xf3c910));
+    expect(L"Gold Element: 78%, doom, 4 turns","without Sensor only Doom and its drawn counter are spoken");
+    set<uint16_t>(monster+0x606,0); set<uint8_t>(monster+0x60a,0); set<uint16_t>(monster+0x616,0); set<uint8_t>(monster+0x5c8,0);
+    resetBattle(); event(0x49d300,address(0xf3c910)); expect(L"Gold Element: 78%","cleared enemy statuses add no suffix");
     sensorParty=true; sensorHelpCalls=0; event(0x49d300,address(0xf3c910));
     expect(L"Gold Element: HP 777/1000","Sensor availability changes on the same target and uses displayed HP numbers");
     check(sensorHelpCalls==1,"Sensor buffer is assembled at enemy highlight before the pane visibility callback");
@@ -49,6 +55,7 @@ void sensorFixtures() {
     encoded(0x2310720,"Poison"); encoded(0x2310730,"Haste"); stub(0x38fd40,reinterpret_cast<void*>(sensorStatus));
     set<uint16_t>(monster+0x606,8); set<uint8_t>(monster+0x613,3);
     set<uint8_t>(0xf3c918,1); event(0x49d300,address(0xf3c910));
+    expect(L"Gold Element: HP 777/1000, poison","Sensor reveals enemy ailments with its HP");
     check(sensorHelpCalls==2,"new target owner assembles fresh native information");
     dispatchBattleSensorKey(VK_LEFT,true); expect(L"Weakness: Water","new highlight reflects changed native affinities");
     for(unsigned i=0;i<4;++i) dispatchBattleSensorKey(VK_DOWN,true);
