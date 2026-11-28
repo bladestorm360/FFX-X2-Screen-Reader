@@ -55,11 +55,14 @@ void appendSelectionDetailOwned(std::wstring,SelectionDetailToken) {}
 bool output(const std::wstring& text,bool,const char*) { said.push_back(text); return true; }
 void hotkey(unsigned vk,void(*handler)(bool)) { keys[vk]=handler; }
 void hotkeyWhen(unsigned vk,void(*handler)(bool),bool(*available)()) {keys[vk]=handler;contexts[vk]=available;}
-void captureSpeech(bool value) { captured=value; }
+// Shifted chords are stored above the 8-bit virtual-key range.
+void hotkeyChordWhen(unsigned vk,bool shift,void(*handler)(bool),bool(*available)(),bool) {if(shift) {keys[vk|0x100]=handler;contexts[vk|0x100]=available;}}
 bool namingContext=false; unsigned nameReads=0;
 bool namingReadbackAvailable() {return namingContext;}
 bool readEnteredName() { if(!namingContext) return false; ++nameReads; return true; }
 void repeatSpeech(bool) { ++repeats; }
+unsigned fixtureGameScan=0;
+bool gameKeyboardUsesScan(unsigned scan) { return scan && scan==fixtureGameScan; }
 void drainController() { ++drains; }
 void pauseNavAudio() { navPaused=true; }
 Point playerPosition() { return {5,0,5}; }
@@ -71,7 +74,9 @@ void updateNavAudio(Point point,bool moving) {
 }
 void stopNavPreview() {}
 void previewNavAudio(bool) { ++previews; }
-bool inBattle() { return false; }
+bool fixtureBattle=false,fixtureGrid=false;
+bool inBattle() { return fixtureBattle; }
+bool sphereGridOpen() { return fixtureGrid; }
 std::wstring lightningDodgeControls() { return L"Dodge: fixture control."; }
 bool puzzleArmed() { return false; }
 std::wstring puzzleAction; bool trialPresent=false,viaPresent=false;
@@ -126,11 +131,17 @@ void resetWakka() { fixtureWakka=false; ++wakkaResets; }
 void spherePlannerKey(unsigned,bool) {}
 }
 #include "test_speech_domains.hpp"
+namespace ffx { void captureSpeech(bool value) { captured=value; speechq::fixture::modal=value; } }
 using namespace ffx;
 void menuKeyForTest(unsigned key,bool shift=false) {ffx::modMenuKey(key,shift);drainSpeechDomainsForTest();}
 void openMenuForTest(const ModMenuState& state) {ffx::openModMenu(state);drainSpeechDomainsForTest();}
 void pressForTest(unsigned key,bool shift=false) {if(!contexts.count(key) || contexts[key]()) keys[key](shift);drainSpeechDomainsForTest();}
 void check(bool ok,const char* message) { if(!ok) { fprintf(stderr,"FAIL: %s\n",message); exit(1); } }
+std::wstring contextHelpForTest() {
+    const unsigned key=VK_OEM_2|0x100;
+    if(!keys.count(key) || !contexts[key]()) return L"";
+    keys[key](true);drainSpeechDomainsForTest();return said.empty()?L"":said.back();
+}
 void selectRow(const std::wstring& label) {
     menuKeyForTest(VK_HOME);
     for(unsigned i=0;i<64;++i) {
@@ -180,9 +191,28 @@ int main() {
     scene=0;trialPresent=true;
     pressForTest(VK_F10,false); check(!modMenuActive() && said.back()==L"Fixture trial","path shortcut does not open settings");
     trialPresent=false;
+    check(contextHelpForTest().find(L"Field keys: backtick rescans")==0,"Shift+Slash lists field keys");
+    trialPresent=true;check(contextHelpForTest().find(L"Trial keys: F9 and F10")==0,"Shift+Slash lists trial guide keys");trialPresent=false;
+    fixtureGrid=true;check(contextHelpForTest().find(L"Sphere Grid keys: F2")==0,"Shift+Slash lists Sphere Grid keys");fixtureGrid=false;
+    fixtureEsc=true;check(contextHelpForTest().find(L"Menu keys: I")==0,"Shift+Slash lists Escape menu keys");fixtureEsc=false;
+    scene=6;check(contextHelpForTest().find(L"Menu keys: I")==0,"Shift+Slash lists native menu keys");scene=0;
+    fixtureBattle=true;check(contextHelpForTest().find(L"Battle keys: T")==0,"Shift+Slash lists battle keys");fixtureBattle=false;
+    {
+        auto listsL=[](const wchar_t* phrase){ return contextHelpForTest().find(phrase)!=std::wstring::npos; };
+        bool all=listsL(L"L repeats last speech");
+        trialPresent=true;all=all&&listsL(L"L last speech");trialPresent=false;
+        fixtureGrid=true;all=all&&listsL(L"L last speech");fixtureGrid=false;
+        fixtureEsc=true;all=all&&listsL(L"L last speech");fixtureEsc=false;
+        scene=6;all=all&&listsL(L"L last speech");scene=0;
+        fixtureBattle=true;all=all&&listsL(L"L last speech");fixtureBattle=false;
+        check(all,"Shift+Slash lists L in every context where L repeats speech");
+    }
     pressForTest(VK_F8,false);
     check(modMenuActive() && captured,"spoken menu captures game narration");
     check(said.back()==L"Accessibility mod menu. Speech: On, 1 of 6","main menu keeps Speech, Speech options and existing grouped submenus plus Close");
+    menuKeyForTest(VK_OEM_2,true);
+    check(said.back().find(L"Mod menu keys: Up and Down")==0 && modMenuActive(),"Shift+Slash inside the mod menu lists its keys");
+    check(said.back().find(L"last speech")==std::wstring::npos,"mod menu help leaves out L, which the menu does not route");
     menuKeyForTest(VK_F6); menuKeyForTest(VK_F7);
     check(!setting(Setting::Beacon) && !setting(Setting::AutoDetail),"toggles remain available inside settings");
     check(navPaused,"F6 inside settings keeps route audio paused");
@@ -453,6 +483,13 @@ int main() {
     check(repeats==beforeRepeat,"F11 is handed back on the ordinary field after leaving a trial");
     fixtureEsc=true;pressForTest(VK_F11,false);fixtureEsc=false;
     check(repeats==beforeRepeat+1,"F11 retains repeat in the native Escape menu");
+    check(keys.count('L')!=0,"L is registered as the repeat-last-speech key");
+    pressForTest('L',false);
+    check(repeats==beforeRepeat+2,"L repeats the last speech on the ordinary field");
+    fixtureEsc=true;pressForTest('L',false);fixtureEsc=false;
+    check(repeats==beforeRepeat+3,"L repeats the last speech in the native Escape menu");
+    fixtureGameScan=0x26;pressForTest('L',false);fixtureGameScan=0;
+    check(repeats==beforeRepeat+3,"L is handed back when a game keyboard action uses it");
     check(settingInfo(Setting::MenuIndex).initial==0 && settingInfo(Setting::AutoWalkPath).initial==0,"new accessibility defaults are off");
     pressForTest(VK_F8,false); selectRow(L"Miscellaneous, submenu"); menuKeyForTest(VK_RETURN);
     selectRow(L"Menu indexing:"); setSetting(Setting::MenuIndex,1); menuKeyForTest(VK_LEFT);

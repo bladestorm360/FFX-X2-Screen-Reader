@@ -7,6 +7,8 @@ int configuredControllerButton(unsigned id);
 unsigned configuredActionKeyboardScan(unsigned action);
 std::array<unsigned,2> configuredActionKeyboardScans(unsigned action);
 int configuredActionControllerButton(unsigned action);
+// True when any configured keyboard action (primary or alternate) uses this DirectInput scan code.
+bool gameKeyboardUsesScan(unsigned scan);
 // Native action/localization IDs shared by spoken settings and movement input.
 inline constexpr Binding keyboard[]={{0,49,632},{1,50,633},{2,51,634},{3,52,635},{4,53,636},{5,54,637},
     {6,55,638},{7,56,639},{8,57,897},{10,59,898},{9,58,899},{11,60,900},{38,73,901},{39,74,902},
