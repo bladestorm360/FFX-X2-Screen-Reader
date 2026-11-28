@@ -2,7 +2,9 @@
 // eligibility, actor lookup and accepted popup rendering are controlled seams.
 namespace {
 bool hpPlaybackAllowed=true;
-unsigned hpNativeGlobals[2]{};
+// [0] 0xc421dc, [1] 0x113338c; [2] 0x112ca15 and [3] 0x11334c4 are only read
+// and written by the installed Steam build's longer HP apply body.
+unsigned hpNativeGlobals[4]{};
 int hpSwitchCurrent=0,hpSwitchMaximum=0;
 std::array<int,2> hpSwitchDigits{};
 unsigned hpSwitchDigitCount=0;
@@ -38,14 +40,19 @@ void battleHpFixtures() {
         check(p!=nullptr,"native HP replay allocation");memcpy(p,body.bytes,sizeof(body.bytes));functions[va]=reinterpret_cast<uintptr_t>(p);
     };
     load(0x78d330,ffx_fixture::load<291>("offline-output/battle_hp_20261021/0078d330.bin",15421666080208540904ull));
-    load(0x78e2f0,ffx_fixture::load<263>("offline-output/battle_hp_20261021/0078e2f0.bin",8449707717570726986ull));
+    // Two qualified inputs: the reference build's 263-byte HP apply body, or the
+    // installed Steam build's 371-byte one (prepare_battle_hp_installed.py). The
+    // installed renderer is the same code with its own constant addresses.
+    const bool installedBuild=std::filesystem::file_size(ffx_fixture::evidenceRoot()/"offline-output/battle_hp_20261021/0078e2f0.bin")==371;
+    if(installedBuild) load(0x78e2f0,ffx_fixture::load<371>("offline-output/battle_hp_20261021/0078e2f0.bin",3706824218332705446ull));
+    else load(0x78e2f0,ffx_fixture::load<263>("offline-output/battle_hp_20261021/0078e2f0.bin",8449707717570726986ull));
     load(0x78e400,ffx_fixture::load<94>("offline-output/battle_hp_20261021/0078e400.bin",9468633039791497172ull));
     load(0x79a0d0,ffx_fixture::load<26>("offline-output/battle_hp_20261021/0079a0d0.bin",3316147878827660020ull));
     load(0x79ade0,ffx_fixture::load<22>("offline-output/battle_hp_20261021/0079ade0.bin",770586423167526627ull));
     load(0x79ae00,ffx_fixture::load<22>("offline-output/battle_hp_20261021/0079ae00.bin",7756988651344995439ull));
     load(0x79ae60,ffx_fixture::load<22>("offline-output/battle_hp_20261021/0079ae60.bin",8710986050131545508ull));
     load(0x79ae80,ffx_fixture::load<22>("offline-output/battle_hp_20261021/0079ae80.bin",2064281304047716896ull));
-    load(0x892c20,ffx_fixture::load<1071>("offline-output/battle_hp_20261021/00892c20.bin",16841974069963862874ull));
+    load(0x892c20,ffx_fixture::load<1071>("offline-output/battle_hp_20261021/00892c20.bin",installedBuild?6889689218689078827ull:16841974069963862874ull));
     const auto originalTable=ffx_fixture::load<16>("offline-output/battle_hp_20261021/renderer-jump-table.bin",10851866026507597024ull);
     std::array<uintptr_t,4> jumpTable{};
     for(unsigned i=0;i<jumpTable.size();++i) {
@@ -66,6 +73,8 @@ void battleHpFixtures() {
             else if(target==0x79fa20)value=reinterpret_cast<uintptr_t>(hpPopup);
             else if(target==0xc421dc)value=reinterpret_cast<uintptr_t>(&hpNativeGlobals[0]);
             else if(target==0x113338c)value=reinterpret_cast<uintptr_t>(&hpNativeGlobals[1]);
+            else if(installedBuild && target==0x112ca15)value=reinterpret_cast<uintptr_t>(&hpNativeGlobals[2]);
+            else if(installedBuild && target==0x11334c4)value=reinterpret_cast<uintptr_t>(&hpNativeGlobals[3]);
             else if(target==0x6449d0 || target==0x644990)value=reinterpret_cast<uintptr_t>(hpDisplayScale);
             else if(target==0x8ac2a0)value=reinterpret_cast<uintptr_t>(hpDisplayLanguage);
             else if(target==0x892880 || target==0x903bb0)value=reinterpret_cast<uintptr_t>(hpDisplayGraphic);
