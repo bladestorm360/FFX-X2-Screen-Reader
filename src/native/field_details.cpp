@@ -22,6 +22,7 @@ void before(Event& e) {
     const auto p = e.args[0];
     e.before[0] = read<int>(p + 0x28, -1); e.before[1] = read<int16_t>(p + 0x48, -1);
     e.before[2] = read<int8_t>(p + 0x45, -1);
+    if(e.arrival) e.before.fill(-1);
 }
 void after(Event& e) {
     const auto win = e.args[0];

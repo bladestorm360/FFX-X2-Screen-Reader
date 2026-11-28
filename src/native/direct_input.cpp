@@ -9,17 +9,44 @@
 #include "settings.hpp"
 #include "utilities.hpp"
 #include "auto_walk.hpp"
+#include "mod_state.hpp"
 
 namespace ffx {
 namespace {
 std::atomic<uintptr_t> keyboard{0};
 std::array<uint8_t, 256> held{};
 std::array<bool,256> swallowed{};
+bool seedState=false,seedData=false;
 uintptr_t activeKeyboard=0;
-unsigned virtualKey(unsigned scan) {
+// 0 = not read yet. GetKeyboardType only reads a cached system value.
+std::atomic<int> keyboardType{0};
+bool japaneseKeyboard() {
+    auto type=keyboardType.load(std::memory_order_relaxed);
+    if(!type) {type=GetKeyboardType(0);keyboardType.store(type?type:-1,std::memory_order_relaxed);}
+    return type==7;
+}
+// DirectInput reports Japanese-106 key codes when Windows says the keyboard
+// is type 7, even with a US layout. Turn them back into the physical scan
+// codes so [ ] \ and ` reach the same hotkeys they do in window messages.
+unsigned physicalScan(unsigned dik) {
+    if(!japaneseKeyboard()) return dik;
+    switch(dik) {
+    case DIK_CIRCUMFLEX: return 0x0d;
+    case DIK_AT: return 0x1a;
+    case DIK_LBRACKET: return 0x1b;
+    case DIK_COLON: return 0x28;
+    case DIK_KANJI: return 0x29;
+    case DIK_RBRACKET: return 0x2b;
+    case DIK_BACKSLASH: return 0x73;
+    default: return dik;
+    }
+}
+unsigned virtualKey(unsigned dik) {
+    const auto scan=physicalScan(dik);
     return MapVirtualKeyW(scan & 0x80 ? 0xe000 | (scan & 0x7f) : scan, MAPVK_VSC_TO_VK_EX);
 }
 void deviceState(Event& e) {
+    if(!modEnabled.load()) {held.fill(0);swallowed.fill(false);return;}
     if((controllerOwned() || inputDialogActive()) && e.before[31]==2 && e.args[1]<=sizeof(DIJOYSTATE2)) {
         uint8_t neutral[sizeof(DIJOYSTATE2)]{};
         if(e.args[1]>=sizeof(DIJOYSTATE)) for(unsigned i=0;i<4;++i) reinterpret_cast<DIJOYSTATE*>(neutral)->rgdwPOV[i]=0xffffffff;
@@ -30,6 +57,7 @@ void deviceState(Event& e) {
     if (FAILED(static_cast<HRESULT>(e.result))) { held.fill(0); swallowed.fill(false); return; }
     std::array<uint8_t, 256> keys{};
     if (!copy(e.args[2], keys.data(), keys.size())) return;
+    if(seedState) {held=keys;swallowed.fill(false);seedState=false;}
     const bool shift = (keys[DIK_LSHIFT] | keys[DIK_RSHIFT]) & 0x80;
     const bool control = (keys[DIK_LCONTROL] | keys[DIK_RCONTROL]) & 0x80;
     const bool modal=inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive());
@@ -44,6 +72,7 @@ void deviceState(Event& e) {
     for(unsigned scan=0;scan<keys.size();++scan) if(keys[scan]!=held[scan]) write<uint8_t>(e.args[2]+scan,keys[scan]);
 }
 void deviceData(Event& e) {
+    if(!modEnabled.load()) {held.fill(0);swallowed.fill(false);return;}
     if((controllerOwned() || inputDialogActive()) && e.before[31]==2) { write<unsigned>(e.args[3],0); e.result=DI_OK; e.overrideResult=true; return; }
     if (e.args[0] != keyboard || FAILED(static_cast<HRESULT>(e.result))) return;
     const unsigned count = read<unsigned>(e.args[3]);
@@ -60,8 +89,10 @@ void deviceData(Event& e) {
         nextHeld[scan] = down ? 0x80 : 0;
         const bool shift=((nextHeld[DIK_LSHIFT] | nextHeld[DIK_RSHIFT]) & 0x80) != 0;
         const bool control=((nextHeld[DIK_LCONTROL] | nextHeld[DIK_RCONTROL]) & 0x80) != 0;
-        if (down && !wasDown) nextSwallowed[scan]=peek?capturesKey(virtualKey(scan),shift,control):consumeKey(virtualKey(scan),shift,control);
-        if(inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive())) nextSwallowed[scan]=true;
+        if (down && !wasDown) nextSwallowed[scan]=seedData?false:peek?capturesKey(virtualKey(scan),shift,control):consumeKey(virtualKey(scan),shift,control);
+        // A modal owns new presses only. A release is suppressed only when its
+        // press was; one the game saw pressed must reach it or the key sticks.
+        if(down && (inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive()))) nextSwallowed[scan]=true;
         const bool suppress=nextSwallowed[scan];
         if(!down) nextSwallowed[scan]=false;
         if(!suppress) {
@@ -71,7 +102,7 @@ void deviceData(Event& e) {
             }
         }
     }
-    if(!peek) { held=nextHeld; swallowed=nextSwallowed; }
+    if(!peek) { held=nextHeld; swallowed=nextSwallowed;seedData=false; }
     write<unsigned>(e.args[3],kept);
 }
 // Windows SDK IDirectInputDevice8 has exactly32 methods. Each template
@@ -88,6 +119,7 @@ unsigned usedTables=0;
 template<size_t I> ULONG WINAPI releaseAdapter(void* object) {
     using Function=ULONG(WINAPI*)(void*);
     const auto result=reinterpret_cast<Function>(tables[I].original[2])(object);
+    if(!modEnabled.load()) return result;
     const auto error=GetLastError();
     if(!result) {
         auto token=reinterpret_cast<uintptr_t>(object);
@@ -101,6 +133,7 @@ template<size_t I> ULONG WINAPI releaseAdapter(void* object) {
 template<size_t I> HRESULT WINAPI stateAdapter(void* object,DWORD size,void* buffer) {
     using Function=HRESULT(WINAPI*)(void*,DWORD,void*);
     const auto result=reinterpret_cast<Function>(tables[I].original[9])(object,size,buffer);
+    if(!modEnabled.load()) return result;
     const auto error=GetLastError();HRESULT filtered=result;
     NativeReaderAccess access;
     if(access) {
@@ -115,6 +148,7 @@ template<size_t I> HRESULT WINAPI stateAdapter(void* object,DWORD size,void* buf
 template<size_t I> HRESULT WINAPI dataAdapter(void* object,DWORD stride,void* buffer,DWORD* count,DWORD flags) {
     using Function=HRESULT(WINAPI*)(void*,DWORD,void*,DWORD*,DWORD);
     const auto result=reinterpret_cast<Function>(tables[I].original[10])(object,stride,buffer,count,flags);
+    if(!modEnabled.load()) return result;
     const auto error=GetLastError();HRESULT filtered=result;
     NativeReaderAccess access;
     if(access) {
@@ -169,9 +203,11 @@ void observeDirectInput(uintptr_t) {
 void installDirectInputKeyboard() {
     hook(0x22d770,keyboardUpdating,nullptr);hook(0x22db80,padUpdating,nullptr);
 }
+void resetDirectInput() {held.fill(0);swallowed.fill(false);seedState=seedData=true;}
 #ifdef FFX_READER_TEST
 void directInputStateForTest(Event& e,bool pad) {e.before[31]=pad?2:1;deviceState(e);}
 void directInputDataForTest(Event& e,bool pad) {e.before[31]=pad?2:1;deviceData(e);}
+void directInputKeyboardTypeForTest(int type) {keyboardType=type;}
 void directInputReleaseForTest(Event& e) {if(!e.result && keyboard==e.args[0]) {keyboard=0;activeKeyboard=0;held.fill(0);swallowed.fill(false);directKeyboard(false);}}
 #endif
 }

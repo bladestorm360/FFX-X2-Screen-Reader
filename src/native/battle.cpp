@@ -513,4 +513,5 @@ void installBattle() {
     hotkeyChordWhen('O',false,overdriveMeter,[] { return inBattle(); });
     installBattleStatus(); installBattleSensor(); installOverdrive();
 }
+void refreshBattleScreen() {Event e;e.epoch=generation();opened(e);targets(e);}
 }

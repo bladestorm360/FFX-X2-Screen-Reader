@@ -21,6 +21,7 @@ struct Event {
     unsigned epoch = 0;
     bool overrideResult = false;
     bool captureOnly = false;
+    bool arrival = false; // First live observation at this hook after enabling.
 };
 using Handler = void(*)(Event&);
 bool hook(unsigned rva, Handler enter, Handler leave);

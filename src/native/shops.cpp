@@ -91,7 +91,7 @@ bool shop(Event& e) {
     if (e.rva == 0x4d77c0 || e.rva == 0x4d7990 || e.rva == 0x4d9d70) return true;
     return read<uintptr_t>(e.args[0] + 0x10) == address(0x4da440);
 }
-void before(Event& e) { if (shop(e)) e.before = selected(e); }
+void before(Event& e) { if (shop(e)) { e.before = selected(e); if (e.arrival) e.before.fill(-1); } }
 void after(Event& e) {
     if (!shop(e)) return;
     auto k = selected(e);
@@ -135,6 +135,7 @@ void after(Event& e) {
 }
 void quantityBefore(Event& e) {
     e.before[0] = read<int>(e.args[0] + 0x28, -1); e.before[1] = read<int16_t>(e.args[0] + 0x48, -1);
+    if (e.arrival) e.before.fill(-1);
 }
 void quantityAfter(Event& e) {
     const int phase = read<int>(e.args[0] + 0x28), count = read<int16_t>(e.args[0] + 0x48);

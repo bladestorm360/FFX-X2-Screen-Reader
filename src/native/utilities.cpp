@@ -85,6 +85,7 @@ UtilityText executeUtilityNative(std::wstring_view command) {
     if(verb==L"via") return viaCommand(arguments);
 #ifdef FFX_DEV_UTILITIES
     if (verb == L"help") return
+        L"Ctrl+Shift+F12 turns the screen reader mod off or on.\r\n"
         L"Shift+F1 in the field opens utilities. Type a command and press Enter. Escape returns to the game.\r\n"
         L"where: current script. warps: trial destinations. warps besaid: search rooms.\r\n"
         L"warp besaid: first trial. warp 122 0: room and entrance. Warps preserve story progress.\r\n"
@@ -103,7 +104,7 @@ UtilityText executeUtilityNative(std::wstring_view command) {
     if (verb == L"warp") return L"The warp destination must be prepared by the development console.";
     if (verb == L"trial") return trialCommand(arguments);
 #else
-    if (verb == L"help") return L"F8 opens the accessibility mod menu. F6 toggles beacon; F7 toggles autodetail. I reads descriptions. In trials F9 selects the previous step, F10 the next, and F11 repeats the current step. Outside trials F11 repeats speech.";
+    if (verb == L"help") return L"Ctrl+Shift+F12 turns the screen reader mod off or on. F8 opens the accessibility mod menu. F6 toggles beacon; F7 toggles autodetail. I reads descriptions. In trials F9 selects the previous step, F10 the next, and F11 repeats the current step. Outside trials F11 repeats speech.";
 #endif
     return L"Unknown command. Type help for available commands.";
 }

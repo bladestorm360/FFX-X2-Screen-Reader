@@ -1,4 +1,5 @@
 #include "../runtime.hpp"
+#include "../mod_state.hpp"
 #include "../settings.hpp"
 #include "../wakka.hpp"
 #include "../speech_backends.hpp"
@@ -78,6 +79,15 @@ int main() {
         pages[4094] = 0x50; pages[4095] = 0;
         parts = ffx::decode(reinterpret_cast<uintptr_t>(pages + 4094), 256);
         require(parts.size() == 1 && parts[0] == L"A", "terminator at unreadable page boundary");
+        {
+            // A stale pointer into a guard page (for example another thread's
+            // stack guard) must fail the copy without consuming the guard.
+            auto guarded = static_cast<uint8_t*>(VirtualAlloc(nullptr, 4096, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE | PAGE_GUARD));
+            uint32_t value = 0; MEMORY_BASIC_INFORMATION info{};
+            require(guarded && !ffx::copy(reinterpret_cast<uintptr_t>(guarded), &value, sizeof(value)), "copy refuses a guard page");
+            require(VirtualQuery(guarded, &info, sizeof(info)) && (info.Protect & PAGE_GUARD), "copy leaves the guard page armed");
+            VirtualFree(guarded, 0, MEM_RELEASE);
+        }
         pages[4095] = 0x04;
         parts = ffx::decode(reinterpret_cast<uintptr_t>(pages + 4094), 256);
         require(parts.size() == 1 && parts[0] == L"A", "truncated opcode at page boundary");
@@ -398,6 +408,72 @@ int main() {
             require(ffx::domainResetEpoch==resetEpoch,"owned domains retire despite rejected full-queue generation marker");
             puts("PASS: full capture pressure cannot retain old-generation audio domain state after reset.");
         }
+        const auto beforeToggle=count();
+        ffx::toggleMod();
+        require(!ffx::output(L"Must not speak",true,"mod-repeat"),"no mod speech while off");
+        require(!ffx::output(L"Must not speak",true,"dialogue"),"no game speech while off");
+        const auto offEpoch=ffx::generation();
+        ffx::DomainFixture offCapture{29,0x534e4150};
+        require(!ffx::speechq::captureDomain(4,offCapture,offEpoch,L"Owned domain payload"),"off-state snapshots are rejected at capture");
+        require(!FfxNative_Output(L"Off API capture",1),"off-state API speech is rejected");
+        auto until=GetTickCount64()+2000;
+        while(count()<beforeToggle+1 && GetTickCount64()<until) Sleep(1);
+        wchar_t toggleText[256]{};
+        record(beforeToggle,toggleText,256);
+        require(count()==beforeToggle+1 && !wcscmp(toggleText,L"Screen reader mod off"),"off announcement is the only speech while off");
+        require(interruptFlag(beforeToggle),"off feedback must replace queued backend speech");
+        ffx::toggleMod();
+        require(!ffx::outputAt(L"Delayed off-state result",true,"window-focus",offEpoch),"enable rejects a delayed result from the off generation");
+        until=GetTickCount64()+2000;
+        while(count()<beforeToggle+2 && GetTickCount64()<until) Sleep(1);
+        record(beforeToggle+1,toggleText,256);
+        require(count()==beforeToggle+2 && !wcscmp(toggleText,L"Screen reader mod on"),"on announcement reaches the real speech worker");
+        require(interruptFlag(beforeToggle+1),"on feedback must replace queued backend speech");
+        ffx::repeatSpeech(false);
+        until=GetTickCount64()+2000;
+        while(count()<beforeToggle+3 && GetTickCount64()<until) Sleep(1);
+        record(beforeToggle+2,toggleText,256);
+        require(count()==beforeToggle+3 && !wcscmp(toggleText,L"Nothing to repeat"),"toggle never replays speech from before/off interval");
+        puts("PASS: real speech toggle stops old speech, rejects all off-state producers, permits exact feedback and clears repeat history.");
+        // Fill the physical capture slots, not just the character budget.
+        HANDLE toggleHeld=CreateEventW(nullptr,TRUE,FALSE,nullptr),toggleResume=CreateEventW(nullptr,TRUE,FALSE,nullptr);
+        ffx::speechq::captureHoldEntered=toggleHeld;ffx::speechq::captureHoldResume=toggleResume;
+        ffx::output(L"Hold for toggle pressure",false,"mod-test");
+        require(WaitForSingleObject(toggleHeld,2000)==WAIT_OBJECT_0,"toggle pressure preparation held");
+        ffx::output(L"Old speech",false,"pressure-history");
+        ffx::DomainFixture pressureData{};
+        unsigned filled=0;while(filled<3000 && ffx::speechq::captureDomain(4,pressureData,ffx::generation())) ++filled;
+        require(filled>1900 && filled<3000,"ordinary speech capture store is full");
+        const auto pressureOutputs=count();ffx::toggleMod();
+        until=GetTickCount64()+2000;
+        while(count()<pressureOutputs+1 && GetTickCount64()<until) Sleep(1);
+        record(pressureOutputs,toggleText,256);
+        require(count()==pressureOutputs+1 && !wcscmp(toggleText,L"Screen reader mod off"),"full speech storage cannot lose off feedback");
+        ffx::toggleMod();
+        until=GetTickCount64()+2000;
+        while(count()<pressureOutputs+2 && GetTickCount64()<until) Sleep(1);
+        require(count()==pressureOutputs+2,"full speech storage cannot lose on feedback");
+        ffx::speechq::captureHoldEntered=nullptr;ffx::speechq::captureHoldResume=nullptr;SetEvent(toggleResume);
+        until=GetTickCount64()+3000;
+        while(ffx::speechq::capturesPending() && GetTickCount64()<until) Sleep(1);
+        ffx::repeatSpeech(false);
+        until=GetTickCount64()+2000;
+        while(count()<pressureOutputs+3 && GetTickCount64()<until) Sleep(1);
+        record(pressureOutputs+2,toggleText,256);
+        require(count()==pressureOutputs+3 && !wcscmp(toggleText,L"Nothing to repeat"),"lost reset markers and stale records cannot restore old repeat history");
+        puts("PASS: full capture storage preserves toggle feedback and prevents old history replay even when reset markers are dropped.");
+        // A resume can produce several independently prepared lines. None may
+        // interrupt the confirmation, even when another native hook speaks later.
+        ffx::toggleMod();waitCount(pressureOutputs+4);
+        ffx::toggleMod();waitCount(pressureOutputs+5);
+        const auto resumeFirst=count();
+        ffx::output(L"Load this file?",true,"window-focus");waitCount(resumeFirst+1);
+        ffx::output(L"Yes",true,"window-focus");waitCount(resumeFirst+2);
+        require(!interruptFlag(resumeFirst) && !interruptFlag(resumeFirst+1),"all fresh resume lines queue behind on feedback");
+        ffx::interruptSpeechForInput();
+        ffx::output(L"No",true,"window-focus");waitCount(resumeFirst+3);
+        require(interruptFlag(resumeFirst+2),"new player input restores normal focus interruption");
+        puts("PASS: toggle confirmations interrupt old backend speech; the whole fresh resume burst queues until new input.");
         puts("Native runtime tests passed: copied speech, repeated events, bounded queues, nonblocking input cancellation, one Prism worker, ordered current-action details and paused reel-choice highlights.");
         return 0;
     } catch (const std::exception& error) { fprintf(stderr, "%s\n", error.what()); return 1; }

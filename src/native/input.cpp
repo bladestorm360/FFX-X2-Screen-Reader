@@ -18,6 +18,7 @@
 #include "lightning.hpp"
 #include "esc_details.hpp"
 #include "nonblocking_snapshots.hpp"
+#include "mod_state.hpp"
 #include <atomic>
 
 namespace ffx {
@@ -36,10 +37,15 @@ async::TryCaptureQueue<Key,64> queue;
 std::atomic<unsigned> inputRevision{1};
 std::array<bool,256> swallowedMessages{};
 std::atomic<bool> keyboard{false};
-thread_local unsigned messageDepth = 0;
-void messageEnter(Event& e) { e.before[0] = ++messageDepth; }
+// A/W forwarding nests one message hook inside another; only the outermost
+// call owns the message. Derive nesting from the hook layer's pending parent
+// instead of a counter: the hook layer skips return readers for calls begun
+// during loading or in an older generation, and a skipped decrement would
+// mute every later message for the session.
+bool messageHook(unsigned rva) { return rva>=0xffff0000 && rva<=0xffff0003; }
+void messageEnter(Event& e) { e.before[0] = messageHook(e.parentRva) ? 2 : 1; }
 void received(Event& e) {
-    if (messageDepth) --messageDepth;
+    if(!modEnabled.load()) {swallowedMessages.fill(false);return;}
     if(e.before[0]>1 || !nativeGameThread()) return;
     if (!e.result || e.result == static_cast<uintptr_t>(-1) ||
         (e.rva < 0xffff0002 && !(e.args[4] & PM_REMOVE))) return;
@@ -65,9 +71,16 @@ void received(Event& e) {
     const bool repeat=down && (message.lParam & (1u<<30));
     const bool shift=(GetKeyState(VK_SHIFT)&0x8000)!=0;
     const bool control=(GetKeyState(VK_CONTROL)&0x8000)!=0;
-    bool captured=swallowedMessages[vk] || capturesKey(vk,shift,control);
+    // Only a fresh press decides who owns a key. A repeat or release keeps the
+    // owner of the original press, so a release whose press reached the game
+    // reaches it too, even after a menu has opened while the key was held.
+    bool captured=swallowedMessages[vk];
     if(down && !repeat) captured=keyboard?capturesKey(vk,shift,control):consumeKey(vk,shift,control);
-    swallowedMessages[vk]=down && captured;
+    if(!up) swallowedMessages[vk]=captured;
+    else swallowedMessages[vk]=false;
+    // A menu that opened mid-hold still eats repeats of a game-owned key, but
+    // does not take ownership of it.
+    if(repeat && !captured) captured=capturesKey(vk,shift,control);
     if(captured) {
         message.message=WM_NULL; write<MSG>(e.args[0],message);
     }
@@ -75,6 +88,7 @@ void received(Event& e) {
 void drainKeys() {
     if(!nativeGameThread()) return;
     Key event;
+    if(!modEnabled.load()) {for(unsigned i=0;i<64 && queue.tryPop(event);++i) {} return;}
     // One bounded FIFO drain; publications and availability handback never wait.
     for(unsigned count=0;count<64 && queue.tryPop(event);++count)
       if(event.epoch==generation() && event.revision==inputRevision.load(std::memory_order_acquire) && gameFocused() && event.escape==escMenuActive() && (!event.guard || event.guard())) {
@@ -89,6 +103,7 @@ void drainKeys() {
     }
 }
 void inputEvent(Event&) {
+    if(!modEnabled.load()) return;
     if(!nativeGameThread()) return;
     updateUtilityContext();
     if(!gameFocused() || utilityConsoleActive() || !inBattle() || scene) resetWakka();
@@ -110,6 +125,7 @@ void inputAfter(Event&) {
 }
 }
 void dispatchHotkey(unsigned vk,bool shift,bool control) {
+    if(!modEnabled.load()) return;
     if(dispatchBlitzKey(vk,control)) return;
     if(dispatchFieldControlsKey(vk,control)) return;
     if(dispatchBattleSensorKey(vk,control)) return;
@@ -121,7 +137,7 @@ void dispatchHotkey(unsigned vk,bool shift,bool control) {
 }
 bool queueControllerHotkey(unsigned vk,bool shift,bool control,bool(*guard)()) {
     // Route controller commands through the keyboard native-return phase; refuse busy or stale context.
-    if(!nativeGameThread() || !vk || !gameFocused() || utilityConsoleActive() || modMenuActive() || !guard || !guard()) return false;
+    if(!modEnabled.load() || !nativeGameThread() || !vk || !gameFocused() || utilityConsoleActive() || modMenuActive() || !guard || !guard()) return false;
     // Do not call consumeKey: that would misclassify this controller event as
     // keyboard input. Keep physical passthrough and native input sampling immediate.
     const bool accepted=queue.tryPush({vk,shift,control,generation(),inputRevision.load(std::memory_order_acquire),false,false,escMenuActive(),nullptr,guard});
@@ -139,7 +155,7 @@ void queueKey(unsigned vk, bool shift) {
     consumeKey(vk,shift);
 }
 bool consumeKey(unsigned vk,bool shift,bool control) {
-    if(!nativeGameThread() || !vk || !gameFocused() || utilityConsoleActive()) return false;
+    if(!modEnabled.load() || !nativeGameThread() || !vk || !gameFocused() || utilityConsoleActive()) return false;
     observeInputDevice(false);
     autoWalkPlayerInput(vk);
     const bool activity=minigameCapturesKey(vk);
@@ -158,7 +174,7 @@ bool consumeKey(unsigned vk,bool shift,bool control) {
     return accepted || (registeredChord && registeredChord->exclusive);
 }
 bool capturesKey(unsigned vk,bool shift,bool control) {
-    if(!nativeGameThread() || !gameFocused() || utilityConsoleActive()) return false;
+    if(!modEnabled.load() || !nativeGameThread() || !gameFocused() || utilityConsoleActive()) return false;
     if(modMenuActive()) return true;
     if(blitzCapturesKey(vk,control)) return true;
     if(fieldControlsCapturesKey(vk,control)) return true;
@@ -183,5 +199,10 @@ void installInput() {
     hook(0x471d10,nullptr,inputEvent);
     installDirectInputKeyboard();
     installController();
+}
+void resetModInput() {
+    inputRevision.fetch_add(1);
+    swallowedMessages.fill(false);
+    Key ignored;for(unsigned i=0;i<64 && queue.tryPop(ignored);++i) {}
 }
 }

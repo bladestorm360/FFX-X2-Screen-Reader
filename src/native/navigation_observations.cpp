@@ -69,7 +69,8 @@ bool captureRequestedNavigationScene(bool geometry,bool changed) {
     if(!changed && want==lastCaptured && currentRevision==lastRevision) return false;
     // Field facts/getters are unavailable while a native battle/menu/resource
     // reset owns the scene. A genuine field/control event supplies the retry.
-    if(scene || inBattle() || !nativeReaderResourcesReady()) {lastCaptured=want;lastRevision=currentRevision;return false;}
+    // Title/save-load uses room 23 without a field-window scene ID.
+    if(scene || inBattle() || read<uint16_t>(address(0xd2ca90))==23 || !nativeReaderResourcesReady()) {lastCaptured=want;lastRevision=currentRevision;return false;}
     unsigned slot=Slots,token=nonzero(nextTicket)&~Writing;if(!token) token=nonzero(nextTicket)&~Writing;
     for(unsigned i=0;i<Slots;++i) {unsigned empty=0;if(tickets[i].compare_exchange_strong(empty,token|Writing,std::memory_order_acquire,std::memory_order_relaxed)) {slot=i;break;}}
     if(slot==Slots) {if(!pressure) output(L"Navigation data is busy. Updates resume when it recovers.",false,"navigation-pressure");pressure=true;return false;}

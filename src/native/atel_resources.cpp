@@ -1,5 +1,6 @@
 #include "atel_resources.hpp"
 #include "events.hpp"
+#include "mod_state.hpp"
 #include "owned_atel_decoder.hpp"
 #include "nonblocking_snapshots.hpp"
 #include "process_storage.hpp"
@@ -72,6 +73,7 @@ unsigned claimReceipt(uintptr_t parent) {
     return NativeReceipts;
 }
 void capture(const Receipt& receipt) {
+    const unsigned epoch=generation();
     if(!captureStorage.ready() || !receipt.parent || receipt.logical<0x30 || receipt.logical>AtelResourceLimit ||
        receipt.allocated<receipt.logical || receipt.allocated!=((receipt.logical+0x7ffu) & ~0x7ffu) ||
        receipt.parent>UINTPTR_MAX-receipt.logical) {++rejected;return;}
@@ -82,7 +84,6 @@ void capture(const Receipt& receipt) {
     if(!copyReadyRegion(receipt.parent,owned.bytes.data(),receipt.logical,receipt.logical) || std::memcmp(owned.bytes.data(),"EV01",4)!=0) {releaseCapture(slot);++rejected;return;}
     unsigned token=serial.fetch_add(1,std::memory_order_relaxed)+1;
     if(!token) token=serial.fetch_add(1,std::memory_order_relaxed)+1;
-    const unsigned epoch=generation();
     owned.parts.parent=receipt.parent;
     for(unsigned i=0;i<AtelResourceParts;++i) {
         const unsigned start=word(owned.bytes.data(),4+i*4);if(!start) continue;
@@ -299,6 +300,8 @@ DWORD WINAPI worker(void*) {
 }
 }
 bool nativeAtelSpan(uintptr_t chunk,AtelSpan& span) {
+    // Allocation lifetime is independent of speech/input generations. The
+    // installed lifetime hooks continue observing replacements and frees Off.
     bool found=false;
     for(unsigned slot=0;slot<NativeReceipts;++slot) {
         const auto alive=aliveParents[slot].load(std::memory_order_acquire);if(alive<=1) continue;

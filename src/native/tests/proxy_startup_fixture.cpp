@@ -21,6 +21,7 @@ bool startSpeech(HMODULE,const wchar_t*) {
     return true;
 }
 void cancelSpeechStartup() {}
+void startModToggle() {}
 unsigned startReader() { ++readerCalls; throw std::out_of_range("synthetic unverified Installed RVA 464180"); }
 void startupLog(const LogCapture&) noexcept { ++failures;SetEvent(completed); }
 void observeDirectInput(uintptr_t) { std::abort(); }

@@ -1,5 +1,7 @@
 #include "../events.hpp"
 #include "../map_transition.hpp"
+#include "../mod_state.hpp"
+#include "../resource_reset.hpp"
 #include <MinHook.h>
 #include <atomic>
 #include <thread>
@@ -101,6 +103,13 @@ int main() {
     deferredStarted=CreateEventW(nullptr,TRUE,FALSE,nullptr);
     deferredRelease=CreateEventW(nullptr,TRUE,FALSE,nullptr);
     check(started && loading && releaseLoad && deferredStarted && deferredRelease,"native test events");
+    ffx::modEnabled=false;
+    std::thread offLoader([] {check(resourceLoad(2)==11,"Off load preserves original result");});
+    check(WaitForSingleObject(loading,5000)==WAIT_OBJECT_0,"Off loader reached native body");
+    check(ffx::nativeResourceLoading() && resets==0,"Off tracks native resource scope without reader callbacks");
+    SetEvent(releaseLoad);offLoader.join();
+    check(!ffx::nativeResourceLoading() && resets==0,"Off load releases its scope without stale reset");
+    ResetEvent(loading);ResetEvent(releaseLoad);ffx::modEnabled=true;
     std::thread first(concurrent),second(concurrent);
     SetEvent(started); first.join(); second.join();
     check(callbacks==0 && !overlaps && !inside,"foreign ordinary calls cannot access owner-affine reader state");

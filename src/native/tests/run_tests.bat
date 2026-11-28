@@ -27,7 +27,10 @@ if /I "%~1"=="--review" goto review
 if /I "%~1"=="--abi" goto abi
 if /I "%~1"=="--threading" goto threading
 if /I "%~1"=="--tail" goto tail
+if /I "%~1"=="--overflow" goto overflow
+if /I "%~1"=="--hook-batch" goto hookbatch
 if /I "%~1"=="--native-actions" goto nativeactions
+if /I "%~1"=="--retirement" goto retirement
 if /I "%~1"=="--jecht" goto jecht
 if /I "%~1"=="--lightning" goto lightning
 if /I "%~1"=="--console" goto console
@@ -49,6 +52,8 @@ if /I "%~1"=="--navigation-geometry" goto navigationgeometry
 if /I "%~1"=="--sin-routes" goto sinroutes
 if /I "%~1"=="--sin-later-maps" goto sinlatermaps
 if /I "%~1"=="--sin-collection" goto sincollection
+if /I "%~1"=="--mod-toggle" goto modtoggle
+if /I "%~1"=="--atel-resources" goto atelresources
 if /I "%~1"=="--settings-defaults" goto settingsdefaults
 if /I "%~1"=="--utilities" goto utilities
 if /I "%~1"=="--pedestal" goto pedestal
@@ -73,7 +78,7 @@ if /I "%~1"=="--logs" goto success
 if not exist PrismRuntime mkdir PrismRuntime
 cl /nologo /W4 /EHsc /std:c++17 /MT /LD /Fe:PrismRuntime\prism.dll "%TEST_SRC%fake_prism.cpp" /link /DEF:"%TEST_SRC%fake_prism.def"
 if not "%errorlevel%"=="0" goto failed
-cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_SPEECH_WAKE_TEST /Fe:runtime_tests.exe "%TEST_SRC%runtime_tests.cpp" "%TEST_SRC%..\prism_backend.cpp" "%TEST_SRC%..\speech.cpp" "%TEST_SRC%..\log_capture.cpp" "%TEST_SRC%..\speech_capture.cpp" "%TEST_SRC%..\speech_queue.cpp" "%TEST_SRC%..\speech_domains.cpp" "%TEST_SRC%..\log_history.cpp" "%TEST_SRC%..\text.cpp" "%TEST_SRC%..\settings.cpp" /link user32.lib
+cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_SPEECH_WAKE_TEST /Fe:runtime_tests.exe "%TEST_SRC%runtime_tests.cpp" "%TEST_SRC%..\mod_toggle.cpp" "%TEST_SRC%..\prism_backend.cpp" "%TEST_SRC%..\speech.cpp" "%TEST_SRC%..\log_capture.cpp" "%TEST_SRC%..\speech_capture.cpp" "%TEST_SRC%..\speech_queue.cpp" "%TEST_SRC%..\speech_domains.cpp" "%TEST_SRC%..\log_history.cpp" "%TEST_SRC%..\text.cpp" "%TEST_SRC%..\settings.cpp" /link user32.lib
 if not "%errorlevel%"=="0" goto failed
 .\runtime_tests.exe
 if not "%errorlevel%"=="0" goto failed
@@ -88,6 +93,16 @@ if not "%errorlevel%"=="0" goto failed
 .\dialogue_voice_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--dialogue" goto success
+:modtoggle
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:mod_toggle_fixture.exe "%TEST_SRC%mod_toggle_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+mod_toggle_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /WX /EHsc /Gy /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:mod_resume_fixture.exe "%TEST_SRC%mod_resume_fixture.cpp" "%TEST_SRC%..\mod_toggle.cpp" "%TEST_SRC%..\navigation_observations.cpp" /link /OPT:REF user32.lib
+if not "%errorlevel%"=="0" goto failed
+mod_resume_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--mod-toggle" goto success
 :movie
 cl /nologo /W4 /EHa /std:c++17 /MT /Fe:movie_dialogue_fixture.exe "%TEST_SRC%movie_dialogue_fixture.cpp" "%TEST_SRC%..\movie_dialogue.cpp" "%TEST_SRC%..\settings.cpp" /DFFX_READER_TEST /link user32.lib
 if not "%errorlevel%"=="0" goto failed
@@ -122,6 +137,22 @@ if not "%errorlevel%"=="0" goto failed
 .\hook_tail_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--tail" goto success
+:overflow
+cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_overflow_fixture.exe "%TEST_SRC%hook_overflow_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
+if not "%errorlevel%"=="0" goto failed
+copy /Y "%MINHOOK_ROOT%\bin\MinHook.x86.dll" MinHook.x86.dll >nul
+if not "%errorlevel%"=="0" goto failed
+hook_overflow_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--overflow" goto success
+:hookbatch
+cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_batch_fixture.exe "%TEST_SRC%hook_batch_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
+if not "%errorlevel%"=="0" goto failed
+copy /Y "%MINHOOK_ROOT%\bin\MinHook.x86.dll" MinHook.x86.dll >nul
+if not "%errorlevel%"=="0" goto failed
+hook_batch_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--hook-batch" goto success
 :nativeactions
 cl /nologo /W4 /EHa /std:c++17 /MT /I"%MINHOOK_ROOT%\include" /Fe:hook_native_actions_fixture.exe "%TEST_SRC%hook_native_actions_fixture.cpp" "%TEST_SRC%..\hooks.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" "%TEST_SRC%..\hook_calls.cpp" /link "%MINHOOK_ROOT%\bin\MinHook.x86.lib"
 if not "%errorlevel%"=="0" goto failed
@@ -130,6 +161,12 @@ if not "%errorlevel%"=="0" goto failed
 .\hook_native_actions_fixture.exe
 if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--native-actions" goto success
+:retirement
+cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_RETIREMENT_TEST /Fe:owned_retirement_fixture.exe "%TEST_SRC%owned_retirement_fixture.cpp" "%TEST_SRC%..\owned_retirement.cpp" "%TEST_SRC%..\resource_reset.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+owned_retirement_fixture.exe
+if not "%errorlevel%"=="0" goto failed
+if /I "%~1"=="--retirement" goto success
 :jecht
 if not defined FFX_PUBLIC_TESTS goto jecht_have
 echo SKIP: jecht needs "%FFX_EVIDENCE_ROOT%\offline-output\FFX\20261003_audit\files"
@@ -419,6 +456,11 @@ goto success
 :sdlowner
 call "%~dp0run_sdl_owner_tests.bat"
 exit /b %errorlevel%
+:atelresources
+cl /nologo /W4 /EHsc /std:c++17 /MT /DFFX_READER_TEST /Fe:atel_resources_fixture.exe "%TEST_SRC%atel_resources_fixture.cpp" "%TEST_SRC%..\atel_resources.cpp" "%TEST_SRC%..\atel.cpp" "%TEST_SRC%..\navigation_targets.cpp" /link user32.lib
+if not "%errorlevel%"=="0" goto failed
+atel_resources_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 :success
 popd
 exit /b 0

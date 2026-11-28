@@ -1,4 +1,5 @@
 #include "../events.hpp"
+#include "../mod_state.hpp"
 #include <MinHook.h>
 #include <cstdio>
 #include <stdexcept>
@@ -43,6 +44,7 @@ __declspec(noinline) int __stdcall importedCall(int a,int b,int c) { volatile in
 __declspec(noinline) int __fastcall fastcallCall(int a, int b, int c, int d) { volatile int sum = a + 2 * b + 3 * c; return sum + 4 * d; }
 __declspec(noinline) double __cdecl floatCall(double x, double y) { volatile double value = x * y; return value + .25; }
 __declspec(noinline) int recursiveCall(int n) { volatile int value = n; return value ? value + recursiveCall(value - 1) : 0; }
+__declspec(noinline) int lifetimeCall(int value) {volatile int result=value;++ffx::epoch;return result+1;}
 __declspec(noinline) int exceptionCall(int value) {
     volatile int mode = value;
     if (mode) throw std::runtime_error("fixture original exception");
@@ -79,6 +81,11 @@ int main() {
             require(_mm_getcsr() == 0x3f80, "SSE state restoration");
         }
         require(entered == 11000 && left == entered, "entry/return count");
+        const auto enabledEntries=entered,enabledReturns=left;
+        ffx::modEnabled=false;
+        require(cdeclCall(2,3,4)==20 && recursiveCall(5)==15,"disabled hooks preserve original arguments and nested return");
+        require(entered==enabledEntries && left==enabledReturns,"disabled hooks call no readers");
+        ffx::modEnabled=true;
         require(ffx::hookAddress(reinterpret_cast<uintptr_t>(errorCall),4,before,after),"native Windows error-state hook");
         require(ffx::applyAddedHooks(),"enable native Windows error-state hook");
         SetLastError(ERROR_FILE_NOT_FOUND);
@@ -117,6 +124,13 @@ int main() {
         require(ffx::applyAddedHooks(),"ready native register hook batch");
         readyRegisterCaller();
         require(seenReadyEdi && registerValue==1,"native EDI/logical size and stack identity copied without changing original");
+        require(ffx::hookAddress(reinterpret_cast<uintptr_t>(lifetimeCall),0x48d230,before,after),"allocation lifetime hook");
+        require(ffx::applyAddedHooks(),"enable allocation lifetime hook");
+        const auto lifetimeEntries=entered,lifetimeReturns=left;
+        ffx::modEnabled=false;
+        require(lifetimeCall(6)==7,"off lifetime observer preserves original result");
+        require(entered==lifetimeEntries+1 && left==lifetimeReturns+1,"allocation callbacks survive Off and a generation change inside native load");
+        ffx::modEnabled=true;
         ffx::discardHooks();
         VirtualFree(thunks,0,MEM_RELEASE);
         puts("Native x86 hook ABI passed: 11000 mixed calls, Windows error state, runtime hooks, EDX:EAX, original/reader exceptions, generation, x87/SSE.");

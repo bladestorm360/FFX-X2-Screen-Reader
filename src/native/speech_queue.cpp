@@ -1,4 +1,5 @@
 #include "speech_queue.hpp"
+#include "mod_state.hpp"
 #include "speech_domains.hpp"
 #include "settings.hpp"
 #include "process_storage.hpp"
@@ -18,7 +19,7 @@ std::mutex sinkMutex;
 using Sink=std::deque<Utterance>;
 ProcessStorage<Sink> sinkStorage;
 Sink& sink() noexcept {return sinkStorage.get();}
-struct PreparationStorage { std::wstring lastSpeech; Utterance focus; };
+struct PreparationStorage { std::wstring lastSpeech; Utterance focus;unsigned toggleSerial=0; };
 ProcessStorage<PreparationStorage> preparationStorage;
 PreparationStorage& preparation() noexcept {return preparationStorage.get();}
 std::atomic<unsigned> sinkCount{0},mapEpoch{1},inputEpoch{0},modalEpoch{0},tutorialEpoch{0};
@@ -71,6 +72,10 @@ void flushFocus() {
     (void)enqueue(std::move(item));
 }
 void process(Header& captureHeader,std::wstring text) {
+    const auto serial=modToggleSerial.load();
+    if(preparation().toggleSerial!=serial) {
+        preparation().lastSpeech.clear();preparation().focus={};preparation().toggleSerial=serial;
+    }
     if(captureHeader.flags&Control) {
         if(captureHeader.control==TutorialEnd) {if(current(captureHeader)) flushFocus();}
         else if(captureHeader.control==GenerationRecord) {
@@ -85,10 +90,8 @@ void process(Header& captureHeader,std::wstring text) {
         captureHeader.flags=Mod|(captureHeader.flags&Interrupt);
         (void)enqueue({std::move(text),captureHeader});return;
     }
-    // Match producer-time repeat semantics even when this accepted line was
-    // subsequently retired before preparation. Tutorial focus was not the
-    // legacy repeat buffer and remains separate.
-    if((captureHeader.flags&(Mod|Deferred))==0) preparation().lastSpeech=text;
+    const auto floor=modLifetimeEpoch.load();
+    if((captureHeader.flags&(Mod|Deferred))==0 && (!floor || static_cast<int>(captureHeader.generation-floor)>=0)) preparation().lastSpeech=text;
     if(!current(captureHeader)) {release(captureHeader);return;}
     if(captureHeader.flags&Deferred) {
         if(!preparation().focus.text.empty() && preparation().focus.header.tutorial!=captureHeader.tutorial) flushFocus();
@@ -130,6 +133,7 @@ unsigned silenceRequest() noexcept {return stopRequest.load(std::memory_order_ac
 unsigned silenceGeneration() noexcept {return stopMap.load(std::memory_order_acquire);}
 bool pending() noexcept {return sinkCount.load(std::memory_order_acquire)!=0;}
 bool current(const Header& item) noexcept {
+    if(!modEnabled.load() && std::strcmp(item.producer,"mod-toggle")) return false;
     if(item.generation!=generation() || item.cancellation!=inputEpoch.load()) return false;
     if((item.flags&(Mod|Protected))==0 && (item.modal!=modalEpoch.load() || modalActive.load())) return false;
     return true;
@@ -142,6 +146,10 @@ bool take(Utterance& item) {
 }
 bool output(const wchar_t* text,size_t length,bool interrupt,const char* producer,bool voiced,unsigned epoch) {
     if(!text || !length || epoch!=generation()) return false;
+    const bool toggle=producer && !std::strcmp(producer,"mod-toggle") &&
+        ((length==21 && !std::wmemcmp(text,L"Screen reader mod off",21)) ||
+         (length==20 && !std::wmemcmp(text,L"Screen reader mod on",20)));
+    if(!modEnabled.load() && !toggle) return false;
     unsigned flags=(interrupt?Interrupt:0u)|(voiced?Voiced:0u);
     const bool mod=producer && std::strncmp(producer,"mod-",4)==0;
     if(mod) flags|=Mod;
@@ -163,12 +171,14 @@ bool output(const wchar_t* text,size_t length,bool interrupt,const char* produce
     return accepted;
 }
 bool captureDomain(unsigned domain,const void* data,unsigned bytes,const wchar_t* text,unsigned length,unsigned epoch) {
+    if(!modEnabled.load()) return false;
     if(domain>=DomainLimit || bytes%sizeof(wchar_t) || epoch!=generation()) return false;
     auto item=header(Control,"native-domain");item.control=DomainBase+domain;item.generation=epoch;
     const bool accepted=captureParts(item,static_cast<const wchar_t*>(data),bytes/sizeof(wchar_t),text,length);
     wakePreparation();return accepted;
 }
 bool emitOwned(std::wstring text,const Header& anchor,const char* producer,bool voiced,bool interrupt) {
+    if(!modEnabled.load()) return false;
     if(text.empty()) return false;
     auto item=anchor;item.control=None;item.charged=false;item.length=static_cast<unsigned>(text.size());
     unsigned flags=(interrupt?Interrupt:0u)|(voiced?Voiced:0u);
@@ -208,6 +218,7 @@ void interrupt() noexcept {
     wakePreparation();wakeBackend();
 }
 void repeat() {
+    if(!modEnabled.load()) return;
     (void)capture(header(Repeat|Mod|(protectedQueue.load()?0u:Interrupt),"mod-repeat"),nullptr,0);wakePreparation();
 }
 void invalidate(const char* event) {
