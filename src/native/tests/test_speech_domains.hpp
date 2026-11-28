@@ -17,6 +17,7 @@ inline std::map<unsigned,DomainMaintenance> maintenance;
 inline std::map<unsigned,std::pair<DomainProtection,DomainMaintenance>> protection;
 inline std::deque<Pending> pending;
 inline unsigned cancellation=0;
+inline bool modal=false; // Mirrors speechq::modal(); fixtures set it from captureSpeech.
 }
 void registerDomainProtection(unsigned id,DomainProtection fn,DomainMaintenance reset) {fixture::protection[id]={fn,reset};}
 bool domainsProtectSpeech(const Header& header) {
@@ -32,7 +33,7 @@ bool captureDomain(unsigned id,const void* data,unsigned bytes,const wchar_t* te
     if(bytes%sizeof(wchar_t)) return false;
     Header header{};
     header.generation=generation();header.cancellation=fixture::cancellation;
-    header.context=setting(Setting::Speech)?SpeechEnabled:0;
+    header.context=(setting(Setting::Speech)?SpeechEnabled:0u)|(fixture::modal?ModalOpen:0u);
     std::wstring owned(bytes/sizeof(wchar_t),L'\0');
     if(bytes) std::memcpy(owned.data(),data,bytes);
     if(text && length) owned.append(text,length);
@@ -41,6 +42,8 @@ bool captureDomain(unsigned id,const void* data,unsigned bytes,const wchar_t* te
 }
 bool emitOwned(std::wstring text,const Header& header,const char* producer,bool voiced,bool interrupt) {
     if(header.generation!=generation() || header.cancellation!=fixture::cancellation) return false;
+    // Same modal gate as the real emitOwned in speech_queue.cpp.
+    if(!modProducer(producer) && (header.context&ModalOpen)) return false;
     return outputDialogue(text,interrupt,producer,voiced);
 }
 }
