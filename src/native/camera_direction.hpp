@@ -35,4 +35,23 @@ inline const wchar_t* cameraDirectionLabel(Point delta,Point forward,bool valid)
         degree>=-67.5 && degree< -22.5?L"northeast":degree>=-112.5 && degree< -67.5?L"east":
         degree>=-157.5 && degree< -112.5?L"southeast":L"south";
 }
+// Camera-relative clock position plus height, for destination readouts when the
+// Clock directions setting is on. 12 o'clock is camera forward, 3 o'clock right.
+// FFX world y grows downward, so a target with a smaller y is above the player.
+inline std::wstring destinationClockText(Point delta,Point forward,bool valid) {
+    constexpr double heightUnits=22.26; // two steps of 11.13 units
+    const wchar_t* height=delta.y<=-heightUnits?L", above":delta.y>=heightUnits?L", below":L"";
+    std::wstring text;
+    if(std::abs(delta.x)<.01 && std::abs(delta.z)<.01) text=L"here";
+    else if(!valid) return L"unknown";
+    else {
+        constexpr double pi=3.14159265358979323846;
+        double relative=std::atan2(delta.z,delta.x)-std::atan2(forward.z,forward.x);
+        // Positive relative angles are to the left, so clockwise hours count the other way.
+        int hour=static_cast<int>(std::lround(-relative*6/pi))%12;
+        if(hour<=0) hour+=12;
+        text=std::to_wstring(hour)+L" o'clock";
+    }
+    return text+height;
+}
 }

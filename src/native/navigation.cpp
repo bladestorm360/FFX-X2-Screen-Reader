@@ -67,6 +67,16 @@ void stageAirshipPassages(const Scene& copiedScene,const Mesh& mesh,std::vector<
 }
 namespace {
 constexpr double UnitsPerStep=11.13;
+// Destination readouts use compass words, or a camera clock position with height
+// when Clock directions is on. Route legs always keep compass words. After a
+// distance the clock reads "at 2 o'clock" so the hour is not heard as a number.
+std::wstring destinationDirection(Point from,Point to) {
+    const Point delta{to.x-from.x,to.y-from.y,to.z-from.z};
+    if(!setting(Setting::ClockDirections)) return direction({delta.x,0,delta.z});
+    Point forward,right;const bool valid=cameraBasis(forward,right);
+    auto text=destinationClockText(delta,forward,valid);
+    return text.rfind(L"here",0)==0 || text==L"unknown"?text:L"at "+text;
+}
 const wchar_t* categories[]={L"All",L"Exit",L"Event",L"Save Sphere",L"Treasure Chest",L"Shop",L"NPC",L"Object"};
 struct EntityKey {
     bool valid=false,workerKind=false;int index=-1;unsigned id=0,pushControl=0;
@@ -124,7 +134,7 @@ std::wstring instruction(const Entity& target) {
 void announce(const Pending& event,bool interrupt=true,bool index=true) {
     auto& s=owned();const auto rows=filtered();if(rows.empty()) return;if(s.selected>=rows.size()) s.selected=0;
     const auto& target=*rows[s.selected];const auto player=s.observation.player;
-    auto text=label(target)+(target.swimDepth?L". "+nav::sceneSwimmingInstruction(s.observation):(index?L", ":L": ")+decimal(distanceXZ(player,target.position)/UnitsPerStep)+L" steps "+direction({target.position.x-player.x,0,target.position.z-player.z}));
+    auto text=label(target)+(target.swimDepth?L". "+nav::sceneSwimmingInstruction(s.observation):(index?L", ":L": ")+decimal(distanceXZ(player,target.position)/UnitsPerStep)+L" steps "+destinationDirection(player,target.position));
     if(target.inactive) text+=L", currently inactive";text+=nav::reachabilityNote(target,setting(Setting::HideUnreachable)!=0);if(target.pushControl) {const auto side=describePedestalSide(target.position,player);if(!side.empty()) text+=L". "+side;}
     // Totals wait until the room's destination set and reachability verdicts have settled.
     if(index && s.list.totals(setting(Setting::HideUnreachable)!=0,ownedReachabilityChecking()))
@@ -175,7 +185,7 @@ void pathfind(const Pending& event,bool assist=false) {
         else emit(event,label(target)+L": within interaction range. "+(target.inactive?L"Currently inactive. ":L"")+L"Face "+facing,"navigation-facing");return;
     }
     if(s.mesh.triangles.empty() && !s.mesh.openPlane) {
-        resetNavAudio();emit(event,label(target)+L": collision data unavailable. Direct distance "+routeSegmentText(distanceXZ(player,target.position)/UnitsPerStep,direction({target.position.x-player.x,0,target.position.z-player.z}),setting(Setting::PartialSteps)!=0),"navigation-path");
+        resetNavAudio();emit(event,label(target)+L": collision data unavailable. Direct distance "+routeSegmentText(distanceXZ(player,target.position)/UnitsPerStep,destinationDirection(player,target.position),setting(Setting::PartialSteps)!=0),"navigation-path");
         if(assist) intent(event,target,nav::Intent::AssistFailed);return;
     }
     const int start=findTriangle(s.mesh,player),end=target.zone.valid?start:findTriangle(s.mesh,target.position);

@@ -352,6 +352,10 @@ cl /nologo /W4 /EHsc /std:c++17 /MT /Fe:navigation_fixture.exe "%TEST_SRC%naviga
 if not "%errorlevel%"=="0" goto failed
 .\navigation_fixture.exe
 if not "%errorlevel%"=="0" goto failed
+cl /nologo /W4 /WX /EHsc /std:c++17 /MT /Fe:route_format_fixture.exe "%TEST_SRC%route_format_fixture.cpp"
+if not "%errorlevel%"=="0" goto failed
+route_format_fixture.exe
+if not "%errorlevel%"=="0" goto failed
 if /I "%~1"=="--navigation-geometry" goto success
 :pedestal
 cl /nologo /W4 /EHa /std:c++17 /MT /DFFX_READER_TEST /DFFX_RETIREMENT_TEST /Fe:pedestal_fixture.exe "%TEST_SRC%pedestal_fixture.cpp" "%TEST_SRC%..\pedestal_rules.cpp" "%TEST_SRC%..\pedestal_state.cpp" "%TEST_SRC%..\pedestal_keys.cpp" "%TEST_SRC%..\game_binding_input.cpp" "%TEST_SRC%..\pedestal_input.cpp" "%TEST_SRC%..\nav_interactions.cpp" "%TEST_SRC%..\nav_geometry.cpp" "%TEST_SRC%..\nav_zones.cpp" "%TEST_SRC%..\owned_retirement.cpp" /link user32.lib
