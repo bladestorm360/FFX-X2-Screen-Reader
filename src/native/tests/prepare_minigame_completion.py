@@ -71,6 +71,23 @@ for r in records:
     if kind == "ChocoboAssist":
         assert flow["workers"][109]["entries"][2] == targets[0]
         assert flow["workers"][108]["entries"][2] == targets[1]
+        # Catcher: W109:4 only retires the player edge; W109:2 itself would
+        # REQWAIT W0:104's run-on walk, which never arrives from mid-course.
+        assert flow["workers"][109]["entries"][4] == targets[2]
+        edge = sorted((s for b in flow["workers"][109]["blocks"] for s in b["statements"]
+                       if targets[2] <= s["pc"] < targets[2]+8), key=lambda s: s["pc"])
+        assert [(s.get("kind"), s.get("id"), s.get("args")) for s in edge] == [("call", 86, ["0"]), ("end", None, None)]
+        # W72's Catcher results wait for the trainer's level-1 lap (W20:20),
+        # which only advances on player checkpoints. W20:10 ends it with DRET.
+        assert flow["workers"][20]["entries"][10] == targets[3]
+        stop = sorted((s for b in flow["workers"][20]["blocks"] for s in b["statements"]
+                       if targets[3] <= s["pc"] < targets[3]+12), key=lambda s: s["pc"])
+        assert [(s.get("kind"), s.get("id"), s.get("opcode")) for s in stop] == [
+            ("call", 20572, None), ("call", 20512, None), ("end", None, "DRET")]
+        assert any(s.get("id") == 246 and s.get("args") == ["1", "20"]
+                   for b in flow["workers"][72]["blocks"] for s in b["statements"])
+        writable = {b["raw_low"] for b in flow["workers"][82]["bindings"]}
+        assert {0x0c0000b9, 0x0c0000ba, 0x0c0000bb, 0x0c0000c4, 0x0d0000c9} <= writable
         # Negative raw time is the native distinction between displayed zero
         # and the perfect result's persistent eligibility bit.
         branches = [s for b in flow["workers"][72]["blocks"] for s in b["statements"]]

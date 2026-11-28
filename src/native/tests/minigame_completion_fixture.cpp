@@ -198,11 +198,17 @@ void enable(const Case& c) {setSetting(c.setting,1);}
 void success(const Case& c,unsigned course=4,int chosen=1,unsigned foreground=0xffffffffu) {
     if(foreground!=0xffffffffu) put(controller.data()+0xa,static_cast<uint16_t>(foreground));
     const auto writesBefore=mutations;emit(c,0,0,true,true,chosen);check(pending.size()==1 && mutations==writesBefore,"native observation queues without mutation");
-    releasePending();check(mutations>writesBefore && mutations-writesBefore<=8,"bounded original typed writes enter only during invocation");
+    releasePending();check(mutations>writesBefore && mutations-writesBefore<=12,"bounded original typed writes enter only during invocation");
     put(controller.data()+0xa,static_cast<uint16_t>(c.local));
     if(c.setting==Setting::ChocoboAssist) {
-        check(requestCount==(course==4?2u:1u) && receipts[0].local==109 && receipts[0].entry==2,"all courses enter original player finish");
-        if(course==4) check(receipts[1].local==108 && get(c,0x0c0000d3)==1,"Catcher enters original opponent finish with strictly negative raw-time inputs");
+        if(course!=4) check(requestCount==1 && receipts[0].local==109 && receipts[0].entry==2,"courses 1-3 enter original player finish");
+        // Catcher's W109:2 stalls on W0:104's run-on walk; its finish state is
+        // written instead, its edge retired, the trainer's lap ended with W20:10
+        // (W72's results wait for it), and W108:2 ends the race.
+        else check(requestCount==3 && receipts[0].local==109 && receipts[0].entry==4 && receipts[1].local==20 &&
+            receipts[1].entry==10 && receipts[2].local==108 && receipts[2].entry==2 && get(c,0x0c0000d3)==1 && get(c,0x0c0000c4)==1 && (get(c,0x0d0000c9)&6)==2 &&
+            get(c,0x0c0000b9)==0 && get(c,0x0c0000ba)==0 && get(c,0x0c0000bb)==0,
+            "Catcher leaves player-finish state, retires W109's edge, ends the trainer's lap and enters original opponent finish with strictly negative raw-time inputs");
         check(get(c,0x0c0000b0)==0 && get(c,0x0c0000b1)==0 && get(c,0x0c0000b2)==0,"actual timer result operands");
     } else if(c.setting==Setting::RemiemAssist) {
         const auto flags=get(c,0x01000a9b);unsigned expected=5;

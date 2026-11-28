@@ -104,7 +104,18 @@ from0x0d0000c9. Zero the three current timer operands0x0c0000b0..b2, player
 hits0x0c0000d5, trainer balloons0x0c0000d4 and trainer hits0x0c0000d6. Set player
 balloons0x0c0000d3 to1 for Catcher, otherwise0. This gives Catcher a strictly
 negative raw time: displayed0:00 alone does not satisfy the original perfect
-predicate. Request the original player finish, and Catcher's opponent finish.
+predicate. Courses1..3 request the original player finish W109:2. Catcher must
+not: its W109:2 path waits (REQWAIT) on W0:104, a scripted run-on walk to the far
+finish edge, which never arrives from mid-course, so it never sets player-finished
+bit2 and the clock runs to Time's Up (live 2026-11-25). For Catcher, write the
+state W109:2 would leave (time copy0x0c0000b9..bb to0, finish line0x0c0000c4
+to1, bit2 in0x0d0000c9), retire the player edge with W109:4 (collision off
+only), end the trainer's level-1 lap with W20:10 (W72's Catcher results wait on
+W20:20, which only advances on the player's checkpoints; W20:10 stops it with
+DRET, as W109:2 does for courses1..3), then request Catcher's opponent finish
+W108:2, which sees bit2 and runs the native ending (W82:8 clock stop, W0:103,
+results). The "Finish!" banner and
+W89:33 sound of W109:2 do not play on Catcher.
 W72 owns records, native perfect eligibility, reward274 and already-owned guards.
 The first three training stages use their own normal results rather than a
 Catcher-only activation or a guessed displayed-time change.
