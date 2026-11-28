@@ -227,5 +227,16 @@ int main() {
         auto changed=std::vector<ffx::Entity>{row(1,1),row(2,2)};ffx::nav::keepVerdicts(changed,earlier,[](const ffx::Entity& e) {return e.actor;},false);
         check(same[0].unreachable && !changed[0].unreachable,"a room state change drops carried verdicts until the next check");
     }
+    // Battle resume: the fresh scan finds the walked destination again by its facts.
+    {
+        const auto named=[](unsigned id,const wchar_t* name,double x,unsigned push=0) {ffx::Entity e;e.id=id;e.name=name;e.position={x,0,0};e.pushControl=push;return e;};
+        const std::vector<ffx::Entity> rows{named(7,L"Save Sphere",100),named(9,L"Chest",10),named(9,L"Chest",30),named(9,L"Chest",200)};
+        const auto label=[](const ffx::Entity& e){return e.name;};
+        check(ffx::nav::resumeRow(rows,9,0,L"Chest",{32,0,0},label)==2,"resume picks the nearest matching destination to where it was");
+        check(ffx::nav::resumeRow(rows,7,0,L"Save Sphere",{105,0,0},label)==0,"resume finds the same Save Sphere");
+        check(ffx::nav::resumeRow(rows,9,0,L"Chest",{120,0,0},label)==-1,"a destination that is no longer near its old position is not resumed");
+        check(ffx::nav::resumeRow(rows,9,0,L"Door",{10,0,0},label)==-1,"a destination with another name is not resumed");
+        check(ffx::nav::resumeRow(rows,9,3,L"Chest",{10,0,0},label)==-1,"a push target matches only the same push control");
+    }
     std::puts("PASS: synthetic navigation order, insertion/removal, explicit refresh, unreachable selection skip and normalized camera-cut threshold.");
 }

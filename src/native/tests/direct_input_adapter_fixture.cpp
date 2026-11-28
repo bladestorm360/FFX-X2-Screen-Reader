@@ -22,6 +22,7 @@ bool controllerOwned() {return padOwned;}
 bool capturesKey(unsigned vk,bool,bool) {return vk=='N';}
 bool consumeKey(unsigned vk,bool,bool) {SetLastError(9876);return foreground && vk=='N';}
 void autoWalkKeyboard(uint8_t*) {}
+void autoWalkReaderModifier(bool) {}
 void directKeyboard(bool active) {registered=active;SetLastError(8765);}
 bool copy(uintptr_t source,void* target,size_t size) {__try{std::memcpy(target,reinterpret_cast<void*>(source),size);return true;}__except(1){return false;}}
 }

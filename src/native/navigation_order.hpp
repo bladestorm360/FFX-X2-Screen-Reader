@@ -102,4 +102,16 @@ template<class Key,class Lost,class Visible> int rowAfterLoss(const std::vector<
     if(!count) return -1;
     return static_cast<int>(step<0?(before+count-1)%count:before%count);
 }
+// After a battle the destination list is rebuilt. Find the walked destination again by
+// its native id, push control and spoken label, nearest to where it was; a match farther
+// than five steps (55.65 units) is treated as a different object.
+template<class Label> int resumeRow(const std::vector<Entity>& rows,unsigned id,unsigned pushControl,const std::wstring& name,Point position,Label label) {
+    int best=-1;double nearest=55.65;
+    for(size_t i=0;i<rows.size();++i) {
+        const auto& e=rows[i];if(e.id!=id || e.pushControl!=pushControl || label(e)!=name) continue;
+        const double distance=std::hypot(e.position.x-position.x,e.position.z-position.z);
+        if(distance<=nearest) {nearest=distance;best=static_cast<int>(i);}
+    }
+    return best;
+}
 }

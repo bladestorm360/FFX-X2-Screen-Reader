@@ -3,7 +3,7 @@
 #include "speech_domains.hpp"
 #include <atomic>
 namespace ffx::nav {
-enum class Query : unsigned {Refresh,Scan,Next,Previous,Distance,Path,Filter,Beacon,Collision,Motion,AssistRoute,AssistInstruction,GuideStep,GuideNext,GuidePrevious,GuideExpected,GuidePath,GuideCompleted,GuideTileCompleted,GuideTarget};
+enum class Query : unsigned {Refresh,Scan,Next,Previous,Distance,Path,Filter,Beacon,Collision,Motion,AssistRoute,AssistInstruction,GuideStep,GuideNext,GuidePrevious,GuideExpected,GuidePath,GuideCompleted,GuideTileCompleted,GuideTarget,Resume};
 struct QueryObservation {unsigned epoch=0,revision=0,serial=0,requested=0;Query query=Query::Refresh;bool shift=false;unsigned manual=0,intentRevision=0,policyRevision=0,local=0;uintptr_t chunk=0;unsigned resourceSerial=0;};
 struct SceneObservation {const Scene& scene;unsigned requested=0;ULONGLONG capturedAt=0;};
 // Bootstrap registration. Only the central preparation owner invokes consumers.

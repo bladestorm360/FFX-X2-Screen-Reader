@@ -104,6 +104,10 @@ void prepareNavRetirement() {}
 void resetNavAudio() {fixtureRoute=false;}
 void clearNavRoute() {fixtureRoute=false;}
 void stopAutoWalk() {}
+bool toggleAutoWalkOff() {return false;}
+void suspendAutoWalk() {}
+AutoWalkResume fixtureResume=nullptr;
+void setAutoWalkResume(AutoWalkResume handler) {fixtureResume=handler;}
 unsigned autoStarts=0;
 void startAutoWalk() { ++autoStarts; }
 void installAutoWalk() {}
@@ -893,6 +897,14 @@ int main(int argc, char** argv) {
     check(setting(Setting::HideUnreachable)==1 && said.size()==count+2 && said[count].first==L"Hide unreachable destinations: On. Reachability unavailable; destinations remain listed","U enables the saved filter and retains destinations with unknown collision");
     expect(L"Villager, 10.8 steps unknown, 1 of 1","filter preserves the selected destination");
     keys['U'](false);navigationFixturePump(); check(setting(Setting::HideUnreachable)==0,"U restores all destinations");
+    {
+        NativeRouteTarget missing;wcscpy_s(missing.name.data(),missing.name.size(),L"Missing battle destination");
+        missing.id=0xffff;
+        const auto starts=autoStarts;
+        check(fixtureResume && fixtureResume(missing),"native resume callback queues the copied destination");
+        expect(L"Auto walk not resumed: Missing battle destination not found","fresh field observation drops a missing resume destination");
+        check(autoStarts==starts,"a missing destination never restarts Auto walk");
+    }
     mapControlsFixtures(); navigationIdentityRuntimeFixtures();
     setSetting(Setting::PartialSteps,0);
     keys[VK_OEM_5](false); expect(L"Villager: collision data unavailable. Direct distance 11 unknown","navigation no-mesh path fallback uses concise whole distances");

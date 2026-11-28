@@ -33,6 +33,7 @@ void deviceState(Event& e) {
     const bool shift = (keys[DIK_LSHIFT] | keys[DIK_RSHIFT]) & 0x80;
     const bool control = (keys[DIK_LCONTROL] | keys[DIK_RCONTROL]) & 0x80;
     const bool modal=inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive());
+    autoWalkReaderModifier(((keys[DIK_INSERT] | keys[DIK_NUMPAD0] | keys[DIK_CAPITAL]) & 0x80) != 0);
     for (unsigned i = 0; i < keys.size(); ++i) {
         if((keys[i]&0x80) && !(held[i]&0x80)) swallowed[i]=consumeKey(virtualKey(i),shift,control);
         if(modal && (keys[i]&0x80)) swallowed[i]=true;
@@ -59,6 +60,7 @@ void deviceData(Event& e) {
         const bool down = (data & 0x80) != 0, wasDown = (nextHeld[scan] & 0x80) != 0;
         nextHeld[scan] = down ? 0x80 : 0;
         const bool shift=((nextHeld[DIK_LSHIFT] | nextHeld[DIK_RSHIFT]) & 0x80) != 0;
+        if(!peek) autoWalkReaderModifier(((nextHeld[DIK_INSERT] | nextHeld[DIK_NUMPAD0] | nextHeld[DIK_CAPITAL]) & 0x80) != 0);
         const bool control=((nextHeld[DIK_LCONTROL] | nextHeld[DIK_RCONTROL]) & 0x80) != 0;
         if (down && !wasDown) nextSwallowed[scan]=peek?capturesKey(virtualKey(scan),shift,control):consumeKey(virtualKey(scan),shift,control);
         if(inputDialogActive() || (gameFocused() && modMenuActive() && !utilityConsoleActive())) nextSwallowed[scan]=true;
